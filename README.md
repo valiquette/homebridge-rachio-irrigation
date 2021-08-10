@@ -54,9 +54,9 @@ If you see log messages like `Webhook received from an unknown external id`, you
 		"api_key": "12345678-xxxx-yyyy-zzzz-abcdefghijkl",
 		"default_runtime": 3,
 		"use_irrigation_display": true,
-	    "external_IP_address": "xxx.xxx.xxx.xxx",
-        "external_webhook_port": 12453,
-        "internal_webhook_port": 27546,
+	    	"external_IP_address": "xxx.xxx.xxx.xxx",
+        	"external_webhook_port": 12453,
+       		"internal_webhook_port": 27546,
 		"delete_webhooks": false,
 		"platform": "rachio"
 	}
