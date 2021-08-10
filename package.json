@@ -1,0 +1,33 @@
+{
+  "name": "homebridge-rachio-irrigation",
+  "version": "1.0.0",
+  "description": "Rachio Irrigation System platform plugin for [HomeBridge](https://github.com/nfarina/homebridge).",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^0.21.1"
+  },
+  "engines": {
+    "homebridge": ">=1.0.0",
+    "node": ">=12.0.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/valiquette/Homebridge-Rachio-Irrigation.git"
+  },
+  "keywords": [
+    "homebridge-plugin",
+    "homekit",
+    "rachio",
+    "sprinkler",
+    "irrigation"
+  ],
+  "author": "John Valiquette",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/valiquette/Homebridge-Rachio-Irrigation/issues"
+  },
+  "homepage": "https://github.com/valiquette/Homebridge-Rachio-Irrigation#readme"
+}

@@ -1,0 +1,70 @@
+{
+  "pluginAlias": "rachio",
+  "headerDisplay": "Homebridge plugin for Rachio Controllers",
+  "pluginType": "platform",
+  "singular": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Accessory Name:",
+        "description": "Name for the accessory",
+        "type": "string",
+        "required": true,
+        "default": "Rachio"
+      },
+      "api_key": {
+        "title": "Rachio API Key",
+        "description": "Rachio API key, see https://rachio.readme.io/docs/authentication for help.",
+        "type": "string",
+        "required": true,
+        "placeholder": "API KEY"
+      },
+      "default_runtime": {
+        "title": "Default Runtime in Minutes",
+        "description": "Default number of minutes to run zone",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 60,
+        "required": true,
+        "default": 3
+      },
+      "use_irrigation_display": {
+        "title": "Display as Irrigation System in HomeKit",
+        "description": "Display accessory in HomeKit as a irrigation system with sprinker zones. If unchecked; zones will display as single/separate tiles. Changing this will require this accessory to be removed from cache in homebridge settings",
+        "type": "boolean",
+        "required": true,
+        "default": true
+      },
+      "external_IP_address": {
+        "title": "External IP Address",
+        "description": "External IP address for this server, used to receive webhook requests. To find this quick https://www.myexternalip.com may be of help",
+        "type": "string",
+        "format": "ipv4",
+        "required": false,
+        "placeholder": "xxx.xxx.xxx.xxx"
+      },
+      "external_webhook_port": {
+        "title": "External Webhook Port",
+        "description": "External port for receiving webhook requests. Your router will need to forward this port to your internal webhook port.",
+        "type": "number",
+        "required": false,
+        "default": 12453
+      },
+      "internal_webhook_port": {
+        "title": "Internal Webhook Port",
+        "description": "Internal port for receiving webhook requests.",
+        "type": "number",
+        "required": false,
+        "default": 27546
+      },
+      "delete_webhooks": {
+        "title": "Delete current webhook IDs",
+        "description": "Use this if there is a need to delete an old webhook IDs that may be causing problems. Such as errors for 'Webhook received from an unknown external id`",
+        "type": "boolean",
+        "required": false,
+        "default": false
+      }
+    }
+  }
+}
