@@ -39,6 +39,7 @@ class RachioPlatform {
     this.external_webhook_port = config["external_webhook_port"]
     this.internal_webhook_port = config["internal_webhook_port"]
     this.external_webhook_address = "http://"+this.external_IP_address+':'+this.external_webhook_port
+    this.webhook_key='hombridge-'+config["name"]
     this.delete_webhooks = config["delete_webhooks"]
     this.use_irrigation_display=config["use_irrigation_display"]
     this.default_runtime=config["default_runtime"]*60
@@ -89,7 +90,7 @@ class RachioPlatform {
             deviceState= response.data
             this.log('Retrieved Device state %s with a %s running',deviceState.state.state,deviceState.state.desiredState,deviceState.state.firmwareVersion)
               
-            this.rachioapi.configureWebhooks(this.token,this.external_webhook_address,this.delete_webhooks,newDevice.id,PlatformName)
+            this.rachioapi.configureWebhooks(this.token,this.external_webhook_address,this.delete_webhooks,newDevice.id,this.webhook_key)
 
             // Check if device is already loaded from cache
             if (this.accessories[uuid]) {
@@ -162,7 +163,7 @@ class RachioPlatform {
                   case "DESIRED_ACTIVE":
                     myJson={
                       summary: 'Scheduled waterings will now run on controller.' ,
-                      externalId: 'homebridge-'+ PlatformName,
+                      externalId: this.webhook_key,
                       eventType: 'DEVICE_MANUAL_STANDBY_ON_EVENT',
                       type: 'DEVICE_STATUS',
                       title: 'Standby Mode Off',
@@ -174,7 +175,7 @@ class RachioPlatform {
                   case "DESIRED_STANDBY":
                     myJson={
                       summary: 'No scheduled waterings will run on controller.' ,
-                      externalId: 'homebridge-'+ PlatformName,
+                      externalId: this.webhook_key,
                       eventType: 'DEVICE_MANUAL_STANDBY_ON_EVENT',
                       type: 'DEVICE_STATUS',
                       title: 'Standby Mode ON',
@@ -192,7 +193,7 @@ class RachioPlatform {
                   if (service.getCharacteristic(Characteristic.Name).value == 'Standby'){
                     let switchService=service
                     //do somthing with the response
-                    this.log.debug('Updating standby swotch state')
+                    this.log.debug('Updating standby switch state')
                     this.updateSevices(irrigationSystemService,switchService,myJson)
                   } 
                   return
@@ -213,7 +214,7 @@ class RachioPlatform {
                   zoneId: response.data.zoneId,
                   zoneRunState: 'STARTED',
                   durationInMinutes: response.data.zoneDuration/60,
-                  externalId: 'homebridge-'+ PlatformName,
+                  externalId: this.webhook_key,
                   eventType: 'DEVICE_ZONE_RUN_STARTED_EVENT',
                   subType: 'ZONE_STARTED',
                   startTime: response.data.zoneStartDate,
@@ -492,7 +493,7 @@ class RachioPlatform {
     case "Run All": 
       if (value){
         switchService.getCharacteristic(Characteristic.On).updateValue(true)
-        this.rachioapi.startMultipleZone (this.token,device.zones,default_runtime)
+        this.rachioapi.startMultipleZone (this.token,device.zones,this.default_runtime)
       } 
       else {
         switchService.getCharacteristic(Characteristic.On).updateValue(false)
@@ -506,8 +507,7 @@ class RachioPlatform {
 
 configureListener(){
   if (this.external_webhook_address && this.internal_webhook_port) {
-    let webhook_key = 'homebridge-'+ PlatformName
-    this.log.debug('Will listen for Webhooks matching Webhook ID %s',webhook_key)
+    this.log.debug('Will listen for Webhooks matching Webhook ID %s',this.webhook_key)
     requestServer = http.createServer((request, response) => {
       if (request.method === 'GET' && request.url === '/test') {
         this.log.info('Test received. Webhooks are configured correctly!')
@@ -525,7 +525,7 @@ configureListener(){
             body = Buffer.concat(body).toString().trim()
             this.log.debug('webhook request received from < %s > %s',jsonBody.externalId,jsonBody)
 
-            if (jsonBody.externalId === webhook_key) {
+            if (jsonBody.externalId === this.webhook_key) {
             let irrigationAccessory = this.accessories[jsonBody.deviceId];
             let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
             irrigationAccessory.services.forEach((service)=>{
