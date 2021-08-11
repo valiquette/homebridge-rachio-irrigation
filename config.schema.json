@@ -46,14 +46,14 @@
       },
       "external_webhook_port": {
         "title": "External Webhook Port",
-        "description": "External port for receiving webhook requests. Your router will need to forward this port to your internal webhook port.",
+        "description": "External port or source for receiving webhook requests. Your router will need to forward this port to your internal webhook port.",
         "type": "number",
         "required": false,
         "default": 12453
       },
       "internal_webhook_port": {
         "title": "Internal Webhook Port",
-        "description": "Internal port for receiving webhook requests.",
+        "description": "Internal port or destination for receiving webhook requests.",
         "type": "number",
         "required": false,
         "default": 27546
