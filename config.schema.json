@@ -22,7 +22,7 @@
       },
       "default_runtime": {
         "title": "Default Runtime in Minutes",
-        "description": "Default number of minutes to run zone",
+        "description": "Default number of minutes to run zone if not provided",
         "type": "integer",
         "minimum": 1,
         "maximum": 60,
