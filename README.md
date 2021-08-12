@@ -22,8 +22,8 @@ This plugin provides 3 options for use in HomeKit<br>Both option have extra swit
   <img width=260 src="images/IMG_3913.PNG"/>
  </div align="left">
 </p>
-<br>There are plus and minus to each so why not have options
-<br>Changing this setting in Homebridge will require the accessory to be removed from cache and you may need to reopen Homekit
+<br>There are plus and minus to each, so why not have options.
+<br>Changing this setting in Homebridge will require the accessory to be removed from cache and you may need to reopen Homekit.
 
 
 # API Key
@@ -37,7 +37,7 @@ You can acquire your API key from Rachio io.app [documented here](https://rachio
 
 In order to support webhooks
 <br>You must know your external network IP address. [You can discover it here](https://www.myexternalip.com) to be entered in the config as the "external_Webhook_address"
-<br>You must enable port fowarding on your router this server is conected to. Follow you routers instruction
+<br>You must enable port fowarding on your router this server is conected to. Follow you routers instructions for this set.
 <br>The port forwarding should look like external_webhook_port -> internal_port for your servers IP address which can be found on the Homebridge Status page in system information
 <br>The startup log will show if the configuration is correct and working.
 
