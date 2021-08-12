@@ -59,12 +59,12 @@ class RachioPlatform {
     }).then(response=> {
       this.log.debug('retrieved %s configured %s',response.data,this.external_IP_address) 
       this.realExternalIP=response.data
-      if (this.realExternalIP != this.external_IP_address){
+      if (this.external_IP_address && this.realExternalIP != this.external_IP_address){
         this.log.error('Configured external IP of %s does not match this servers detected external IP of %s',this.external_IP_address,this.realExternalIP)
      }
      if(!this.external_IP_address){
        this.external_IP_address=this.realExternalIP
-       this.log.warn('Attempting to use self discovered IP address')
+       this.log.warn('Attempting to use self discovered IP address %s',this.realExternalIP)
      }
     }).catch(err => {this.log.error('Failed to get current external IP', err)}) 
 
