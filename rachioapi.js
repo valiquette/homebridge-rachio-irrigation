@@ -155,9 +155,8 @@ RachioAPI.prototype={
     }catch(err) {this.log.error('Error Starting Multiple Zones %s', err)}
   },
 
-  configureWebhooks: async function(token,external_webhook_address,delete_webhooks,device_Id,platformName) {
+  configureWebhooks: async function(token,external_webhook_address,delete_webhooks,device_Id,webhook_key) {
     try {
-      let webhook_key = 'homebridge-'+ platformName
       this.log.info('Configuring Rachio webhooks for controller ID %s',device_Id)    
       let response = await axios({
         method: 'get',
@@ -231,7 +230,9 @@ RachioAPI.prototype={
       const test_webhook_url = external_webhook_address + '/test'
       if (response && response.status === 200) {
         this.log.info('Successfully configured webhook with external ID "%s" ', webhook_key)
-        this.log.info('Test Webhook setup, click on  %s  to ensure port forwarding is configured correctly.',test_webhook_url)
+        this.log.info('To test Webhook setup, navagate to  %s  to ensure port forwarding is configured correctly.'
+                      +'This will not work from this server, you cannot be connect to the same router doing the fowarding.'
+                      +' Best to use a cell phone with WiFi off.',test_webhook_url)
       }
       return 
     }catch(err) {this.log.error('Error configuring webhook ' + err)}

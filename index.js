@@ -44,12 +44,30 @@ class RachioPlatform {
     this.use_irrigation_display=config["use_irrigation_display"]
     this.default_runtime=config["default_runtime"]*60
     this.accessories = []
+    this.realExternalIP
+
     if (!this.token) {
       this.log.error('API KEY is required in order to communicate with the Rachio API, please see https://rachio.readme.io/docs/authentication for instructions')
     }
     else {
-      this.log('Starting Rachio Platform with homebridge API', api.version);
-    
+      this.log('Starting Rachio Platform with homebridge API', api.version)
+    }
+    axios({
+      method: 'get',
+      url: 'http://myexternalip.com/raw',
+      responseType: 'json'
+    }).then(response=> {
+      this.log.debug('retrieved %s configured %s',response.data,this.external_IP_address) 
+      this.realExternalIP=response.data
+      if (this.realExternalIP != this.external_IP_address){
+        this.log.error('Configured external IP of %s does not match this servers detected external IP of %s',this.external_IP_address,this.realExternalIP)
+     }
+     if(!this.external_IP_address){
+       this.external_IP_address=this.realExternalIP
+       this.log.warn('Attempting to use self discovered IP address')
+     }
+    }).catch(err => {this.log.error('Failed to get current external IP', err)}) 
+
     //** 
     //** Platforms should wait until the "didFinishLaunching" event has fired before registering any new accessories.
     //** 
@@ -62,7 +80,6 @@ class RachioPlatform {
         }.bind(this))     
       }
     }
-  }
 
   identify (){
     this.log("Identify the sprinkler!")
@@ -510,7 +527,7 @@ configureListener(){
     this.log.debug('Will listen for Webhooks matching Webhook ID %s',this.webhook_key)
     requestServer = http.createServer((request, response) => {
       if (request.method === 'GET' && request.url === '/test') {
-        this.log.info('Test received. Webhooks are configured correctly!')
+        this.log.info('Test received on Rachio listener. Webhooks are configured correctly!')
         response.writeHead(200)
         response.write('Webhooks are configured correctly!')
         return response.end()

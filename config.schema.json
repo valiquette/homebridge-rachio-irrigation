@@ -66,5 +66,36 @@
         "default": false
       }
     }
-  }
+  },
+  "layout": [
+    {
+      "type": "flex",
+      "flex-flow": "row wrap",
+      "items": [
+        "name",
+        "api_key",
+        "default_runtime",
+        "use_irrigation_display"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "Webhooks",
+      "expandable": true,
+      "items": [
+        "external_IP_address",
+        "external_webhook_port",
+        "internal_webhook_port",
+      {
+          "key": "options",
+          "add": "Add Another Option",
+          "type": "fieldset",
+          "expandable": true,
+          "items": [
+            "delete_webhooks"
+          ]
+        }
+      ]
+    }
+  ]
 }
