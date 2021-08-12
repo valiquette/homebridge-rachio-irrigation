@@ -60,7 +60,7 @@
       },
       "delete_webhooks": {
         "title": "Delete current webhook IDs",
-        "description": "Use this if there is a need to delete an old webhook IDs that may be causing problems. Such as errors for 'Webhook received from an unknown external id`",
+        "description": "Use this if there is a need to delete current webhook IDs that may be causing problems. Such as errors for 'Webhook received from an unknown external id`",
         "type": "boolean",
         "required": false,
         "default": false
