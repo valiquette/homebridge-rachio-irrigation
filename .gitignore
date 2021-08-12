@@ -1,2 +1,8 @@
+# System Files
 .DS_Store
-./node_modules
+Thumbs.db
+~/,node_modules
+
+# Dependency directories
+node_modules/
+jspm_packages/
