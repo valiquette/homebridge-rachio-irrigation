@@ -75,7 +75,6 @@ class RachioPlatform {
         this.api = api;
         this.api.on("didFinishLaunching", function () {
           //Get devices
-          //this.configureAccessory()
           this.getRachioDevices()
         }.bind(this))     
       }
@@ -529,7 +528,7 @@ configureListener(){
       if (request.method === 'GET' && request.url === '/test') {
         this.log.info('Test received on Rachio listener. Webhooks are configured correctly!')
         response.writeHead(200)
-        response.write('Webhooks are configured correctly!')
+        response.write( new Date().toTimeString()+' Webhooks are configured correctly!')
         return response.end()
       } 
       else if (request.method === 'POST' && request.url === '/') {
