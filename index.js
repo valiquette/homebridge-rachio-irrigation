@@ -1,6 +1,6 @@
 /* todo list
 
-known issues
+known issues 
 Time remaining for homebridge accessory runs about 2x fast but homekit is fine
 Pause states not reflected corrrecly in homebridge but ok in homekit 
 
