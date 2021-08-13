@@ -38,7 +38,7 @@
       },
       "external_IP_address": {
         "title": "External IP Address",
-        "description": "External IP address for this server, used to receive webhook requests. To find this quick try https://www.myexternalip.com or you may leave this blank to use self discovered address.",
+        "description": "External IP address for this server, used to receive webhook requests. To find this quick try https://www.myexternalip.com .",
         "type": "string",
         "format": "ipv4",
         "required": false,
