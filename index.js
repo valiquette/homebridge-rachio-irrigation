@@ -161,12 +161,12 @@ class RachioPlatform {
               })
               this.log.debug('adding new run all switch')
               let switchService
-              switchService = this.createSwitchService('Run All')
+              switchService = this.createSwitchService(newDevice,'Run All')
               this.configureSwitchService(newDevice, switchService)
               irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService) 
               irrigationAccessory.addService(switchService);
               this.log.debug('adding new standby switch')
-              switchService = this.createSwitchService('Standby')
+              switchService = this.createSwitchService(newDevice,'Standby')
               this.configureSwitchService(newDevice, switchService)
               irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService) 
               irrigationAccessory.addService(switchService);
@@ -465,7 +465,7 @@ class RachioPlatform {
   getValveValue(valveService, characteristicName, callback) {
     switch (characteristicName) {
       case "ValveActive":
-        this.log.debug("%s = %s %s", valveService.getCharacteristic(Characteristic.Name).value, characteristicName,valveService.getCharacteristic(Characteristic.Active).value)
+        //this.log.debug("%s = %s %s", valveService.getCharacteristic(Characteristic.Name).value, characteristicName,valveService.getCharacteristic(Characteristic.Active).value)
         if (valveService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
           callback('error')
         }
@@ -501,12 +501,7 @@ class RachioPlatform {
   }
 
   setValveValue(device, valveService, value, callback) {
-    this.log.debug("_setValueActive", valveService.getCharacteristic(Characteristic.Name).value, value);
-    this.log.debug('%s - Set Active state to %s', valveService.getCharacteristic(Characteristic.Name).value, value) 
-    //if (valveService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
-    //  callback('error')
-    //}
-    //else{
+    //this.log.debug('%s - Set Active state to %s', valveService.getCharacteristic(Characteristic.Name).value, value) 
       let irrigationAccessory = this.accessories[device.id];
       let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
       
@@ -530,16 +525,21 @@ class RachioPlatform {
     //}
   }
 
-  createSwitchService(switchName) {
+  createSwitchService(device,switchName) {
     // Create Valve Service
     this.log.debug('adding new switch')
     let uuid = this.api.hap.uuid.generate(switchName)
     let switchService = new Service.Switch(switchName, uuid) 
     switchService.addCharacteristic(Characteristic.ConfiguredName)
+    switchService.addCharacteristic(Characteristic.ManuallyDisabled)
     switchService 
       .setCharacteristic(Characteristic.On, false)
       .setCharacteristic(Characteristic.Name, switchName)
+      .setCharacteristic(Characteristic.ProductData, device.id)
       .setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
+    if (switchName=="Standby"){
+      switchService.setCharacteristic(Characteristic.ManuallyDisabled,true)
+    }  
     return switchService
   }
 
@@ -623,14 +623,20 @@ configureListener(){
               let irrigationAccessory = this.accessories[jsonBody.deviceId];
               let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
               irrigationAccessory.services.forEach((service)=>{
-                //this.log.debug(service.getCharacteristic(Characteristic.Name).value,service.getCharacteristic(Characteristic.SerialNumber).value,service.getCharacteristic(Characteristic.ProductData).value)
+                this.log.debug(service.getCharacteristic(Characteristic.Name).value,service.getCharacteristic(Characteristic.SerialNumber).value,service.getCharacteristic(Characteristic.ProductData).value,service.getCharacteristic(Characteristic.ManuallyDisabled).value)
                 if (jsonBody.integrationState && service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.zoneId){
                   let foundService=service
                   //do somthing with the response
                   this.log.debug('Webhook match found for %s will update zone services',jsonBody.zoneName)
                   this.updateSevices(irrigationSystemService,foundService,jsonBody)
                 }
-                else if (jsonBody.integrationState==undefined && service.getCharacteristic(Characteristic.ProductData).value == jsonBody.deviceId){        
+                else if (jsonBody.integrationState == undefined && jsonBody.category == "DEVICE" && service.getCharacteristic(Characteristic.ProductData).value == jsonBody.deviceId && service.getCharacteristic(Characteristic.ManuallyDisabled).value==true){        
+                  let foundService=service
+                  //do somthing with the response
+                  this.log.debug('Webhook match found for %s will update device services',jsonBody.deviceName)
+                  this.updateSevices(irrigationSystemService,foundService,jsonBody)
+                } 
+                else if (jsonBody.integrationState == undefined && jsonBody.category == "SCHEDULE" && service.getCharacteristic(Characteristic.ProductData).value == jsonBody.deviceId && service.getCharacteristic(Characteristic.ManuallyDisabled).value==false){        
                   let foundService=service
                   //do somthing with the response
                   this.log.debug('Webhook match found for %s will update device services',jsonBody.deviceName)
