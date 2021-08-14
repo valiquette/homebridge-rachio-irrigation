@@ -13,7 +13,7 @@ function RachioAPI (platform,log){
 
 RachioAPI.prototype={
 
-    getPersonInfo:  async function(token) {
+  getPersonInfo:  async function(token) {
     try {  
       this.log.debug('Retrieving Person ID')
         const response = await axios({
@@ -102,10 +102,27 @@ RachioAPI.prototype={
           duration: runtime
         },
         responseType: 'json'
-      }).catch(err => {this.log.error('Error sending start %s', err)})
+      }).catch(err => {this.log.error('Error sending start zone %s', err)})
       this.log.debug('start response',response.status)
       return  response
     }catch(err) {this.log.error('Error Starting Zone %s', err)}
+  },
+
+  startSchedule: async function(token,schedule) {
+    try {
+      this.log.debug('Starting Schedule',schedule)
+      const response = await axios({
+        method: 'put',
+        url: api_endpoint+'zone/start',
+        headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        data:{
+          schedule
+        },
+        responseType: 'json'
+      }).catch(err => {this.log.error('Error sending start schedule %s', err)})
+      this.log.debug('start response',response.status)
+      return  response
+    }catch(err) {this.log.error('Error Starting Schedule %s', err)}
   },
 
   stopDevice: async function(token,deviceId) {

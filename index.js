@@ -74,6 +74,8 @@ class RachioPlatform {
     if (api) {
         this.api = api;
         this.api.on("didFinishLaunching", function () {
+          //this.api.unregisterPlatformAccessories(PluginName, PlatformName, this.accessories)
+          //this.accessories=[]
           //Get devices
           this.getRachioDevices()
         }.bind(this))     
@@ -171,7 +173,7 @@ class RachioPlatform {
               this.api.registerPlatformAccessories(PluginName, PlatformName, [irrigationAccessory])
               this.accessories[uuid] = irrigationAccessory
             }
-            /*
+            
               //set current device status  
               //create a fake webhook response 
               if(newDevice.status){
@@ -209,7 +211,7 @@ class RachioPlatform {
                   return
                 })
             }
-            */
+            
               //set current device state  
               //create a fake webhook response 
               if(deviceState.state.health=='GOOD'){
@@ -719,7 +721,7 @@ configureListener(){
                 irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE) 
                 activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
                 activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
-                activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(jsonBody.duration)
+                activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(jsonBody.duration) //may need check on duration < 3600
                 activeService.getCharacteristic(Characteristic.CurrentTime).updateValue(jsonBody.endTime) // Store zone run end time to calulate remaianing duration
                 break;
               case "ZONE_STOPPED":
@@ -761,7 +763,7 @@ configureListener(){
           let irrigationAccessory = this.accessories[jsonBody.deviceId]
           switch(jsonBody.subType){
             case 'ONLINE':
-              this.log('%s reconnected at %s',jsonBody.deviceId,jsonBody.timestamp)
+              this.log('%s connected at %s',jsonBody.deviceId,new Date(jsonBody.timestamp).toString())
                 irrigationAccessory.services.forEach((service)=>{
                 service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
                 service.getCharacteristic(Characteristic.Active).getValue()
@@ -769,7 +771,7 @@ configureListener(){
               irrigationSystemService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
               break;
             case 'COLD_REBOOT':
-              this.log('%s connected at %s from %s',jsonBody.deviceName,jsonBody.timestamp,jsonBody.title)
+              this.log('Device,%s connected at %s from %s',jsonBody.deviceName,new Date(jsonBody.timestamp).toString(),jsonBody.title)
                 irrigationAccessory.services.forEach((service)=>{
                 service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
                 service.getCharacteristic(Characteristic.Active).getValue()
