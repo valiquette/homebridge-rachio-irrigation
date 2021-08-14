@@ -335,10 +335,10 @@ class RachioPlatform {
     this.log.info('Configure Irrigation service for %s', irrigationSystemService.getCharacteristic(Characteristic.Name).value)
     // Configure IrrigationSystem Service
     irrigationSystemService 
-      //.setCharacteristic(Characteristic.ProductData, device.id)
+      .setCharacteristic(Characteristic.ProductData, device.id)
       .setCharacteristic(Characteristic.Active, Characteristic.Active.ACTIVE)
       .setCharacteristic(Characteristic.InUse, Characteristic.InUse.NOT_IN_USE)
-      //.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
+      .setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
       .setCharacteristic(Characteristic.RemainingDuration, 0)
     // Check if the device is connected
     switch (device.status) {
@@ -620,9 +620,7 @@ configureListener(){
             let irrigationAccessory = this.accessories[jsonBody.deviceId];
             let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
             irrigationAccessory.services.forEach((service)=>{
-              //this.log.debug(service.getCharacteristic(Characteristic.Name).value)
-              //this.log.debug(service.getCharacteristic(Characteristic.SerialNumber).value,jsonBody.zoneId)
-              //this.log.debug(service.getCharacteristic(Characteristic.ProductData).value,jsonBody.device.id)
+              //this.log.debug(service.getCharacteristic(Characteristic.Name).value,service.getCharacteristic(Characteristic.SerialNumber).value,service.getCharacteristic(Characteristic.ProductData).value)
               if (jsonBody.integrationState && service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.zoneId){
               //if (service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.zoneId){
                 let foundService=service
@@ -630,7 +628,7 @@ configureListener(){
                 this.log.debug('Webhook match found for %s will update zone services',jsonBody.zoneName)
                 this.updateSevices(irrigationSystemService,foundService,jsonBody)
               }
-              else if (jsonBody.integrationState == null && service.getCharacteristic(Characteristic.ProductData).value == jsonBody.deviceId){        
+              else if (jsonBody.integrationState==undefined && service.getCharacteristic(Characteristic.ProductData).value == jsonBody.deviceId){        
               //else if (service.getCharacteristic(Characteristic.ProductData).value == jsonBody.deviceId){
                 let foundService=service
                 //do somthing with the response
@@ -781,38 +779,47 @@ configureListener(){
           let irrigationAccessory = this.accessories[jsonBody.deviceId]
           switch(jsonBody.subType){
             case 'ONLINE':
-              this.log('%s connected at %s %s',jsonBody.deviceId,jsonBody.timestamp,jsonBody.network)
+              this.log('%s reconnected at %s',jsonBody.deviceId,jsonBody.timestamp)
                 irrigationAccessory.services.forEach((service)=>{
                 this.log.warn(service.getCharacteristic(Characteristic.Name).value)
                 service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
                 service.getCharacteristic(Characteristic.Active).getValue()
               })
               irrigationSystemService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
-            break;
-              case 'OFFLINE':
-              this.log('%s disconnected at %s',jsonBody.deviceId,jsonBody.timestamp)
-              this.log.error('%s disconnected at %s This will show as non-responding in Homekit untill the connection is restored',jsonBody.deviceId,jsonBody.timestamp)
+              break;
+            case 'COLD_REBOOT':
+              this.log('%s connected at %s from %s',jsonBody.deviceName,jsonBody.timestamp,jsonBody.title)
                 irrigationAccessory.services.forEach((service)=>{
-                this.log.warn(service.getCharacteristic(Characteristic.Name).value,service.getCharacteristic(Characteristic.ProductData).value,service.getCharacteristic(Characteristic.SerialNumber).value)
-                service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
+                this.log.warn(service.getCharacteristic(Characteristic.Name).value)
+                service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
                 service.getCharacteristic(Characteristic.Active).getValue()
               })
+              irrigationSystemService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
+              break;
+            case 'OFFLINE':
+              this.log('%s disconnected at %s',jsonBody.deviceId,jsonBody.timestamp)
+              this.log.warn('%s disconnected at %s This will show as non-responding in Homekit untill the connection is restored',jsonBody.deviceId,jsonBody.timestamp)
+                irrigationAccessory.services.forEach((service)=>{
+                  this.log.warn(service.getCharacteristic(Characteristic.Name).value,service.getCharacteristic(Characteristic.ProductData).value,service.getCharacteristic(Characteristic.SerialNumber).value)
+                  service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
+                  service.getCharacteristic(Characteristic.Active).getValue()
+              })
               irrigationSystemService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
-            break;
-              case "SLEEP_MODE_ON"://ProgramMode 0 
+              break;
+            case "SLEEP_MODE_ON"://ProgramMode 0 
               this.log('%s %s %s',jsonBody.title,jsonBody.deviceName,jsonBody.summary)
               activeService.getCharacteristic(Characteristic.On).updateValue(true)
               irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED)
-            break;
-              case "SLEEP_MODE_OFF"://ProgramMode 2
+             break;
+            case "SLEEP_MODE_OFF"://ProgramMode 2
               this.log('%s %s %s',jsonBody.title,jsonBody.deviceName,jsonBody.summary)
               activeService.getCharacteristic(Characteristic.On).updateValue(false)
               irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.PROGRAM_SCHEDULED_MANUAL_MODE_)
-             break;
+              break;
             default: //ProgramMode 1
             this.log('%s ??? mode',jsonBody.deviceId)
               irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.PROGRAM_SCHEDULED)
-             break;
+              break;
             }
          break;
         case "SCHEDULE_STATUS":
