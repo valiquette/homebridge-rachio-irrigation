@@ -11,6 +11,7 @@ const axios = require('axios')
 const http = require('http')
 const packageJson = require('./package')
 const RachioAPI = require('./rachioapi')
+const LocalUpdate = require('./localupdate')
 let PlatformAccessory, Service, Characteristic, UUIDGen
 let PluginName,PlatformName
 let personInfo
@@ -32,6 +33,7 @@ module.exports = (homebridge) => {
 class RachioPlatform {
   constructor(log, config, api) {
     this.rachioapi = new RachioAPI(this,log)
+    this.localUpdate = new LocalUpdate(this,log,PlatformAccessory,Service,Characteristic)
     this.log = log;
     this.config = config;
     this.token = config["api_key"]
@@ -173,7 +175,7 @@ class RachioPlatform {
               this.api.registerPlatformAccessories(PluginName, PlatformName, [irrigationAccessory])
               this.accessories[uuid] = irrigationAccessory
             }
-            
+              //this.localUpdate.setOnlineStatus(this.irrigationAccessory,this.accessories,newDevice)
               //set current device status  
               //create a fake webhook response 
               if(newDevice.status){
@@ -771,7 +773,7 @@ configureListener(){
               irrigationSystemService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
               break;
             case 'COLD_REBOOT':
-              this.log('Device,%s connected at %s from %s',jsonBody.deviceName,new Date(jsonBody.timestamp).toString(),jsonBody.title)
+              this.log('Device,%s connected at %s from a %s',jsonBody.deviceName,new Date(jsonBody.timestamp).toString(),jsonBody.title)
                 irrigationAccessory.services.forEach((service)=>{
                 service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
                 service.getCharacteristic(Characteristic.Active).getValue()
