@@ -320,6 +320,7 @@ class RachioPlatform {
     }
     // Create AccessoryInformation Service
     newPlatformAccessory.getService(Service.AccessoryInformation)
+      .setCharacteristic(Characteristic.ProductData, device.id)
       .setCharacteristic(Characteristic.Name, device.name)
       .setCharacteristic(Characteristic.Manufacturer, 'Rachio')
       .setCharacteristic(Characteristic.SerialNumber, device.serialNumber)
@@ -335,7 +336,6 @@ class RachioPlatform {
     this.log.info('Configure Irrigation service for %s', irrigationSystemService.getCharacteristic(Characteristic.Name).value)
     // Configure IrrigationSystem Service
     irrigationSystemService 
-      .setCharacteristic(Characteristic.ProductData, device.id)
       .setCharacteristic(Characteristic.Active, Characteristic.Active.ACTIVE)
       .setCharacteristic(Characteristic.InUse, Characteristic.InUse.NOT_IN_USE)
       .setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
@@ -616,42 +616,25 @@ configureListener(){
             body = Buffer.concat(body).toString().trim()
             this.log.debug('webhook request received from < %s > %s',jsonBody.externalId,jsonBody)
             if (jsonBody.externalId === this.webhook_key) {
-            let irrigationAccessory = this.accessories[jsonBody.deviceId];
-            let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
-            irrigationAccessory.services.forEach((service)=>{
-              //this.log.debug(service.getCharacteristic(Characteristic.Name).value,service.getCharacteristic(Characteristic.SerialNumber).value,service.getCharacteristic(Characteristic.ProductData).value)
-              if (jsonBody.integrationState && service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.zoneId){
-              //if (service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.zoneId){
-                let foundService=service
-                //do somthing with the response
-                this.log.debug('Webhook match found for %s will update zone services',jsonBody.zoneName)
-                this.updateSevices(irrigationSystemService,foundService,jsonBody)
-              }
-              else if (jsonBody.integrationState==undefined && service.getCharacteristic(Characteristic.ProductData).value == jsonBody.deviceId){        
-              //else if (service.getCharacteristic(Characteristic.ProductData).value == jsonBody.deviceId){
-                let foundService=service
-                //do somthing with the response
-                this.log.debug('Webhook match found for %s will update device services',jsonBody.deviceName)
-                this.updateSevices(irrigationSystemService,foundService,jsonBody)
-              } 
-              /*         
-              else if(service.getCharacteristic(Characteristic.Name).value =='Run All' && (jsonBody.eventType=='SCHEDULE_COMPLETED_EVENT'|| jsonBody.eventType=='SCHEDULE_STARTED_EVENT')){
-                let foundService=service
-                //do somthing with the response
-                this.log.debug('Webhook match found for %s will update run all service',jsonBody.deviceName)
-                this.updateSevices(irrigationSystemService,foundService,jsonBody)
-              }
-              else if(service.getCharacteristic(Characteristic.Name).value =='Standby'&& (jsonBody.eventType=='DEVICE_MANUAL_STANDBY_ON_EVENT' || jsonBody.eventType=='DEVICE_MANUAL_STANDBY_OFF_EVENT')){
-                let foundService=service
-                //do somthing with the response
-                this.log.debug('Webhook match found for %s will update standby service',jsonBody.deviceName)
-                this.updateSevices(irrigationSystemService,foundService,jsonBody)
-              }
-              */
-              response.writeHead(204)
-              return response.end()
-            })
-
+              let irrigationAccessory = this.accessories[jsonBody.deviceId];
+              let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
+              irrigationAccessory.services.forEach((service)=>{
+                //this.log.debug(service.getCharacteristic(Characteristic.Name).value,service.getCharacteristic(Characteristic.SerialNumber).value,service.getCharacteristic(Characteristic.ProductData).value)
+                if (jsonBody.integrationState && service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.zoneId){
+                  let foundService=service
+                  //do somthing with the response
+                  this.log.debug('Webhook match found for %s will update zone services',jsonBody.zoneName)
+                  this.updateSevices(irrigationSystemService,foundService,jsonBody)
+                }
+                else if (jsonBody.integrationState==undefined && service.getCharacteristic(Characteristic.ProductData).value == jsonBody.deviceId){        
+                  let foundService=service
+                  //do somthing with the response
+                  this.log.debug('Webhook match found for %s will update device services',jsonBody.deviceName)
+                  this.updateSevices(irrigationSystemService,foundService,jsonBody)
+                } 
+                response.writeHead(204)
+                return response.end()
+              })
             } 
             else {
             this.log.warn('Webhook received from an unknown external id %s',jsonBody.externalId)
@@ -665,7 +648,7 @@ configureListener(){
               response.writeHead(404)
               return response.end()
           }
-          })
+        })
        } 
       })
       requestServer.listen(this.internal_webhook_port, function () {
@@ -780,7 +763,6 @@ configureListener(){
             case 'ONLINE':
               this.log('%s reconnected at %s',jsonBody.deviceId,jsonBody.timestamp)
                 irrigationAccessory.services.forEach((service)=>{
-                this.log.warn(service.getCharacteristic(Characteristic.Name).value)
                 service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
                 service.getCharacteristic(Characteristic.Active).getValue()
               })
@@ -789,7 +771,6 @@ configureListener(){
             case 'COLD_REBOOT':
               this.log('%s connected at %s from %s',jsonBody.deviceName,jsonBody.timestamp,jsonBody.title)
                 irrigationAccessory.services.forEach((service)=>{
-                this.log.warn(service.getCharacteristic(Characteristic.Name).value)
                 service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
                 service.getCharacteristic(Characteristic.Active).getValue()
               })
@@ -799,7 +780,6 @@ configureListener(){
               this.log('%s disconnected at %s',jsonBody.deviceId,jsonBody.timestamp)
               this.log.warn('%s disconnected at %s This will show as non-responding in Homekit untill the connection is restored',jsonBody.deviceId,jsonBody.timestamp)
                 irrigationAccessory.services.forEach((service)=>{
-                  this.log.warn(service.getCharacteristic(Characteristic.Name).value,service.getCharacteristic(Characteristic.ProductData).value,service.getCharacteristic(Characteristic.SerialNumber).value)
                   service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
                   service.getCharacteristic(Characteristic.Active).getValue()
               })
