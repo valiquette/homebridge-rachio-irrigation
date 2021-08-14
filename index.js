@@ -383,12 +383,12 @@ class RachioPlatform {
     switch (characteristicName) {
       case "DeviceActive":
         //this.log.debug("%s = %s %s", irrigationSystemService.getCharacteristic(Characteristic.Name).value, characteristicName,irrigationSystemService.getCharacteristic(Characteristic.Active).value);
-        //if (irrigationSystemService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
-         // callback('error')
-        //}
-        //else{
+        if (irrigationSystemService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+          callback('error')
+        }
+        else{
           callback(null, irrigationSystemService.getCharacteristic(Characteristic.Active).value)
-        //}
+        }
         break;    
       case "DeviceInUse":
         //this.log.debug("%s = %s %s", irrigationSystemService.getCharacteristic(Characteristic.Name).value, characteristicName,irrigationSystemService.getCharacteristic(Characteristic.InUse).value);
@@ -408,7 +408,6 @@ class RachioPlatform {
   setDeviceValue(device,irrigationSystemService, value, callback) {
     //this.log.debug('%s - Get something %s', irrigationSystemService.getCharacteristic(Characteristic.Name).value, value) 
       callback()
-  
   }
 
   createValveService(zone) {
@@ -462,13 +461,13 @@ class RachioPlatform {
   getValveValue(valveService, characteristicName, callback) {
     switch (characteristicName) {
       case "ValveActive":
-        //this.log.debug("%s = %s %s", valveService.getCharacteristic(Characteristic.Name).value, characteristicName,valveService.getCharacteristic(Characteristic.Active).value)
-        //if (valveService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
-        //  callback('error')
-        //}
-        //else{
+        this.log.debug("%s = %s %s", valveService.getCharacteristic(Characteristic.Name).value, characteristicName,valveService.getCharacteristic(Characteristic.Active).value)
+        if (valveService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+          callback('error')
+        }
+        else{
           callback(null, valveService.getCharacteristic(Characteristic.Active).value)
-        //}
+        }
         break;
       case "ValveInUse":
         //this.log.debug("%s = %s %s", valveService.getCharacteristic(Characteristic.Name).value, characteristicName,valveService.getCharacteristic(Characteristic.Active).value)
@@ -496,17 +495,7 @@ class RachioPlatform {
         break;
     }
   }
-/*
-  setValveSetDuration(valveService, value, callback) {
-    this.log.info("Set valve", valveService.getCharacteristic(Characteristic.Name).value, " duration to ", value)
-    if (valveService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
-      callback('error')
-    }
-    else{
-      callback()
-    }
-  }
-*/
+
   setValveValue(device, valveService, value, callback) {
     this.log.debug("_setValueActive", valveService.getCharacteristic(Characteristic.Name).value, value);
     this.log.debug('%s - Set Active state to %s', valveService.getCharacteristic(Characteristic.Name).value, value) 
@@ -614,7 +603,7 @@ configureListener(){
       if (request.method === 'GET' && request.url === '/test') {
         this.log.info('Test received on Rachio listener. Webhooks are configured correctly!')
         response.writeHead(200)
-        response.write('Webhooks are configured correctly!')
+        response.write( new Date().toTimeString()+' Webhooks are configured correctly!')
         return response.end()
       } 
       else if (request.method === 'POST' && request.url === '/') {
@@ -633,29 +622,56 @@ configureListener(){
             irrigationAccessory.services.forEach((service)=>{
               //this.log.debug(service.getCharacteristic(Characteristic.Name).value)
               //this.log.debug(service.getCharacteristic(Characteristic.SerialNumber).value,jsonBody.zoneId)
-              if (service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.zoneId){
+              //this.log.debug(service.getCharacteristic(Characteristic.ProductData).value,jsonBody.device.id)
+             
+             //problem area
+             /*
+              if (jsonBody.integrationState== 'WATERING' && service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.zoneId){
                 let foundService=service
                 //do somthing with the response
-                this.log.debug('Webhook match found for %s will update services',jsonBody.zoneName)
+                this.log.debug('Webhook match found for %s will update zone services',jsonBody.zoneName)
                 this.updateSevices(irrigationSystemService,foundService,jsonBody)
-              }              
+              }     
+              else if (jsonBody.integrationState!= 'WATERING' && service.getCharacteristic(Characteristic.ProductData).value == jsonBody.deviceId){
+                let foundService=service
+                //do somthing with the response
+                this.log.debug('Webhook match found for %s will update device services',jsonBody.deviceId)
+                this.updateSevices(irrigationSystemService,foundService,jsonBody)
+              } 
+             */
+              if (jsonBody.integrationState && service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.zoneId){
+              //if (service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.zoneId){
+                let foundService=service
+                //do somthing with the response
+                this.log.debug('Webhook match found for %s will update zone services',jsonBody.zoneName)
+                this.updateSevices(irrigationSystemService,foundService,jsonBody)
+              }
+              else if (jsonBody.integrationState == null && service.getCharacteristic(Characteristic.ProductData).value == jsonBody.deviceId){        
+              //else if (service.getCharacteristic(Characteristic.ProductData).value == jsonBody.deviceId){
+                let foundService=service
+                //do somthing with the response
+                this.log.debug('Webhook match found for %s will update device services',jsonBody.deviceName)
+                this.updateSevices(irrigationSystemService,foundService,jsonBody)
+              } 
+              /*         
               else if(service.getCharacteristic(Characteristic.Name).value =='Run All' && (jsonBody.eventType=='SCHEDULE_COMPLETED_EVENT'|| jsonBody.eventType=='SCHEDULE_STARTED_EVENT')){
                 let foundService=service
                 //do somthing with the response
-                this.log.debug('Webhook match found for %s will update services',jsonBody.deviceName)
+                this.log.debug('Webhook match found for %s will update run all service',jsonBody.deviceName)
                 this.updateSevices(irrigationSystemService,foundService,jsonBody)
               }
               else if(service.getCharacteristic(Characteristic.Name).value =='Standby'&& (jsonBody.eventType=='DEVICE_MANUAL_STANDBY_ON_EVENT' || jsonBody.eventType=='DEVICE_MANUAL_STANDBY_OFF_EVENT')){
                 let foundService=service
                 //do somthing with the response
-                this.log.debug('Webhook match found for %s will update services',jsonBody.deviceName)
+                this.log.debug('Webhook match found for %s will update standby service',jsonBody.deviceName)
                 this.updateSevices(irrigationSystemService,foundService,jsonBody)
               }
-              else {
-              }
+              */
               response.writeHead(204)
               return response.end()
             })
+            //////problem area
+
             } 
             else {
             this.log.warn('Webhook received from an unknown external id %s',jsonBody.externalId)
