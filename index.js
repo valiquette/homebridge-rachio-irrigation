@@ -1,6 +1,6 @@
 /* todo list
 
-known issues
+known issues 
 Time remaining for homebridge accessory runs about 2x fast but homekit is fine
 Pause states not reflected corrrecly in homebridge but ok in homekit 
 
@@ -59,23 +59,22 @@ class RachioPlatform {
     }).then(response=> {
       this.log.debug('retrieved %s configured %s',response.data,this.external_IP_address) 
       this.realExternalIP=response.data
-      if (this.realExternalIP != this.external_IP_address){
+      if (this.external_IP_address && this.realExternalIP != this.external_IP_address){
         this.log.error('Configured external IP of %s does not match this servers detected external IP of %s',this.external_IP_address,this.realExternalIP)
      }
      if(!this.external_IP_address){
        this.external_IP_address=this.realExternalIP
-       this.log.warn('Attempting to use self discovered IP address')
+       this.log.warn('Attempting to use self discovered IP address %s',this.realExternalIP)
      }
     }).catch(err => {this.log.error('Failed to get current external IP', err)}) 
-
+    
     //** 
     //** Platforms should wait until the "didFinishLaunching" event has fired before registering any new accessories.
-    //** 
-      if (api) {
+    //**  
+    if (api) {
         this.api = api;
         this.api.on("didFinishLaunching", function () {
           //Get devices
-          //this.configureAccessory()
           this.getRachioDevices()
         }.bind(this))     
       }
@@ -127,6 +126,7 @@ class RachioPlatform {
                 }
               }.bind(this))            
             }
+            
             // Create and configure Irrigation Service
             else {
               this.log.debug('Creating and configuring new device')
@@ -154,7 +154,7 @@ class RachioPlatform {
                   }           
                   irrigationAccessory.addService(valveService);
                 }
-              })  
+              })
               this.log.debug('adding new run all switch')
               let switchService
               switchService = this.createSwitchService('Run All')
@@ -171,7 +171,45 @@ class RachioPlatform {
               this.api.registerPlatformAccessories(PluginName, PlatformName, [irrigationAccessory])
               this.accessories[uuid] = irrigationAccessory
             }
-
+            /*
+              //set current device status  
+              //create a fake webhook response 
+              if(newDevice.status){
+                let myJson
+                switch(newDevice.status){
+                  case "ONLINE":
+                    myJson={
+                        externalId: "hombridge-Rachio-Dev",
+                        type: "DEVICE_STATUS",
+                        deviceId: newDevice.id,
+                        subType: "ONLINE",
+                        timestamp: new Date().toISOString()
+                      }
+                    break;
+                  case "OFFLINE":
+                    myJson={
+                      externalId: "hombridge-Rachio-Dev",
+                      type: "DEVICE_STATUS",
+                      deviceId: newDevice.id,
+                      subType: "OFFLINE",
+                      timestamp: new Date().toISOString()
+                    }
+                    break;
+                }
+                this.log.debug('Found online device')
+                this.log.debug(myJson)
+                let irrigationAccessory = this.accessories[myJson.deviceId];
+                let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
+                irrigationAccessory.services.forEach((service)=>{
+                  if (service.getCharacteristic(Characteristic.ProductData).value == newDevice.id){
+                    //do somthing with the response
+                    this.log.debug('Updating device status')
+                    this.updateSevices(irrigationSystemService,service,myJson)
+                  } 
+                  return
+                })
+            }
+            */
               //set current device state  
               //create a fake webhook response 
               if(deviceState.state.health=='GOOD'){
@@ -208,17 +246,16 @@ class RachioPlatform {
                 let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
                 irrigationAccessory.services.forEach((service)=>{
                   if (service.getCharacteristic(Characteristic.Name).value == 'Standby'){
-                    let switchService=service
                     //do somthing with the response
                     this.log.debug('Updating standby switch state')
-                    this.updateSevices(irrigationSystemService,switchService,myJson)
+                    this.updateSevices(irrigationSystemService,service,myJson)
                   } 
                   return
                 })
               }
       
               //find any running zone and set its state
-              this.rachioapi.currentSchedule (this.token,newDevice.id).then(response => {
+            this.rachioapi.currentSchedule (this.token,newDevice.id).then(response => {   
               //create a fake webhook response 
               if(response.data.status=='PROCESSING'){
                 this.log.debug('Found zone-%s running',response.data.zoneNumber)
@@ -266,7 +303,7 @@ class RachioPlatform {
   configureAccessory(accessory) {
     // Add cached devices to the accessories arrary
     this.log.info('Found cached accessory, configuring ',accessory.displayName)
-    this.accessories[accessory.UUID] = accessory;
+    this.accessories[accessory.UUID] = accessory
   }
 
   createIrrigationAccessory(device) {
@@ -298,9 +335,20 @@ class RachioPlatform {
     this.log.info('Configure Irrigation service for %s', irrigationSystemService.getCharacteristic(Characteristic.Name).value)
     // Configure IrrigationSystem Service
     irrigationSystemService 
+      //.setCharacteristic(Characteristic.ProductData, device.id)
       .setCharacteristic(Characteristic.Active, Characteristic.Active.ACTIVE)
       .setCharacteristic(Characteristic.InUse, Characteristic.InUse.NOT_IN_USE)
+      //.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
       .setCharacteristic(Characteristic.RemainingDuration, 0)
+    // Check if the device is connected
+    switch (device.status) {
+      case "ONLINE": 
+        //irrigationSystemService.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
+        break
+      case "OFFLINE":
+        //irrigationSystemService.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.GENERAL_FAULT)
+        break
+    }
     switch (device.scheduleModeType) {
       case "OFF": 
         irrigationSystemService.setCharacteristic(Characteristic.ProgramMode, Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED)
@@ -331,14 +379,20 @@ class RachioPlatform {
   }
 
   getDeviceValue(irrigationSystemService, characteristicName, callback) {
+    //this.log.debug('%s - Set something %s', irrigationSystemService.getCharacteristic(Characteristic.Name).value) 
     switch (characteristicName) {
       case "DeviceActive":
         //this.log.debug("%s = %s %s", irrigationSystemService.getCharacteristic(Characteristic.Name).value, characteristicName,irrigationSystemService.getCharacteristic(Characteristic.Active).value);
-        callback(null, irrigationSystemService.getCharacteristic(Characteristic.Active).value)
+        //if (irrigationSystemService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+         // callback('error')
+        //}
+        //else{
+          callback(null, irrigationSystemService.getCharacteristic(Characteristic.Active).value)
+        //}
         break;    
       case "DeviceInUse":
         //this.log.debug("%s = %s %s", irrigationSystemService.getCharacteristic(Characteristic.Name).value, characteristicName,irrigationSystemService.getCharacteristic(Characteristic.InUse).value);
-        callback(null, irrigationSystemService.getCharacteristic(Characteristic.InUse).value)
+          callback(null, irrigationSystemService.getCharacteristic(Characteristic.InUse).value)
         break;
       case "DeviceProgramMode":
         //this.log.debug("%s = %s %s", irrigationSystemService.getCharacteristic(Characteristic.Name).value, characteristicName,irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).value);
@@ -352,8 +406,9 @@ class RachioPlatform {
   }
 
   setDeviceValue(device,irrigationSystemService, value, callback) {
-    this.log.debug('%s - Do something %s', irrigationSystemService.getCharacteristic(Characteristic.Name).value, value) 
-    callback()
+    //this.log.debug('%s - Get something %s', irrigationSystemService.getCharacteristic(Characteristic.Name).value, value) 
+      callback()
+  
   }
 
   createValveService(zone) {
@@ -398,7 +453,7 @@ class RachioPlatform {
     valveService
       .getCharacteristic(Characteristic.SetDuration)
       .on('get', this.getValveValue.bind(this, valveService, "ValveSetDuration"))
-      .on('set', this.setValveSetDuration.bind(this, valveService, "ValveSetDuration"))
+      .on('set', this.getValveValue.bind(this, valveService, "ValveSetDuration"))
     valveService
       .getCharacteristic(Characteristic.RemainingDuration)
       .on('get', this.getValveValue.bind(this, valveService, "ValveRemainingDuration"))
@@ -408,27 +463,32 @@ class RachioPlatform {
     switch (characteristicName) {
       case "ValveActive":
         //this.log.debug("%s = %s %s", valveService.getCharacteristic(Characteristic.Name).value, characteristicName,valveService.getCharacteristic(Characteristic.Active).value)
-        callback(null, valveService.getCharacteristic(Characteristic.Active).value)
+        //if (valveService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+        //  callback('error')
+        //}
+        //else{
+          callback(null, valveService.getCharacteristic(Characteristic.Active).value)
+        //}
         break;
       case "ValveInUse":
         //this.log.debug("%s = %s %s", valveService.getCharacteristic(Characteristic.Name).value, characteristicName,valveService.getCharacteristic(Characteristic.Active).value)
-        callback(null, valveService.getCharacteristic(Characteristic.InUse).value)
+          callback(null, valveService.getCharacteristic(Characteristic.InUse).value)
         break;
       case "ValveSetDuration":
         //.log.debug("%s = %s %s", valveService.getCharacteristic(Characteristic.Name).value, characteristicName,valveService.getCharacteristic(Characteristic.Active).value)
-        callback(null, valveService.getCharacteristic(Characteristic.SetDuration).value)
+          callback(null, valveService.getCharacteristic(Characteristic.SetDuration).value)
         break;
       case "ValveRemainingDuration":
         // Calc remain duration
-        let timeEnding = Date.parse(valveService.getCharacteristic(Characteristic.CurrentTime).value)
-        let timeNow = Date.now()
-        let timeRemaining = Math.max(Math.round((timeEnding - timeNow) / 1000), 0)
-        if (isNaN(timeRemaining)) {
-          timeRemaining = 0
-        }
-        valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(timeRemaining)
-        //this.log.debug("%s = %s %s", valveService.getCharacteristic(Characteristic.Name).value, characteristicName,timeRemaining)
-        callback(null, timeRemaining)
+          let timeEnding = Date.parse(valveService.getCharacteristic(Characteristic.CurrentTime).value)
+          let timeNow = Date.now()
+          let timeRemaining = Math.max(Math.round((timeEnding - timeNow) / 1000), 0)
+          if (isNaN(timeRemaining)) {
+            timeRemaining = 0
+          }
+          valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(timeRemaining)
+          //this.log.debug("%s = %s %s", valveService.getCharacteristic(Characteristic.Name).value, characteristicName,timeRemaining)
+          callback(null, timeRemaining)
         break;
       default:
         this.log.debug("Unknown CharacteristicName called", characteristicName);
@@ -436,36 +496,45 @@ class RachioPlatform {
         break;
     }
   }
-
+/*
   setValveSetDuration(valveService, value, callback) {
     this.log.info("Set valve", valveService.getCharacteristic(Characteristic.Name).value, " duration to ", value)
-    valveService.getCharacteristic(Characteristic.SetDuration).updateValue(value)
-    callback()
+    if (valveService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+      callback('error')
+    }
+    else{
+      callback()
+    }
   }
-
+*/
   setValveValue(device, valveService, value, callback) {
     this.log.debug("_setValueActive", valveService.getCharacteristic(Characteristic.Name).value, value);
     this.log.debug('%s - Set Active state to %s', valveService.getCharacteristic(Characteristic.Name).value, value) 
-    let irrigationAccessory = this.accessories[device.id];
-    let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
-    
-    // Set homekit state and prepare message for Rachio API
-    let run_time = valveService.getCharacteristic(Characteristic.SetDuration).value / 60; 
+    //if (valveService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+    //  callback('error')
+    //}
+    //else{
+      let irrigationAccessory = this.accessories[device.id];
+      let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
+      
+      // Set homekit state and prepare message for Rachio API
+      let run_time = valveService.getCharacteristic(Characteristic.SetDuration).value / 60; 
 
-    if (value == Characteristic.Active.ACTIVE) {
-      // Turn on.idle the valve
-      this.log.info("Starting zone-%s %s for %s mins", valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value, valveService.getCharacteristic(Characteristic.Name).value, run_time)
-      this.rachioapi.startZone (this.token,valveService.getCharacteristic(Characteristic.SerialNumber).value,this.default_runtime)
-      valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-      irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.Active.ACTIVE)
-    } else {
-      // Turn off/stopping the valve
-      this.log.info("Stopping Zone", valveService.getCharacteristic(Characteristic.Name).value);
-      this.rachioapi.stopDevice (this.token,device.id)
-      valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
-      irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.Active.INACTIVE)
-    }
-    callback()
+      if (value == Characteristic.Active.ACTIVE) {
+        // Turn on.idle the valve
+        this.log.info("Starting zone-%s %s for %s mins", valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value, valveService.getCharacteristic(Characteristic.Name).value, run_time)
+        this.rachioapi.startZone (this.token,valveService.getCharacteristic(Characteristic.SerialNumber).value,this.default_runtime)
+        valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
+        irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.Active.ACTIVE)
+      } else {
+        // Turn off/stopping the valve
+        this.log.info("Stopping Zone", valveService.getCharacteristic(Characteristic.Name).value);
+        this.rachioapi.stopDevice (this.token,device.id)
+        valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
+        irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.Active.INACTIVE)
+      }
+      callback()
+    //}
   }
 
   createSwitchService(switchName) {
@@ -477,6 +546,7 @@ class RachioPlatform {
     switchService 
       .setCharacteristic(Characteristic.On, false)
       .setCharacteristic(Characteristic.Name, switchName)
+      .setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
     return switchService
   }
 
@@ -489,38 +559,53 @@ class RachioPlatform {
       .on('set', this.setSwitchValue.bind(this, device, switchService))
   }
 
-  getSwitchValue(switchService, callback) {
-    //this.log.debug("%s = %s", switchService.getCharacteristic(Characteristic.Name).value,switchService.getCharacteristic(Characteristic.On))
-    callback(null, switchService.getCharacteristic(Characteristic.On).value)
-  }
-
   setSwitchValue(device, switchService, value, callback) {
     this.log.debug('toggle switch state %s',switchService.getCharacteristic(Characteristic.Name).value)
     switch(switchService.getCharacteristic(Characteristic.Name).value){
       case "Standby": 
-      if (!value){
-        switchService.getCharacteristic(Characteristic.On).updateValue(true)
-        this.rachioapi.deviceStandby (this.token,device,'on')
-      } 
-      else {
-        switchService.getCharacteristic(Characteristic.On).updateValue(false)
-        this.rachioapi.deviceStandby (this.token,device,'off')
-      }
+        if(switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+          callback('error')
+        }
+        else{
+          if (!value){
+            switchService.getCharacteristic(Characteristic.On).updateValue(true)
+            this.rachioapi.deviceStandby (this.token,device,'on')
+          } 
+          else {
+            switchService.getCharacteristic(Characteristic.On).updateValue(false)
+            this.rachioapi.deviceStandby (this.token,device,'off')
+          }
+          callback()
+        } 
       break;
-    case "Run All": 
-      if (value){
-        switchService.getCharacteristic(Characteristic.On).updateValue(true)
-        this.rachioapi.startMultipleZone (this.token,device.zones,this.default_runtime)
-      } 
-      else {
-        switchService.getCharacteristic(Characteristic.On).updateValue(false)
-        this.rachioapi.stopDevice (this.token,device.id)
+      case "Run All": 
+        if(switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+          callback('error')
+        }
+        else{
+          if (value){
+            switchService.getCharacteristic(Characteristic.On).updateValue(true)
+            this.rachioapi.startMultipleZone (this.token,device.zones,this.default_runtime)
+          } 
+          else {
+            switchService.getCharacteristic(Characteristic.On).updateValue(false)
+            this.rachioapi.stopDevice (this.token,device.id)
+          }
+          callback()
+        }
+          break;
       }
-      break;
     }
-    callback()
-  }
-  
+
+    getSwitchValue(switchService, callback) {
+    //this.log.debug("%s = %s", switchService.getCharacteristic(Characteristic.Name).value,switchService.getCharacteristic(Characteristic.On))
+    if (switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+      callback('error')
+    }
+    else{
+      callback(null, switchService.getCharacteristic(Characteristic.On).value)
+    }
+    }
 
 configureListener(){
   if (this.external_webhook_address && this.internal_webhook_port) {
