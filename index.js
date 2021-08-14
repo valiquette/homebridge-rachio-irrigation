@@ -615,7 +615,6 @@ configureListener(){
             const jsonBody = JSON.parse(body)
             body = Buffer.concat(body).toString().trim()
             this.log.debug('webhook request received from < %s > %s',jsonBody.externalId,jsonBody)
-
             if (jsonBody.externalId === this.webhook_key) {
             let irrigationAccessory = this.accessories[jsonBody.deviceId];
             let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
