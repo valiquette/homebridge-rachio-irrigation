@@ -1,6 +1,6 @@
 /* todo list
 
-known issues 
+Known issues 
 Time remaining for homebridge accessory runs about 2x fast but homekit is fine
 Pause states not reflected corrrecly in homebridge but ok in homekit 
 
@@ -623,22 +623,6 @@ configureListener(){
               //this.log.debug(service.getCharacteristic(Characteristic.Name).value)
               //this.log.debug(service.getCharacteristic(Characteristic.SerialNumber).value,jsonBody.zoneId)
               //this.log.debug(service.getCharacteristic(Characteristic.ProductData).value,jsonBody.device.id)
-             
-             //problem area
-             /*
-              if (jsonBody.integrationState== 'WATERING' && service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.zoneId){
-                let foundService=service
-                //do somthing with the response
-                this.log.debug('Webhook match found for %s will update zone services',jsonBody.zoneName)
-                this.updateSevices(irrigationSystemService,foundService,jsonBody)
-              }     
-              else if (jsonBody.integrationState!= 'WATERING' && service.getCharacteristic(Characteristic.ProductData).value == jsonBody.deviceId){
-                let foundService=service
-                //do somthing with the response
-                this.log.debug('Webhook match found for %s will update device services',jsonBody.deviceId)
-                this.updateSevices(irrigationSystemService,foundService,jsonBody)
-              } 
-             */
               if (jsonBody.integrationState && service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.zoneId){
               //if (service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.zoneId){
                 let foundService=service
@@ -670,7 +654,6 @@ configureListener(){
               response.writeHead(204)
               return response.end()
             })
-            //////problem area
 
             } 
             else {
