@@ -36,6 +36,27 @@
         "required": true,
         "default": true
       },
+      "show_standby": {
+        "title": "Add switch for controller standby",
+        "description": "Adds a switch to control device sleep mode, when turned on all schedules will be disabled",
+        "type": "boolean",
+        "required": true,
+        "default": true
+      },
+      "show_runall": {
+        "title": "Add switch for all zones",
+        "description": "Adds a switch to run all zones for the default time",
+        "type": "boolean",
+        "required": true,
+        "default": true
+      },
+      "show_schedules": {
+        "title": "Add switches for schedules",
+        "description": "Adds switches for schedules as defined in the Rachio app",
+        "type": "boolean",
+        "required": true,
+        "default": true
+      },
       "external_IP_address": {
         "title": "External IP Address",
         "description": "External IP address for this server, used to receive webhook requests. To find this quick try https://www.myexternalip.com .",
@@ -78,6 +99,17 @@
         "use_irrigation_display"
       ]
     },
+    {
+      "type": "fieldset",
+      "title": "Additional Switches",
+      "expandable": true,
+      "items": [
+        "show_standby",
+        "show_runall",
+        "show_schedules"
+      ]
+    },
+    
     {
       "type": "fieldset",
       "title": "Webhooks",

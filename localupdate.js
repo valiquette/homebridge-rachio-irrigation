@@ -3,22 +3,21 @@
 
 let PlatformAccessory, Service, Characteristic
 
-module.exports = (homebridge) => {
-  PlatformAccessory = homebridge.platformAccessory
-  Service = homebridge.hap.Service
-  Characteristic = homebridge.hap.Characteristic
-}
 
 module.exports = LocalUpdate
 
-function LocalUpdate (platform,log){
+function LocalUpdate (platform,log,api){
   this.log=log
-  this.platform=platform 
+  this.platform=platform
+  this.api=api
+  PlatformAccessory = api.PlatformAccessory
+  //Service = api.hap.Service
+  //Characteristic = api.hap.Characteristic
 }
 
 LocalUpdate.prototype={
 
-  setOnlineStatus: function(accessories,newDevice){
+  //setOnlineStatus: function(accessories,newDevice){
     //set current device status  
     //create a fake webhook response 
     if(newDevice.status){

@@ -175,7 +175,8 @@ class RachioPlatform {
               this.api.registerPlatformAccessories(PluginName, PlatformName, [irrigationAccessory])
               this.accessories[uuid] = irrigationAccessory
             }
-              //this.localUpdate.setOnlineStatus(this.irrigationAccessory,this.accessories,newDevice)
+              
+        //this.localUpdate.setOnlineStatus(this.accessories,newDevice)
               //set current device status  
               //create a fake webhook response 
               if(newDevice.status){
@@ -623,7 +624,7 @@ configureListener(){
               let irrigationAccessory = this.accessories[jsonBody.deviceId];
               let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
               irrigationAccessory.services.forEach((service)=>{
-                this.log.debug(service.getCharacteristic(Characteristic.Name).value,service.getCharacteristic(Characteristic.SerialNumber).value,service.getCharacteristic(Characteristic.ProductData).value,service.getCharacteristic(Characteristic.ManuallyDisabled).value)
+                //this.log.debug(service.getCharacteristic(Characteristic.Name).value,service.getCharacteristic(Characteristic.SerialNumber).value,service.getCharacteristic(Characteristic.ProductData).value,service.getCharacteristic(Characteristic.ManuallyDisabled).value)
                 if (jsonBody.integrationState && service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.zoneId){
                   let foundService=service
                   //do somthing with the response
