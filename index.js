@@ -1,6 +1,6 @@
 /* todo list
 
-known issues 
+known issues
 Time remaining for homebridge accessory runs about 2x fast but homekit is fine
 Pause states not reflected corrrecly in homebridge but ok in homekit 
 
@@ -59,12 +59,12 @@ class RachioPlatform {
     }).then(response=> {
       this.log.debug('retrieved %s configured %s',response.data,this.external_IP_address) 
       this.realExternalIP=response.data
-      if (this.external_IP_address && this.realExternalIP != this.external_IP_address){
+      if (this.realExternalIP != this.external_IP_address){
         this.log.error('Configured external IP of %s does not match this servers detected external IP of %s',this.external_IP_address,this.realExternalIP)
      }
      if(!this.external_IP_address){
        this.external_IP_address=this.realExternalIP
-       this.log.warn('Attempting to use self discovered IP address %s',this.realExternalIP)
+       this.log.warn('Attempting to use self discovered IP address')
      }
     }).catch(err => {this.log.error('Failed to get current external IP', err)}) 
 
@@ -75,6 +75,7 @@ class RachioPlatform {
         this.api = api;
         this.api.on("didFinishLaunching", function () {
           //Get devices
+          //this.configureAccessory()
           this.getRachioDevices()
         }.bind(this))     
       }
@@ -528,7 +529,7 @@ configureListener(){
       if (request.method === 'GET' && request.url === '/test') {
         this.log.info('Test received on Rachio listener. Webhooks are configured correctly!')
         response.writeHead(200)
-        response.write( new Date().toTimeString()+' Webhooks are configured correctly!')
+        response.write('Webhooks are configured correctly!')
         return response.end()
       } 
       else if (request.method === 'POST' && request.url === '/') {
