@@ -44,6 +44,7 @@ class RachioPlatform {
     this.external_webhook_address = "http://"+this.external_IP_address+':'+this.external_webhook_port
     this.webhook_key='hombridge-'+config["name"]
     this.delete_webhooks = config["delete_webhooks"]
+    this.delete_cache=config["delete_cache"]
     this.use_irrigation_display = config["use_irrigation_display"]
     this.default_runtime = config["default_runtime"]*60
     this.show_standby = config["show_standby"]
@@ -80,13 +81,8 @@ class RachioPlatform {
     if (api) {
         this.api = api;
         this.api.on("didFinishLaunching", function () {
-          
-          this.log('before',this.accessories)
-          this.log.warn(this.accessories['a5f09040-c03b-4833-8837-2b67ddb48951'].displayName)
-          this.api.unregisterPlatformAccessories(PluginName, PlatformName, this.accessories['a5f09040-c03b-4833-8837-2b67ddb48951'])
-          this.accessories=[]
           //Get devices
-          //this.getRachioDevices()
+          this.getRachioDevices()
         }.bind(this))     
       }
     }
@@ -118,7 +114,13 @@ class RachioPlatform {
             this.log('Retrieved Device state %s with a %s running',deviceState.state.state,deviceState.state.desiredState,deviceState.state.firmwareVersion)
               
             this.rachioapi.configureWebhooks(this.token,this.external_webhook_address,this.delete_webhooks,newDevice.id,this.webhook_key)
-
+            
+            //remove cached accessory
+            if (this.accessories[uuid] && this.delete_cache){
+            this.log.debug('Removed cached device')
+            this.api.unregisterPlatformAccessories(PluginName, PlatformName, [this.accessories[uuid]])
+            this.accessories=[]
+            }
             // Check if device is already loaded from cache
             if (this.accessories[uuid]) {
               this.log.debug('Found %s in accessories cache',this.accessories[uuid].displayName)
@@ -237,6 +239,7 @@ class RachioPlatform {
                 let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
                 irrigationAccessory.services.forEach((service)=>{
                   if (service.getCharacteristic(Characteristic.ProductData).value == newDevice.id){
+                  //if (service.getCharacteristic(Characteristic.Name).value == newDevice.name){
                     //do somthing with the response
                     this.log.debug('Updating device status')
                     this.updateSevices(irrigationSystemService,service,myJson)
@@ -385,7 +388,6 @@ class RachioPlatform {
     }
     // Create AccessoryInformation Service
     newPlatformAccessory.getService(Service.AccessoryInformation)
-      .setCharacteristic(Characteristic.ProductData, device.id)
       .setCharacteristic(Characteristic.Name, device.name)
       .setCharacteristic(Characteristic.Manufacturer, 'Rachio')
       .setCharacteristic(Characteristic.SerialNumber, device.serialNumber)
@@ -404,6 +406,7 @@ class RachioPlatform {
       .setCharacteristic(Characteristic.Active, Characteristic.Active.ACTIVE)
       .setCharacteristic(Characteristic.InUse, Characteristic.InUse.NOT_IN_USE)
       .setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
+      .setCharacteristic(Characteristic.ProductData, device.id)
       .setCharacteristic(Characteristic.RemainingDuration, 0)
     // Check if the device is connected
     switch (device.status) {
@@ -605,6 +608,7 @@ class RachioPlatform {
     let switchService = new Service.Switch(switchName, uuid) 
     switchService.addCharacteristic(Characteristic.ConfiguredName)
     switchService.addCharacteristic(Characteristic.ManuallyDisabled)
+    switchService.addCharacteristic(Characteristic.ProductData)
     switchService 
       .setCharacteristic(Characteristic.On, false)
       .setCharacteristic(Characteristic.Name, switchName)
