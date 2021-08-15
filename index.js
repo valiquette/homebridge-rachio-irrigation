@@ -80,10 +80,13 @@ class RachioPlatform {
     if (api) {
         this.api = api;
         this.api.on("didFinishLaunching", function () {
-          //this.api.unregisterPlatformAccessories(PluginName, PlatformName, this.accessories)
-          //this.accessories=[]
+          
+          this.log('before',this.accessories)
+          this.log.warn(this.accessories['a5f09040-c03b-4833-8837-2b67ddb48951'].displayName)
+          this.api.unregisterPlatformAccessories(PluginName, PlatformName, this.accessories['a5f09040-c03b-4833-8837-2b67ddb48951'])
+          this.accessories=[]
           //Get devices
-          this.getRachioDevices()
+          //this.getRachioDevices()
         }.bind(this))     
       }
     }
