@@ -113,10 +113,10 @@ RachioAPI.prototype={
       this.log.debug('Starting Schedule',schedule)
       const response = await axios({
         method: 'put',
-        url: api_endpoint+'zone/start',
+        url: api_endpoint+'schedulerule/start',
         headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
         data:{
-          schedule
+          id: schedule
         },
         responseType: 'json'
       }).catch(err => {this.log.error('Error sending start schedule %s', err)})
