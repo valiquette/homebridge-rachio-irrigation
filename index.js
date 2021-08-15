@@ -165,27 +165,27 @@ class RachioPlatform {
               })
 
               if(this.show_schedules){
-                newDevice.schedule.forEach((schedule)=>{
-                    this.log.debug('adding zone %s',schedule.name )
-                    let valveService = this.createValveService(schedule)
-                    this.configureValveService(newDevice, valveService)
-                    this.log.debug('Using irrigation system')
-                    irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(valveService)
-                })         
+                newDevice.scheduleRules.forEach((schedule)=>{
+                  this.log.debug('adding schedules %s',schedule.name )
+                  switchService = this.createValveService(schedule)
+                  this.configureSwitchService(newDevice, switchService)
+                  irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService)
+                  irrigationAccessory.addService(switchService)
+              })         
               }
               if(this.show_runall){
                 this.log.debug('adding new run all switch')
                 switchService = this.createSwitchService(newDevice,'Run All')
                 this.configureSwitchService(newDevice, switchService)
                 irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService) 
-                irrigationAccessory.addService(switchService);
+                irrigationAccessory.addService(switchService)
                 }
               if(this.show_standby){
                 this.log.debug('adding new standby switch')
                 switchService = this.createSwitchService(newDevice,'Standby')
                 this.configureSwitchService(newDevice, switchService)
                 irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService) 
-                irrigationAccessory.addService(switchService);
+                irrigationAccessory.addService(switchService)
               }
               // Register platform accessory
               this.log.debug('Registering platform accessory')

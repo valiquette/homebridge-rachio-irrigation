@@ -37,22 +37,22 @@
         "default": true
       },
       "show_standby": {
-        "title": "Add switch for controller standby",
-        "description": "Adds a switch to control device sleep mode, when turned on all schedules will be disabled",
+        "title": "Expose switch for controller standby",
+        "description": "Exposes standby mode switch, when turned on all schedules will be disabled",
         "type": "boolean",
         "required": true,
         "default": true
       },
       "show_runall": {
-        "title": "Add switch for all zones",
+        "title": "All zones",
         "description": "Adds a switch to run all zones for the default time",
         "type": "boolean",
         "required": true,
         "default": true
       },
       "show_schedules": {
-        "title": "Add switches for schedules",
-        "description": "Adds switches for schedules as defined in the Rachio app",
+        "title": "Expose switches for schedules",
+        "description": "Exposes schedules as defined in the Rachio app as a switch for quick run",
         "type": "boolean",
         "required": true,
         "default": true
@@ -105,8 +105,8 @@
       "expandable": true,
       "items": [
         "show_standby",
-        "show_runall",
-        "show_schedules"
+        "show_schedules",
+        "show_runall"
       ]
     },
     

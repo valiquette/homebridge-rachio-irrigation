@@ -45,22 +45,31 @@ If you see log messages like `Webhook received from an unknown external id`, you
 
 ## Installation
 1. Install this plugin using: npm install -g homebridge-rachio-irrigation
-2. Edit ``config.json`` and add your login detail.
-3. Run Homebridge
+2. Suggest running as a child bridge	
+3. Use plugin settings to edit ``config.json`` and add your login detail.
+4. Run Homebridge
+5. Pair to HomeKit
 
 ## Config.json example
 ```
 "platforms": [
-	{
-		"name": "Rachio",
-		"api_key": "12345678-xxxx-yyyy-zzzz-abcdefghijkl",
-		"default_runtime": 3,
-		"use_irrigation_display": true,
-		"external_IP_address": "xxx.xxx.xxx.xxx",
-		"external_webhook_port": 12453,
-		"internal_webhook_port": 27546,
-		"delete_webhooks": false,
-		"platform": "rachio"
-	}
+        {
+            "name": "Rachio-Dev",
+            "api_key": "da441e57-f2b6-4dc9-967a-f24d978c6c60",
+            "default_runtime": 3,
+            "use_irrigation_display": true,
+            "show_standby": true,
+            "show_runall": false,
+            "show_schedules": true,
+            "external_IP_address": "76.25.73.137",
+            "external_webhook_port": 12453,
+            "internal_webhook_port": 27543,
+            "delete_webhooks": false,
+            "_bridge": {
+                "username": "0E:79:49:DC:71:A9",
+                "port": 46062
+            },
+            "platform": "rachio"
+        }
 ]
 ```
