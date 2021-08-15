@@ -43,8 +43,11 @@ class RachioPlatform {
     this.external_webhook_address = "http://"+this.external_IP_address+':'+this.external_webhook_port
     this.webhook_key='hombridge-'+config["name"]
     this.delete_webhooks = config["delete_webhooks"]
-    this.use_irrigation_display=config["use_irrigation_display"]
-    this.default_runtime=config["default_runtime"]*60
+    this.use_irrigation_display = config["use_irrigation_display"]
+    this.default_runtime = config["default_runtime"]*60
+    this.show_standby = config["show_standby"]
+    this.show_runall = config["show_runall"]
+    this.show_schedules = config["show_schedules"]
     this.accessories = []
     this.realExternalIP
 
@@ -134,6 +137,7 @@ class RachioPlatform {
             // Create and configure Irrigation Service
             else {
               this.log.debug('Creating and configuring new device')
+              let switchService
               let irrigationAccessory = this.createIrrigationAccessory(newDevice)
               this.configureIrrigationService(newDevice,irrigationAccessory.getService(Service.IrrigationSystem))
               // Create and configure Values services and link to Irrigation Service
@@ -159,24 +163,37 @@ class RachioPlatform {
                   irrigationAccessory.addService(valveService);
                 }
               })
-              this.log.debug('adding new run all switch')
-              let switchService
-              switchService = this.createSwitchService(newDevice,'Run All')
-              this.configureSwitchService(newDevice, switchService)
-              irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService) 
-              irrigationAccessory.addService(switchService);
-              this.log.debug('adding new standby switch')
-              switchService = this.createSwitchService(newDevice,'Standby')
-              this.configureSwitchService(newDevice, switchService)
-              irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService) 
-              irrigationAccessory.addService(switchService);
+
+              if(this.show_schedules){
+                newDevice.schedule.forEach((schedule)=>{
+                    this.log.debug('adding zone %s',schedule.name )
+                    let valveService = this.createValveService(schedule)
+                    this.configureValveService(newDevice, valveService)
+                    this.log.debug('Using irrigation system')
+                    irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(valveService)
+                })         
+              }
+              if(this.show_runall){
+                this.log.debug('adding new run all switch')
+                switchService = this.createSwitchService(newDevice,'Run All')
+                this.configureSwitchService(newDevice, switchService)
+                irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService) 
+                irrigationAccessory.addService(switchService);
+                }
+              if(this.show_standby){
+                this.log.debug('adding new standby switch')
+                switchService = this.createSwitchService(newDevice,'Standby')
+                this.configureSwitchService(newDevice, switchService)
+                irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService) 
+                irrigationAccessory.addService(switchService);
+              }
               // Register platform accessory
               this.log.debug('Registering platform accessory')
               this.api.registerPlatformAccessories(PluginName, PlatformName, [irrigationAccessory])
               this.accessories[uuid] = irrigationAccessory
             }
               
-        //this.localUpdate.setOnlineStatus(this.accessories,newDevice)
+        ///this.localUpdate.setOnlineStatus(this.accessories,newDevice)
               //set current device status  
               //create a fake webhook response 
               if(newDevice.status){

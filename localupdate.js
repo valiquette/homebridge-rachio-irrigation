@@ -17,7 +17,7 @@ function LocalUpdate (platform,log,api){
 
 LocalUpdate.prototype={
 
-  //setOnlineStatus: function(accessories,newDevice){
+  setOnlineStatus: function(accessories,newDevice){
     //set current device status  
     //create a fake webhook response 
     if(newDevice.status){
