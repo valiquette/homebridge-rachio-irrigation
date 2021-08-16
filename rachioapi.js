@@ -13,7 +13,7 @@ function RachioAPI (platform,log){
 
 RachioAPI.prototype={
 
-    getPersonInfo:  async function(token) {
+  getPersonInfo:  async function(token) {
     try {  
       this.log.debug('Retrieving Person ID')
         const response = await axios({
@@ -102,10 +102,27 @@ RachioAPI.prototype={
           duration: runtime
         },
         responseType: 'json'
-      }).catch(err => {this.log.error('Error sending start %s', err)})
+      }).catch(err => {this.log.error('Error sending start zone %s', err)})
       this.log.debug('start response',response.status)
       return  response
     }catch(err) {this.log.error('Error Starting Zone %s', err)}
+  },
+
+  startSchedule: async function(token,schedule) {
+    try {
+      this.log.debug('Starting Schedule',schedule)
+      const response = await axios({
+        method: 'put',
+        url: api_endpoint+'schedulerule/start',
+        headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        data:{
+          id: schedule
+        },
+        responseType: 'json'
+      }).catch(err => {this.log.error('Error sending start schedule %s', err)})
+      this.log.debug('start response',response.status)
+      return  response
+    }catch(err) {this.log.error('Error Starting Schedule %s', err)}
   },
 
   stopDevice: async function(token,deviceId) {
@@ -230,9 +247,9 @@ RachioAPI.prototype={
       const test_webhook_url = external_webhook_address + '/test'
       if (response && response.status === 200) {
         this.log.info('Successfully configured webhook with external ID "%s" ', webhook_key)
-        this.log.info('To test Webhook setup, navagate to  %s  to ensure port forwarding is configured correctly.'
+        this.log.info('To test Webhook setup, navagate to %s to ensure port forwarding is configured correctly. '
                       +'This will not work from this server, you cannot be connect to the same router doing the fowarding.'
-                      +' Best to use a cell phone with WiFi off.',test_webhook_url)
+                      +' It is best to use a cell phone with WiFi off.',test_webhook_url)
       }
       return 
     }catch(err) {this.log.error('Error configuring webhook ' + err)}
