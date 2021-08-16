@@ -5,10 +5,11 @@
 
 ## About
 
-This plugin provides 3 options for use in HomeKit<br>Both option have extra switches for Standby mode and a Run All 
+This plugin provides 3 options for use in HomeKit<br>Both option have additional switches as options for Standby mode and a Run All along with any Rachio Schedules
 1.	Irrigation System Accessory with zones that are linked (default in configuration)
 2.	Irrigation System Accessory with separate zones shown as a single tile 
 3.	Irrigation System Accessory with separate zones shown as a separate tiles (option in Homekit)
+
 
 
 ### Screenshots
