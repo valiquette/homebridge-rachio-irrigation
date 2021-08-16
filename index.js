@@ -10,9 +10,11 @@ Schedule/zone duration when found throws warning
 'use strict'
 const axios = require('axios')
 const http = require('http')
+const fs = require('fs')
 const packageJson = require('./package')
 const RachioAPI = require('./rachioapi')
 const LocalUpdate = require('./localupdate')
+const { isDeepStrictEqual } = require('util')
 let PlatformAccessory, Service, Characteristic, UUIDGen
 let PluginName,PlatformName
 let personInfo
@@ -33,6 +35,7 @@ module.exports = (homebridge) => {
 
 class RachioPlatform {
   constructor(log, config, api) {
+    const storagePath=api.user.storagePath()
     this.rachioapi = new RachioAPI(this,log)
     this.localUpdate = new LocalUpdate(this,log,PlatformAccessory,Service,Characteristic)
     this.log = log;
@@ -52,6 +55,7 @@ class RachioPlatform {
     this.show_schedules = config["show_schedules"]
     this.accessories = []
     this.realExternalIP
+    this.previousConfig
 
     if (!this.token) {
       this.log.error('API KEY is required in order to communicate with the Rachio API, please see https://rachio.readme.io/docs/authentication for instructions')
@@ -59,6 +63,7 @@ class RachioPlatform {
     else {
       this.log('Starting Rachio Platform with homebridge API', api.version)
     }
+    //check external IP address
     axios({
       method: 'get',
       url: 'http://myexternalip.com/raw',
@@ -74,7 +79,38 @@ class RachioPlatform {
        this.log.warn('Attempting to use self discovered IP address %s',this.realExternalIP)
      }
     }).catch(err => {this.log.error('Failed to get current external IP', err)}) 
-    
+
+    // for config changes that will require clearing of the cache
+    //read previous config
+    if (fs.existsSync(storagePath+'/previousconfig.json')) {
+      this.log.debug("exists:", storagePath);
+      try {
+        let jsonString = fs.readFileSync(storagePath+'/previousconfig.json')
+        this.previousConfig= JSON.parse(jsonString)
+      } catch(error)  {
+        this.log.error('no file read',error)
+        return  
+      }
+    } else {
+      this.log.debug("DOES NOT exist:", storagePath);
+    }
+    this.log.debug(config,this.previousConfig)
+    //write current config
+    if (JSON.stringify(config)==JSON.stringify(this.previousConfig)){
+      this.log.debug('matched ok')  
+    }
+    else{
+      this.log.info('Config file changed, removing %s cache',PluginName)
+      this.delete_cache=true  
+    }
+    fs.writeFile(storagePath+'/previousconfig.json', JSON.stringify(config), error => {
+        if (error) {
+            this.log.error('Error writing file', error)
+        } else {
+            this.log.debug('Successfully wrote file')
+        }
+    })
+     
     //** 
     //** Platforms should wait until the "didFinishLaunching" event has fired before registering any new accessories.
     //**  
