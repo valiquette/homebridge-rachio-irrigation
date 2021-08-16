@@ -3,6 +3,7 @@
 ### 1.0.4
 - [Enhancment] 
 -   Improved Plugin Config schema
+-   Offline status wil now show as non responding in Homekit
 -   Automatically remove cached accesory after a change to the config.json file is detected
 -   Added options to display addition switches for schedules
 
