@@ -15,7 +15,7 @@
       },
       "api_key": {
         "title": "Rachio API Key",
-        "description": "Rachio API key, see https://rachio.readme.io/docs/authentication for help.",
+        "description": "Rachio API key, visit https://rachio.readme.io/docs/authentication for help.",
         "type": "string",
         "required": true,
         "placeholder": "API KEY"
@@ -31,7 +31,7 @@
       },
       "use_irrigation_display": {
         "title": "Display as Irrigation System in HomeKit",
-        "description": "Display accessory in HomeKit as a irrigation system with sprinker zones. If unchecked; zones will display as single/separate tiles. Changing this will require this accessory to be removed from cache in homebridge settings",
+        "description": "Display accessory in HomeKit as a irrigation system with sprinker zones. If unchecked; zones will display as single/separate tiles.",
         "type": "boolean",
         "required": true,
         "default": true

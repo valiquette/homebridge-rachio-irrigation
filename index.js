@@ -97,7 +97,7 @@ class RachioPlatform {
     this.log.debug(config,this.previousConfig)
     //write current config
     if (JSON.stringify(config)==JSON.stringify(this.previousConfig)){
-      this.log.debug('matched ok')  
+      this.log.debug('config files matched ok')  
     }
     else{
       this.log.info('Config file changed, removing %s cache',PluginName)
