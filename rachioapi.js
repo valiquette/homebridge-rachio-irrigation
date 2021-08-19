@@ -248,8 +248,8 @@ RachioAPI.prototype={
       if (response && response.status === 200) {
         this.log.info('Successfully configured webhook with external ID "%s" ', webhook_key)
         this.log.info('To test Webhook setup, navagate to %s to ensure port forwarding is configured correctly. '
-                      +'This will not work from this server, you cannot be connect to the same router doing the fowarding.'
-                      +' It is best to use a cell phone with WiFi off.',test_webhook_url)
+                      +'This will not work from this server, you cannot be connect to the same router doing the fowarding. '
+                      +'The best way to test is with a cell phone, with WiFi off.',test_webhook_url)
       }
       return 
     }catch(err) {this.log.error('Error configuring webhook ' + err)}
