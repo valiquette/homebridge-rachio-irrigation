@@ -475,7 +475,6 @@ class RachioPlatform {
         irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.Active.INACTIVE)
       }
       callback()
-    //}
   }
   createScheduleSwitchService(schedule) {
     // Create Valve Service
@@ -614,7 +613,6 @@ class RachioPlatform {
       let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
       irrigationAccessory.services.forEach((service)=>{
         if (service.getCharacteristic(Characteristic.ProductData).value == newDevice.id){
-          //do somthing with the response
           this.log.debug('Updating device status')
           this.updateSevices(irrigationSystemService,service,myJson)
         } 
@@ -660,7 +658,6 @@ class RachioPlatform {
       let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
       irrigationAccessory.services.forEach((service)=>{
         if (service.getCharacteristic(Characteristic.Name).value == 'Standby'){
-          //do somthing with the response
           this.log.debug('Updating standby switch state')
           this.updateSevices(irrigationSystemService,service,myJson)
         } 
@@ -695,7 +692,6 @@ class RachioPlatform {
       let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
       irrigationAccessory.services.forEach((service)=>{
         if (service.getCharacteristic(Characteristic.SerialNumber).value == myJson.zoneId){
-          //do somthing with the response
           this.log.debug('Webhook match found for zone-%s on start will update services',myJson.zoneNumber)
           this.updateSevices(irrigationSystemService,service,myJson)
         } 
@@ -724,7 +720,6 @@ class RachioPlatform {
       let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
       irrigationAccessory.services.forEach((service)=>{
         if (service.getCharacteristic(Characteristic.SerialNumber).value == myJson.scheduleId){
-          //do somthing with the response
           this.log.debug('Webhook match found for schedule %s on start will update services',myJson.scheduleName)
           this.updateSevices(irrigationSystemService,service,myJson)
         } 
@@ -759,19 +754,16 @@ class RachioPlatform {
                   //this.log.debug(service.getCharacteristic(Characteristic.Name).value,service.getCharacteristic(Characteristic.SerialNumber).value,service.getCharacteristic(Characteristic.ProductData).value,service.getCharacteristic(Characteristic.ManuallyDisabled).value)
                   if (jsonBody.category == "DEVICE" && jsonBody.subType.includes('ZONE') && service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.zoneId){
                     let foundService=service
-                    //do somthing with the response Zone started
                     this.log.debug('Webhook match found for %s will update zone services opt-z',jsonBody.zoneName)
                     this.updateSevices(irrigationSystemService,foundService,jsonBody)
                   }
                   else if (jsonBody.category == "SCHEDULE" && jsonBody.subType.includes('SCHEDULE') && jsonBody.scheduleId  && ( jsonBody.scheduleName == "Quick Run" || service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.scheduleId)){        
                     let foundService=service
-                    //do somthing with the response Schedule started
                     this.log.debug('Webhook match found for %s will update device services opt-s',jsonBody.scheduleName)
                     this.updateSevices(irrigationSystemService,foundService,jsonBody)
                   } 
                   else if (jsonBody.category == "DEVICE" && jsonBody.subType.includes('SLEEP_MODE') && service.getCharacteristic(Characteristic.ProductData).value == jsonBody.deviceId && service.getCharacteristic(Characteristic.ManuallyDisabled).value==true){        
                     let foundService=service
-                    //do somthing with the response standby switch
                     this.log.debug('Webhook match found for %s will update device services opt-d',jsonBody.deviceName)
                     this.updateSevices(irrigationSystemService,foundService,jsonBody)
                   } 

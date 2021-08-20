@@ -1,5 +1,10 @@
 # Changes
 
+### 1.0.5
+- [Enhancment] 
+-   Code cleanup
+
+
 ### 1.0.4
 - [Enhancment] 
 -   Improved Plugin Config schema
