@@ -3,7 +3,7 @@
 Known issues 
 Time remaining for homebridge accessory runs about 2x fast but homekit is fine
 Pause states not reflected corrrecly in homebridge but ok in homekit 
-Schedule/zone duration when found throws warning
+Schedule/zone duration when found throws warnings exceding 60 minutes
 
 */
 
