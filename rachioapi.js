@@ -187,9 +187,9 @@ RachioAPI.prototype={
       if (!webhooks || !Array.isArray(webhooks)) return
     
       if (delete_webhooks) {
-        // delete exsisting webhooks
+        //delete exsisting webhooks
         for (const oldWebhook of webhooks) {
-          if (oldWebhook.externalId === webhook_key) continue // Skip the current webhook and let it be updated
+          if (oldWebhook.externalId === webhook_key) continue //Skip the current webhook and let it be updated
           response = await axios({
             method: 'delete',
             url: api_endpoint+'notification/' + 'webhook/' + oldWebhook.id,
