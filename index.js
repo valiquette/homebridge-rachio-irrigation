@@ -13,6 +13,8 @@ const http = require('http')
 const fs = require('fs')
 const packageJson = require('./package')
 const RachioAPI = require('./rachioapi')
+const LocalUpdate = require('./localupdate')
+const { isDeepStrictEqual } = require('util')
 let PlatformAccessory, Service, Characteristic, UUIDGen
 let PluginName,PlatformName
 let personInfo
@@ -35,6 +37,7 @@ class RachioPlatform {
   constructor(log, config, api) {
     const storagePath=api.user.storagePath()
     this.rachioapi = new RachioAPI(this,log)
+    this.localUpdate = new LocalUpdate(this,log,PlatformAccessory,Service,Characteristic)
     this.log = log;
     this.config = config;
     this.token = config["api_key"]
@@ -240,12 +243,156 @@ class RachioPlatform {
               this.api.registerPlatformAccessories(PluginName, PlatformName, [irrigationAccessory])
               this.accessories[uuid] = irrigationAccessory
             }
-            //match state to Rachio state  
-            this.setOnlineStatus(newDevice)
-            this.setDeviceStatus(newDevice)
-            //find any running zone and set its state
+              
+        ///this.localUpdate.setOnlineStatus(this.accessories,newDevice)
+              //set current device status  
+              //create a fake webhook response 
+              if(newDevice.status){
+                let myJson
+                switch(newDevice.status){
+                  case "ONLINE":
+                    myJson={
+                        externalId: "hombridge-Rachio-Dev",
+                        type: "DEVICE_STATUS",
+                        deviceId: newDevice.id,
+                        subType: "ONLINE",
+                        timestamp: new Date().toISOString()
+                      }
+                    break;
+                  case "OFFLINE":
+                    myJson={
+                      externalId: "hombridge-Rachio-Dev",
+                      type: "DEVICE_STATUS",
+                      deviceId: newDevice.id,
+                      subType: "OFFLINE",
+                      timestamp: new Date().toISOString()
+                    }
+                    break;
+                }
+                this.log.debug('Found online device')
+                this.log.debug(myJson)
+                let irrigationAccessory = this.accessories[myJson.deviceId];
+                let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
+                irrigationAccessory.services.forEach((service)=>{
+                  if (service.getCharacteristic(Characteristic.ProductData).value == newDevice.id){
+                  //if (service.getCharacteristic(Characteristic.Name).value == newDevice.name){
+                    //do somthing with the response
+                    this.log.debug('Updating device status')
+                    this.updateSevices(irrigationSystemService,service,myJson)
+                  } 
+                  return
+                })
+            }
+            
+              //set current device state  
+              //create a fake webhook response 
+              if(deviceState.state.health=='GOOD'){
+                let myJson
+                switch(deviceState.state.desiredState){
+                  case "DESIRED_ACTIVE":
+                    myJson={
+                      summary: 'Scheduled waterings will now run on controller.' ,
+                      externalId: this.webhook_key,
+                      eventType: 'DEVICE_MANUAL_STANDBY_ON_EVENT',
+                      type: 'DEVICE_STATUS',
+                      title: 'Standby Mode Off',
+                      deviceId: newDevice.id,
+                      deviceName: newDevice.name,
+                      subType: 'SLEEP_MODE_OFF',
+                    }
+                    break;
+                  case "DESIRED_STANDBY":
+                    myJson={
+                      summary: 'No scheduled waterings will run on controller.' ,
+                      externalId: this.webhook_key,
+                      eventType: 'DEVICE_MANUAL_STANDBY_ON_EVENT',
+                      type: 'DEVICE_STATUS',
+                      title: 'Standby Mode ON',
+                      deviceId: newDevice.id,
+                      deviceName: newDevice.name,
+                      subType: 'SLEEP_MODE_ON',
+                    }
+                    break;
+                }
+                this.log.debug('Found healthy device')
+                this.log.debug(myJson)
+                let irrigationAccessory = this.accessories[myJson.deviceId];
+                let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
+                irrigationAccessory.services.forEach((service)=>{
+                  if (service.getCharacteristic(Characteristic.Name).value == 'Standby'){
+                    //do somthing with the response
+                    this.log.debug('Updating standby switch state')
+                    this.updateSevices(irrigationSystemService,service,myJson)
+                  } 
+                  return
+                })
+              }
+      
+              //find any running zone and set its state
             this.rachioapi.currentSchedule (this.token,newDevice.id).then(response => {   
-              this.setValveStatus(response)  
+              //create a fake webhook response 
+              if(response.data.status=='PROCESSING'){
+                this.log.debug('Found zone-%s running',response.data.zoneNumber)
+                let myJson={
+                  type: 'ZONE_STATUS',
+                  title: 'Zone Started',
+                  deviceId: response.data.deviceId,
+                  duration: response.data.duration,
+                  zoneNumber: response.data.zoneNumber,
+                  zoneId: response.data.zoneId,
+                  zoneRunState: 'STARTED',
+                  durationInMinutes: response.data.zoneDuration/60,
+                  externalId: this.webhook_key,
+                  eventType: 'DEVICE_ZONE_RUN_STARTED_EVENT',
+                  subType: 'ZONE_STARTED',
+                  startTime: response.data.zoneStartDate,
+                  endTime: new Date(response.data.zoneStartDate+(response.data.zoneDuration*1000)).toISOString(),
+                  category: 'DEVICE',
+                  resourceType: 'DEVICE'
+                }
+                this.log.debug(myJson)
+                let irrigationAccessory = this.accessories[myJson.deviceId];
+                let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
+                irrigationAccessory.services.forEach((service)=>{
+                  if (service.getCharacteristic(Characteristic.SerialNumber).value == myJson.zoneId){
+                    //do somthing with the response
+                    this.log.debug('Webhook match found for zone-%s on start will update services',myJson.zoneNumber)
+                    this.updateSevices(irrigationSystemService,service,myJson)
+                  } 
+                  return
+                })
+              }
+              if(response.data.status=='PROCESSING' && response.data.scheduleId != undefined){
+                this.log.debug('Found schedule %s running',response.data.scheduleId)
+                let myJson={
+                  type: 'SCHEDULE_STATUS',
+                  title: 'Schedule Manually Started',
+                  deviceId: response.data.deviceId,
+                  deviceName: response.data.name,
+                  duration: response.data.zoneDuration/60,
+                  scheduleName: 'Quick Run',
+                  scheduleId: response.data.scheduleId,
+                  externalId: this.webhook_key,
+                  eventType: 'SCHEDULE_STARTED_EVENT',
+                  subType: 'SCHEDULE_STARTED',
+                  endTime: new Date(response.data.zoneStartDate+(response.data.zoneDuration*1000)).toISOString(),
+                  category: 'SCHEDULE',
+                  resourceType: 'DEVICE'
+                }
+                this.log.debug(myJson)
+                let irrigationAccessory = this.accessories[myJson.deviceId];
+                let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
+                irrigationAccessory.services.forEach((service)=>{
+                  if (service.getCharacteristic(Characteristic.SerialNumber).value == myJson.scheduleId){
+                    //do somthing with the response
+                    this.log.debug('Webhook match found for schedule %s on start will update services',myJson.scheduleName)
+                    this.updateSevices(irrigationSystemService,service,myJson)
+                  } 
+                  return
+                })
+              }
+
+
             }).catch(err => {this.log.error('Failed to get current schedule', err)})      
           }).catch(err => {this.log.error('Failed to get device state', err)}) 
         })
@@ -490,7 +637,6 @@ class RachioPlatform {
       .setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
     return switchService
   }
-
   createSwitchService(device,switchName) {
     // Create Valve Service
     this.log.debug('adding new switch')
@@ -573,7 +719,7 @@ class RachioPlatform {
       }
     }
 
-  getSwitchValue(switchService, callback) {
+    getSwitchValue(switchService, callback) {
     //this.log.debug("%s = %s", switchService.getCharacteristic(Characteristic.Name).value,switchService.getCharacteristic(Characteristic.On))
     if (switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
       callback('error')
@@ -581,228 +727,78 @@ class RachioPlatform {
     else{
       callback(null, switchService.getCharacteristic(Characteristic.On).value)
     }
-  }
+    }
 
-  setOnlineStatus(newDevice) {
-  //set current device status  
-  //create a fake webhook response 
-    if(newDevice.status){
-      let myJson
-      switch(newDevice.status){
-        case "ONLINE":
-          myJson={
-              externalId: "hombridge-Rachio-Dev",
-              type: "DEVICE_STATUS",
-              deviceId: newDevice.id,
-              subType: "ONLINE",
-              timestamp: new Date().toISOString()
+configureListener(){
+  if (this.external_webhook_address && this.internal_webhook_port) {
+    this.log.debug('Will listen for Webhooks matching Webhook ID %s',this.webhook_key)
+    requestServer = http.createServer((request, response) => {
+      if (request.method === 'GET' && request.url === '/test') {
+        this.log.info('Test received on Rachio listener. Webhooks are configured correctly!')
+        response.writeHead(200)
+        response.write( new Date().toTimeString()+' Webhooks are configured correctly!')
+        return response.end()
+      } 
+      else if (request.method === 'POST' && request.url === '/') {
+        let body = []
+        request.on('data', (chunk) => {
+          body.push(chunk)
+        }).on('end', () => {  
+          try {
+            const jsonBody = JSON.parse(body)
+            body = Buffer.concat(body).toString().trim()
+            this.log.debug('webhook request received from < %s > %s',jsonBody.externalId,jsonBody)
+            if (jsonBody.externalId === this.webhook_key) {
+              let irrigationAccessory = this.accessories[jsonBody.deviceId];
+              let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
+              irrigationAccessory.services.forEach((service)=>{
+                //this.log.debug(service.getCharacteristic(Characteristic.Name).value,service.getCharacteristic(Characteristic.SerialNumber).value,service.getCharacteristic(Characteristic.ProductData).value,service.getCharacteristic(Characteristic.ManuallyDisabled).value)
+                if (jsonBody.category == "DEVICE" && jsonBody.subType.includes('ZONE') && service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.zoneId){
+                  let foundService=service
+                  //do somthing with the response Zone started
+                  this.log.debug('Webhook match found for %s will update zone services opt-z',jsonBody.zoneName)
+                  this.updateSevices(irrigationSystemService,foundService,jsonBody)
+                }
+                else if (jsonBody.category == "SCHEDULE" && jsonBody.subType.includes('SCHEDULE') && jsonBody.scheduleId  && ( jsonBody.scheduleName == "Quick Run" || service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.scheduleId)){        
+                  let foundService=service
+                  //do somthing with the response Schedule started
+                  this.log.debug('Webhook match found for %s will update device services opt-s',jsonBody.scheduleName)
+                  this.updateSevices(irrigationSystemService,foundService,jsonBody)
+                } 
+                else if (jsonBody.category == "DEVICE" && jsonBody.subType.includes('SLEEP_MODE') && service.getCharacteristic(Characteristic.ProductData).value == jsonBody.deviceId && service.getCharacteristic(Characteristic.ManuallyDisabled).value==true){        
+                  let foundService=service
+                  //do somthing with the response standby switch
+                  this.log.debug('Webhook match found for %s will update device services opt-d',jsonBody.deviceName)
+                  this.updateSevices(irrigationSystemService,foundService,jsonBody)
+                } 
+                response.writeHead(204)
+                return response.end()
+              })
+            } 
+            else {
+            this.log.warn('Webhook received from an unknown external id %s',jsonBody.externalId)
+            response.writeHead(404)
+            return response.end()
             }
-          break;
-        case "OFFLINE":
-          myJson={
-            externalId: "hombridge-Rachio-Dev",
-            type: "DEVICE_STATUS",
-            deviceId: newDevice.id,
-            subType: "OFFLINE",
-            timestamp: new Date().toISOString()
+            //this.log.warn('Unsupported HTTP Request %s  %s', request.method, request.url)
           }
-          break;
-      }
-      this.log.debug('Found online device')
-      this.log.debug(myJson)
-      let irrigationAccessory = this.accessories[myJson.deviceId];
-      let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
-      irrigationAccessory.services.forEach((service)=>{
-        if (service.getCharacteristic(Characteristic.ProductData).value == newDevice.id){
-          //do somthing with the response
-          this.log.debug('Updating device status')
-          this.updateSevices(irrigationSystemService,service,myJson)
-        } 
-        return
-      })
-    }
-  } 
-
-  setDeviceStatus(newDevice) {
-    //set current device state  
-    //create a fake webhook response 
-    if(deviceState.state.health=='GOOD'){
-      let myJson
-      switch(deviceState.state.desiredState){
-        case "DESIRED_ACTIVE":
-          myJson={
-            summary: 'Scheduled waterings will now run on controller.' ,
-            externalId: this.webhook_key,
-            eventType: 'DEVICE_MANUAL_STANDBY_ON_EVENT',
-            type: 'DEVICE_STATUS',
-            title: 'Standby Mode Off',
-            deviceId: newDevice.id,
-            deviceName: newDevice.name,
-            subType: 'SLEEP_MODE_OFF',
-          }
-          break;
-        case "DESIRED_STANDBY":
-          myJson={
-            summary: 'No scheduled waterings will run on controller.' ,
-            externalId: this.webhook_key,
-            eventType: 'DEVICE_MANUAL_STANDBY_ON_EVENT',
-            type: 'DEVICE_STATUS',
-            title: 'Standby Mode ON',
-            deviceId: newDevice.id,
-            deviceName: newDevice.name,
-            subType: 'SLEEP_MODE_ON',
-          }
-          break;
-      }
-      this.log.debug('Found healthy device')
-      this.log.debug(myJson)
-      let irrigationAccessory = this.accessories[myJson.deviceId];
-      let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
-      irrigationAccessory.services.forEach((service)=>{
-        if (service.getCharacteristic(Characteristic.Name).value == 'Standby'){
-          //do somthing with the response
-          this.log.debug('Updating standby switch state')
-          this.updateSevices(irrigationSystemService,service,myJson)
-        } 
-        return
-      })
-    }
-  }
-
-  setValveStatus(response){
-    if(response.data.status=='PROCESSING'){
-      //create a fake webhook response 
-      this.log.debug('Found zone-%s running',response.data.zoneNumber)
-      let myJson={
-        type: 'ZONE_STATUS',
-        title: 'Zone Started',
-        deviceId: response.data.deviceId,
-        duration: response.data.duration,
-        zoneNumber: response.data.zoneNumber,
-        zoneId: response.data.zoneId,
-        zoneRunState: 'STARTED',
-        durationInMinutes: response.data.zoneDuration/60,
-        externalId: this.webhook_key,
-        eventType: 'DEVICE_ZONE_RUN_STARTED_EVENT',
-        subType: 'ZONE_STARTED',
-        startTime: response.data.zoneStartDate,
-        endTime: new Date(response.data.zoneStartDate+(response.data.zoneDuration*1000)).toISOString(),
-        category: 'DEVICE',
-        resourceType: 'DEVICE'
-      }
-      this.log.debug(myJson)
-      let irrigationAccessory = this.accessories[myJson.deviceId];
-      let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
-      irrigationAccessory.services.forEach((service)=>{
-        if (service.getCharacteristic(Characteristic.SerialNumber).value == myJson.zoneId){
-          //do somthing with the response
-          this.log.debug('Webhook match found for zone-%s on start will update services',myJson.zoneNumber)
-          this.updateSevices(irrigationSystemService,service,myJson)
-        } 
-        return
-      })
-    }
-    if(response.data.status=='PROCESSING' && response.data.scheduleId != undefined){
-      this.log.debug('Found schedule %s running',response.data.scheduleId)
-      let myJson={
-        type: 'SCHEDULE_STATUS',
-        title: 'Schedule Manually Started',
-        deviceId: response.data.deviceId,
-        deviceName: response.data.name,
-        duration: response.data.zoneDuration/60,
-        scheduleName: 'Quick Run',
-        scheduleId: response.data.scheduleId,
-        externalId: this.webhook_key,
-        eventType: 'SCHEDULE_STARTED_EVENT',
-        subType: 'SCHEDULE_STARTED',
-        endTime: new Date(response.data.zoneStartDate+(response.data.zoneDuration*1000)).toISOString(),
-        category: 'SCHEDULE',
-        resourceType: 'DEVICE'
-      }
-      this.log.debug(myJson)
-      let irrigationAccessory = this.accessories[myJson.deviceId];
-      let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
-      irrigationAccessory.services.forEach((service)=>{
-        if (service.getCharacteristic(Characteristic.SerialNumber).value == myJson.scheduleId){
-          //do somthing with the response
-          this.log.debug('Webhook match found for schedule %s on start will update services',myJson.scheduleName)
-          this.updateSevices(irrigationSystemService,service,myJson)
-        } 
-        return
-      })
-    }
-  }
-
-  configureListener() {
-    if (this.external_webhook_address && this.internal_webhook_port) {
-      this.log.debug('Will listen for Webhooks matching Webhook ID %s',this.webhook_key)
-      requestServer = http.createServer((request, response) => {
-        if (request.method === 'GET' && request.url === '/test') {
-          this.log.info('Test received on Rachio listener. Webhooks are configured correctly!')
-          response.writeHead(200)
-          response.write( new Date().toTimeString()+' Webhooks are configured correctly!')
-          return response.end()
-        } 
-        else if (request.method === 'POST' && request.url === '/') {
-          let body = []
-          request.on('data', (chunk) => {
-            body.push(chunk)
-          }).on('end', () => {  
-            try {
-              const jsonBody = JSON.parse(body)
-              body = Buffer.concat(body).toString().trim()
-              this.log.debug('webhook request received from < %s > %s',jsonBody.externalId,jsonBody)
-              if (jsonBody.externalId === this.webhook_key) {
-                let irrigationAccessory = this.accessories[jsonBody.deviceId];
-                let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
-                irrigationAccessory.services.forEach((service)=>{
-                  //this.log.debug(service.getCharacteristic(Characteristic.Name).value,service.getCharacteristic(Characteristic.SerialNumber).value,service.getCharacteristic(Characteristic.ProductData).value,service.getCharacteristic(Characteristic.ManuallyDisabled).value)
-                  if (jsonBody.category == "DEVICE" && jsonBody.subType.includes('ZONE') && service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.zoneId){
-                    let foundService=service
-                    //do somthing with the response Zone started
-                    this.log.debug('Webhook match found for %s will update zone services opt-z',jsonBody.zoneName)
-                    this.updateSevices(irrigationSystemService,foundService,jsonBody)
-                  }
-                  else if (jsonBody.category == "SCHEDULE" && jsonBody.subType.includes('SCHEDULE') && jsonBody.scheduleId  && ( jsonBody.scheduleName == "Quick Run" || service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.scheduleId)){        
-                    let foundService=service
-                    //do somthing with the response Schedule started
-                    this.log.debug('Webhook match found for %s will update device services opt-s',jsonBody.scheduleName)
-                    this.updateSevices(irrigationSystemService,foundService,jsonBody)
-                  } 
-                  else if (jsonBody.category == "DEVICE" && jsonBody.subType.includes('SLEEP_MODE') && service.getCharacteristic(Characteristic.ProductData).value == jsonBody.deviceId && service.getCharacteristic(Characteristic.ManuallyDisabled).value==true){        
-                    let foundService=service
-                    //do somthing with the response standby switch
-                    this.log.debug('Webhook match found for %s will update device services opt-d',jsonBody.deviceName)
-                    this.updateSevices(irrigationSystemService,foundService,jsonBody)
-                  } 
-                  response.writeHead(204)
-                  return response.end()
-                })
-              } 
-              else {
-              this.log.warn('Webhook received from an unknown external id %s',jsonBody.externalId)
+          catch (err) {  
+              this.log.warn('Error parsing webhook request ' + err)
               response.writeHead(404)
               return response.end()
-              }
-              //this.log.warn('Unsupported HTTP Request %s  %s', request.method, request.url)
-            }
-            catch (err) {  
-                this.log.warn('Error parsing webhook request ' + err)
-                response.writeHead(404)
-                return response.end()
-            }
-          })
-        } 
+          }
         })
-        requestServer.listen(this.internal_webhook_port, function () {
-          this.log.info('This server is listening on port %s.',this.internal_webhook_port)
-          this.log.info('Make sure your router has port fowarding for %s to this server`s IP address and this port set.',this.external_webhook_address)
-        }.bind(this))
-      } 
-      else {
-        this.log.warn('Webhook support is disabled. This plugin will not sync Homekit to realtime events from other sources without Webhooks support.')
-      }
-    return 
+       } 
+      })
+      requestServer.listen(this.internal_webhook_port, function () {
+        this.log.info('This server is listening on port %s.',this.internal_webhook_port)
+        this.log.info('Make sure your router has port fowarding for %s to this server`s IP address and this port set.',this.external_webhook_address)
+      }.bind(this))
+    } 
+    else {
+      this.log.warn('Webhook support is disabled. This plugin will not sync Homekit to realtime events from other sources without Webhooks support.')
+    }
+  return 
   } 
 
   updateSevices(irrigationSystemService,activeService,jsonBody){
@@ -967,4 +963,3 @@ class RachioPlatform {
       return;
     }
   }
-
