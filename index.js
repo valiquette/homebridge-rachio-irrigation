@@ -375,6 +375,7 @@ class RachioPlatform {
     valve.addCharacteristic(Characteristic.SerialNumber) //Use Serial Number to store the zone id
     valve.addCharacteristic(Characteristic.Model)
     valve.addCharacteristic(Characteristic.ConfiguredName)
+    //valve.getCharacteristic(Characteristic.SetDuration).setProps({minValue:60, maxValue:3600, minStep:1, validValues:[60,180,300,600,1200]})
     valve 
       .setCharacteristic(Characteristic.Active, Characteristic.Active.INACTIVE)
       .setCharacteristic(Characteristic.InUse, Characteristic.InUse.NOT_IN_USE)
@@ -409,7 +410,7 @@ class RachioPlatform {
     valveService
       .getCharacteristic(Characteristic.SetDuration)
       .on('get', this.getValveValue.bind(this, valveService, "ValveSetDuration"))
-      .on('set', this.getValveValue.bind(this, valveService, "ValveSetDuration"))
+      .on('set', this.setValveDuration.bind(this, device, valveService))
     valveService
       .getCharacteristic(Characteristic.RemainingDuration)
       .on('get', this.getValveValue.bind(this, valveService, "ValveRemainingDuration"))
@@ -459,12 +460,11 @@ class RachioPlatform {
       let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
       
       // Set homekit state and prepare message for Rachio API
-      let run_time = valveService.getCharacteristic(Characteristic.SetDuration).value / 60; 
-
+      let run_time = valveService.getCharacteristic(Characteristic.SetDuration).value
       if (value == Characteristic.Active.ACTIVE) {
-        // Turn on.idle the valve
-        this.log.info("Starting zone-%s %s for %s mins", valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value, valveService.getCharacteristic(Characteristic.Name).value, run_time)
-        this.rachioapi.startZone (this.token,valveService.getCharacteristic(Characteristic.SerialNumber).value,this.default_runtime)
+        // Turn on/idle the valve
+        this.log.info("Starting zone-%s %s for %s mins", valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value, valveService.getCharacteristic(Characteristic.Name).value, run_time/60)
+        this.rachioapi.startZone (this.token,valveService.getCharacteristic(Characteristic.SerialNumber).value,run_time)
         valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
         irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.Active.ACTIVE)
       } else {
@@ -474,6 +474,13 @@ class RachioPlatform {
         valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
         irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.Active.INACTIVE)
       }
+      callback()
+  }
+
+  setValveDuration(device, valveService, value, callback) {
+    // Set default duration from Homekit value
+    this.log.info("Set %s duration for %s mins", valveService.getCharacteristic(Characteristic.Name).value,value/60)
+    valveService.getCharacteristic(Characteristic.SetDuration).updateValue(value) 
       callback()
   }
   createScheduleSwitchService(schedule) {
