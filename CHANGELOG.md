@@ -1,9 +1,12 @@
 # Changes
 
+### 1.0.6
+- [Fix] 
+-   Fixed an issue where zones were not running for correct duration when changed in HomeKit
+
 ### 1.0.5
 - [Enhancment] 
 -   Code cleanup
-
 
 ### 1.0.4
 - [Enhancment] 
@@ -12,12 +15,11 @@
 -   Automatically remove cached accesory after a change to the config.json file is detected
 -   Added options to display addition switches for schedules
 
-
 ### 1.0.3
 - [Fix] 
 -   webhook listener fix
 -   clarify some wording in config schema
-<br> incuded verify in the readme
+<br> Incuded verified status in the readme
 
 ### 1.0.1 
 - [Update] 
