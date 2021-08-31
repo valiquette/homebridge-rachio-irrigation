@@ -89,6 +89,12 @@ class RachioPlatform {
         this.previousConfig= JSON.parse(jsonString)
       } catch(error)  {
         this.log.error('no file read',error)
+          try{
+          fs.unlinkSync(storagePath+'/previousconfig.json')
+          this.log.error('corrupt file removed, please restart')
+          }catch(error){
+          this.log.error('erro removing corrupt file', error)
+          }
         return  
       }
     } else {
@@ -555,9 +561,9 @@ class RachioPlatform {
   }
 
   setValveDuration(device, valveService, value, callback) {
-    // Set default duration from Homekit value
-    this.log.info("Set %s duration for %s mins", valveService.getCharacteristic(Characteristic.Name).value,value/60)
+    // Set default duration from Homekit value 
     valveService.getCharacteristic(Characteristic.SetDuration).updateValue(value) 
+    this.log.info("Set %s duration for %s mins", valveService.getCharacteristic(Characteristic.Name).value,value/60)
       callback()
   }
   createScheduleSwitchService(schedule) {
@@ -695,13 +701,9 @@ class RachioPlatform {
       this.log.debug(myJson)
       let irrigationAccessory = this.accessories[myJson.deviceId];
       let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
-      irrigationAccessory.services.forEach((service)=>{
-        if (service.getCharacteristic(Characteristic.ProductData).value == newDevice.id){
-          this.log.debug('Updating device status')
-          this.updateSevices(irrigationSystemService,service,myJson)
-        } 
-        return
-      })
+      let service = irrigationAccessory.getServiceById(Service.IrrigationSystem)
+      this.log.debug('Updating device status')
+      this.updateSevices(irrigationSystemService,service,myJson)
     }
   } 
 
@@ -740,13 +742,9 @@ class RachioPlatform {
       this.log.debug(myJson)
       let irrigationAccessory = this.accessories[myJson.deviceId];
       let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
-      irrigationAccessory.services.forEach((service)=>{
-        if (service.getCharacteristic(Characteristic.Name).value == 'Standby'){
-          this.log.debug('Updating standby switch state')
-          this.updateSevices(irrigationSystemService,service,myJson)
-        } 
-        return
-      })
+      let service = irrigationAccessory.getServiceById(Service.Switch,this.api.hap.uuid.generate('Standby'))
+      this.log.debug('Updating standby switch state')
+      this.updateSevices(irrigationSystemService,service,myJson)
     }
   }
 
@@ -758,11 +756,11 @@ class RachioPlatform {
         type: 'ZONE_STATUS',
         title: 'Zone Started',
         deviceId: response.data.deviceId,
-        duration: response.data.duration,
+        duration: response.data.zoneDuration,
         zoneNumber: response.data.zoneNumber,
         zoneId: response.data.zoneId,
         zoneRunState: 'STARTED',
-        durationInMinutes: response.data.zoneDuration/60,
+        durationInMinutes: Math.round(response.data.zoneDuration/60),
         externalId: this.webhook_key_local,
         eventType: 'DEVICE_ZONE_RUN_STARTED_EVENT',
         subType: 'ZONE_STARTED',
@@ -774,13 +772,9 @@ class RachioPlatform {
       this.log.debug(myJson)
       let irrigationAccessory = this.accessories[myJson.deviceId];
       let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
-      irrigationAccessory.services.forEach((service)=>{
-        if (service.getCharacteristic(Characteristic.SerialNumber).value == myJson.zoneId){
-          this.log.debug('Webhook match found for zone-%s on start will update services',myJson.zoneNumber)
-          this.updateSevices(irrigationSystemService,service,myJson)
-        } 
-        return
-      })
+      let service = irrigationAccessory.getServiceById(Service.Valve,myJson.zoneId)
+      this.log.debug('Webhook match found for zone-%s on start will update services',myJson.zoneNumber)
+      this.updateSevices(irrigationSystemService,service,myJson)
     }
     if(response.data.status=='PROCESSING' && response.data.scheduleId != undefined){
       this.log.debug('Found schedule %s running',response.data.scheduleId)
@@ -802,13 +796,9 @@ class RachioPlatform {
       this.log.debug(myJson)
       let irrigationAccessory = this.accessories[myJson.deviceId];
       let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
-      irrigationAccessory.services.forEach((service)=>{
-        if (service.getCharacteristic(Characteristic.SerialNumber).value == myJson.scheduleId){
-          this.log.debug('Webhook match found for schedule %s on start will update services',myJson.scheduleName)
-          this.updateSevices(irrigationSystemService,service,myJson)
-        } 
-        return
-      })
+      let service = irrigationAccessory.getServiceById(Service.Switch,myJson.scheduleId)
+      this.log.debug('Webhook match found for schedule %s on start will update services',myJson.scheduleName)
+      this.updateSevices(irrigationSystemService,service,myJson)
     }
   }
 
@@ -832,29 +822,24 @@ class RachioPlatform {
               body = Buffer.concat(body).toString().trim()
               this.log.debug('webhook request received from < %s > %s',jsonBody.externalId,jsonBody)
               if (jsonBody.externalId === this.webhook_key) {
-                let irrigationAccessory = this.accessories[jsonBody.deviceId];
-                let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
-                //this.log.warn(this.accessories[jsonBody.deviceId].getServiceById(jsonBody.zoneId).subtype)  
-                irrigationAccessory.services.forEach((service)=>{
-                  //this.log.debug(service.getCharacteristic(Characteristic.Name).value,service.getCharacteristic(Characteristic.SerialNumber).value,service.getCharacteristic(Characteristic.ProductData).value,service.getCharacteristic(Characteristic.ManuallyDisabled).value)
-                  if (jsonBody.category == "DEVICE" && jsonBody.subType.includes('ZONE') && service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.zoneId){
-                    let foundService=service
-                    this.log.debug('Webhook match found for %s will update zone services opt-z',jsonBody.zoneName)
-                    this.updateSevices(irrigationSystemService,foundService,jsonBody)
-                  }
-                  else if (jsonBody.category == "SCHEDULE" && jsonBody.subType.includes('SCHEDULE') && jsonBody.scheduleId  && ( jsonBody.scheduleName == "Quick Run" || service.getCharacteristic(Characteristic.SerialNumber).value == jsonBody.scheduleId)){        
-                    let foundService=service
-                    this.log.debug('Webhook match found for %s will update device services opt-s',jsonBody.scheduleName)
-                    this.updateSevices(irrigationSystemService,foundService,jsonBody)
-                  } 
-                  else if (jsonBody.category == "DEVICE" && jsonBody.subType.includes('SLEEP_MODE') && service.getCharacteristic(Characteristic.ProductData).value == jsonBody.deviceId && service.getCharacteristic(Characteristic.ManuallyDisabled).value==true){        
-                    let foundService=service
-                    this.log.debug('Webhook match found for %s will update device services opt-d',jsonBody.deviceName)
-                    this.updateSevices(irrigationSystemService,foundService,jsonBody)
-                  } 
-                  response.writeHead(204)
-                  return response.end()
-                })
+                let irrigationAccessory = this.accessories[jsonBody.deviceId]
+                let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
+                let service
+                if (jsonBody.zoneId){
+                  service = irrigationAccessory.getServiceById(Service.Valve,jsonBody.zoneId)
+                  this.log.debug('Webhook match found for %s will update zone services',jsonBody.zoneName)
+                }
+                else if (jsonBody.scheduleId){
+                  service = irrigationAccessory.getServiceById(Service.Switch,jsonBody.scheduleId)
+                  this.log.debug('Webhook match found for %s will update zone services',jsonBody.scheduleName)
+                }
+                else if (jsonBody.deviceId){
+                  service = irrigationAccessory.getServiceById(Service.IrrigationSystem)
+                  this.log.debug('Webhook match found for %s will update zone services',jsonBody.deviceName)
+              }
+              this.updateSevices(irrigationSystemService,service,jsonBody)
+              response.writeHead(204)
+              return response.end() 
               } 
               else {
               this.log.warn('Webhook received from an unknown external id %s',jsonBody.externalId)
@@ -986,7 +971,6 @@ class RachioPlatform {
                 service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
                 service.getCharacteristic(Characteristic.Active).getValue()
               })
-              irrigationSystemService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
               break;
             case 'COLD_REBOOT':
               this.log('<%s> Device,%s connected at %s from a %s',jsonBody.externalId,jsonBody.deviceName,new Date(jsonBody.timestamp).toString(),jsonBody.title)
@@ -994,7 +978,6 @@ class RachioPlatform {
                 service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
                 service.getCharacteristic(Characteristic.Active).getValue()
               })
-              irrigationSystemService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
               break;
             case 'OFFLINE':
               this.log('<%s> %s disconnected at %s',jsonBody.externalId,jsonBody.deviceId,jsonBody.timestamp)
@@ -1003,16 +986,13 @@ class RachioPlatform {
                   service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
                   service.getCharacteristic(Characteristic.Active).getValue()
               })
-              irrigationSystemService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
               break;
             case "SLEEP_MODE_ON"://ProgramMode 0 
               this.log('<%s> %s %s %s',jsonBody.externalId,jsonBody.title,jsonBody.deviceName,jsonBody.summary)
-              activeService.getCharacteristic(Characteristic.On).updateValue(true)
               irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED)
              break;
             case "SLEEP_MODE_OFF"://ProgramMode 2
               this.log('<%s> %s %s %s',jsonBody.externalId,jsonBody.title,jsonBody.deviceName,jsonBody.summary)
-              activeService.getCharacteristic(Characteristic.On).updateValue(false)
               irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.PROGRAM_SCHEDULED_MANUAL_MODE_)
               break;
             default: //ProgramMode 1
@@ -1026,6 +1006,7 @@ class RachioPlatform {
         switch(jsonBody.subType){
           case "SCHEDULE_STARTED":     
             this.log.info('<%s> %s %s',jsonBody.externalId,jsonBody.title,jsonBody.summary)
+            activeService.getCharacteristic(Characteristic.On).updateValue(true) 
             irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE) 
             break;
           case "SCHEDULE_STOPPED":
