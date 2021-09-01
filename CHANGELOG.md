@@ -1,5 +1,12 @@
 # Changes
 
+### 1.1.0
+- [Fix] 
+-   Fixed an issue (#5) where zone syncing would be off in homekit if webhooks failed.
+-   Fixed an issue (#6) better error handling of condition where previousconfig.jason may be corrupt.
+- [Enhancment] 
+-   Will simulate webhooks locally allow local functionality without webhook support. 
+
 ### 1.0.6
 - [Fix] 
 -   Fixed an issue where zones were not running for correct duration when changed in HomeKit
