@@ -3,7 +3,6 @@
 <br>Rachio Irrigation System platform plugin for [HomeBridge](https://github.com/nfarina/homebridge).
 
 
-
 ## About
 
 This plugin provides 3 options for use in HomeKit<br>Both option have additional switches as options for Standby mode and a Run All along with any Rachio Schedules
