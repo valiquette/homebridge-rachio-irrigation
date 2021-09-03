@@ -1,6 +1,6 @@
 # Changes
 
-### 1.1.0
+### 1.1.1
 - [Fix] 
 -   Fixed an issue where starting a zone from homekit after previous schedule completed may not have been possible.
 -   Cleaned up charateristic warnings after clearing of cache
