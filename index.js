@@ -178,11 +178,11 @@ class RachioPlatform {
               this.configureIrrigationService(newDevice,this.accessories[uuid].getService(Service.IrrigationSystem))
               // Find the valve Services
               this.accessories[uuid].services.forEach(function (service) {
-                if (Service.Valve.UUID === service.UUID) {
+                if (Service.Valve.UUID == service.UUID) {
                   // Configure Valve Service
                   this.configureValveService(newDevice, service)
                 }
-                if (Service.Switch.UUID === service.UUID) {
+                if (Service.Switch.UUID == service.UUID) {
                   //Configuring Switch Service
                   this.configureSwitchService(newDevice, service)
                 }
@@ -968,7 +968,6 @@ class RachioPlatform {
             case 'ONLINE':
               this.log('<%s> %s connected at %s',jsonBody.externalId,jsonBody.deviceId,new Date(jsonBody.timestamp).toString())
                 irrigationAccessory.services.forEach((service)=>{
-                  //this.log.warn(service)
                   if (Service.AccessoryInformation.UUID != service.UUID) {
                     service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
                   }
@@ -983,7 +982,6 @@ class RachioPlatform {
             case 'COLD_REBOOT':
               this.log('<%s> Device,%s connected at %s from a %s',jsonBody.externalId,jsonBody.deviceName,new Date(jsonBody.timestamp).toString(),jsonBody.title)
               irrigationAccessory.services.forEach((service)=>{
-                //this.log.warn(service)
                 if (Service.AccessoryInformation.UUID != service.UUID) {
                   service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
                 }
@@ -999,7 +997,6 @@ class RachioPlatform {
               this.log('<%s> %s disconnected at %s',jsonBody.externalId,jsonBody.deviceId,jsonBody.timestamp)
               this.log.warn('%s disconnected at %s This will show as non-responding in Homekit untill the connection is restored',jsonBody.deviceId,jsonBody.timestamp)
                 irrigationAccessory.services.forEach((service)=>{
-                  //this.log.warn(service)
                   if (Service.AccessoryInformation.UUID != service.UUID) {
                     service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
                   }
