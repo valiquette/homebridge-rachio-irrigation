@@ -44,8 +44,8 @@ class RachioPlatform {
     this.external_webhook_address = "http://"+this.external_IP_address+':'+this.external_webhook_port
     this.webhook_key = 'hombridge-'+config["name"]
     this.webhook_key_local = 'simulated-webhook'
-    this.using_webhooks=false //config["using_webhooks"]
-    this.delete_webhooks = config["delete_webhooks"]
+    this.using_webhooks = false //config["using_webhooks"]
+    this.delete_webhooks = true //config["delete_webhooks"]
     this.delete_cache = config["delete_cache"]
     this.use_irrigation_display = config["use_irrigation_display"]
     this.default_runtime = config["default_runtime"]*60
@@ -83,6 +83,11 @@ class RachioPlatform {
     // for config changes that will require clearing of the cache
     //read previous config
     if (fs.existsSync(storagePath+'/previousconfig.json')) {
+      fs.unlinkSync(storagePath+'/previousconfig.json')
+    }
+
+    /*
+    if (fs.existsSync(storagePath+'/previousconfig.json')) {
       this.log.debug("exists:", storagePath);
       try {
         let jsonString = fs.readFileSync(storagePath+'/previousconfig.json')
@@ -117,7 +122,8 @@ class RachioPlatform {
             this.log.debug('Successfully wrote file')
         }
     })
-     
+    */ 
+
     //** 
     //** Platforms should wait until the "didFinishLaunching" event has fired before registering any new accessories.
     //**  
@@ -306,8 +312,6 @@ class RachioPlatform {
       .setCharacteristic(Characteristic.InUse, Characteristic.InUse.NOT_IN_USE)
       .setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
       .setCharacteristic(Characteristic.RemainingDuration, 0)
-      //.setCharacteristic(Characteristic.ProductData, device.id)
-
     // Check if the device is connected
     switch (device.status) {
       case "ONLINE": 
@@ -573,7 +577,7 @@ class RachioPlatform {
     this.log.debug("Created service for %s with id %s", schedule.name, schedule.id);
     let switchService = new Service.Switch(schedule.name, schedule.id) 
     switchService.addCharacteristic(Characteristic.ConfiguredName)
-    switchService.addCharacteristic(Characteristic.ManuallyDisabled)
+    switchService.addCharacteristic(Characteristic.SerialNumber)
     switchService 
       .setCharacteristic(Characteristic.On, false)
       .setCharacteristic(Characteristic.Name, schedule)
@@ -588,16 +592,10 @@ class RachioPlatform {
     let uuid = this.api.hap.uuid.generate(switchName)
     let switchService = new Service.Switch(switchName, uuid) 
     switchService.addCharacteristic(Characteristic.ConfiguredName)
-    switchService.addCharacteristic(Characteristic.ManuallyDisabled)
-    switchService.addCharacteristic(Characteristic.ProductData)
     switchService 
       .setCharacteristic(Characteristic.On, false)
       .setCharacteristic(Characteristic.Name, switchName)
-      .setCharacteristic(Characteristic.ProductData, device.id)
       .setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
-    if (switchName=="Standby"){
-      switchService.setCharacteristic(Characteristic.ManuallyDisabled,true)
-    }  
     return switchService
   }
 
