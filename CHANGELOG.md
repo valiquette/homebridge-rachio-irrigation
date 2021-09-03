@@ -2,6 +2,11 @@
 
 ### 1.1.0
 - [Fix] 
+-   Fixed an issue where starting a zone from homekit after previous schedule completed may not have been possible.
+-   Cleaned up charateristic warnings after clearing of cache
+
+### 1.1.0
+- [Fix] 
 -   Fixed an issue (#5) where zone syncing would be off in homekit if webhooks failed.
 -   Fixed an issue (#6) better error handling of condition where previousconfig.jason may be corrupt.
 - [Enhancment] 

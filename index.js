@@ -93,7 +93,7 @@ class RachioPlatform {
           fs.unlinkSync(storagePath+'/previousconfig.json')
           this.log.error('corrupt file removed, please restart')
           }catch(error){
-          this.log.error('erro removing corrupt file', error)
+          this.log.error('error removing corrupt file', error)
           }
         return  
       }
@@ -104,6 +104,7 @@ class RachioPlatform {
     //write current config
     if (JSON.stringify(config)==JSON.stringify(this.previousConfig)){
       this.log.debug('config files matched ok')  
+      this.delete_cache=true  // forcing cache to be cleared
     }
     else{
       this.log.info('Config file changed, removing %s cache',PluginName)
@@ -304,8 +305,9 @@ class RachioPlatform {
       .setCharacteristic(Characteristic.Active, Characteristic.Active.ACTIVE)
       .setCharacteristic(Characteristic.InUse, Characteristic.InUse.NOT_IN_USE)
       .setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
-      .setCharacteristic(Characteristic.ProductData, device.id)
       .setCharacteristic(Characteristic.RemainingDuration, 0)
+      //.setCharacteristic(Characteristic.ProductData, device.id)
+
     // Check if the device is connected
     switch (device.status) {
       case "ONLINE": 
@@ -929,7 +931,7 @@ class RachioPlatform {
                 break;
               case "ZONE_STOPPED":
                 this.log('<%s> %s, started for duration %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
-                irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE) 
+                irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
                 activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
                 activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
                 activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(0)
@@ -968,30 +970,54 @@ class RachioPlatform {
             case 'ONLINE':
               this.log('<%s> %s connected at %s',jsonBody.externalId,jsonBody.deviceId,new Date(jsonBody.timestamp).toString())
                 irrigationAccessory.services.forEach((service)=>{
-                service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
-                service.getCharacteristic(Characteristic.Active).getValue()
+                  //this.log.warn(service)
+                  if (Service.AccessoryInformation.UUID != service.UUID) {
+                    service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
+                  }
+                  if (Service.Valve.UUID == service.UUID) {
+                    service.getCharacteristic(Characteristic.Active).getValue()
+                  }
+                  if (Service.Switch.UUID == service.UUID) {
+                    service.getCharacteristic(Characteristic.On).getValue()
+                  }
               })
               break;
             case 'COLD_REBOOT':
               this.log('<%s> Device,%s connected at %s from a %s',jsonBody.externalId,jsonBody.deviceName,new Date(jsonBody.timestamp).toString(),jsonBody.title)
-                irrigationAccessory.services.forEach((service)=>{
-                service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
-                service.getCharacteristic(Characteristic.Active).getValue()
-              })
+              irrigationAccessory.services.forEach((service)=>{
+                //this.log.warn(service)
+                if (Service.AccessoryInformation.UUID != service.UUID) {
+                  service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
+                }
+                if (Service.Valve.UUID == service.UUID) {
+                  service.getCharacteristic(Characteristic.Active).getValue()
+                }
+                if (Service.Switch.UUID == service.UUID) {
+                  service.getCharacteristic(Characteristic.On).getValue()
+                }
+            })
               break;
             case 'OFFLINE':
               this.log('<%s> %s disconnected at %s',jsonBody.externalId,jsonBody.deviceId,jsonBody.timestamp)
               this.log.warn('%s disconnected at %s This will show as non-responding in Homekit untill the connection is restored',jsonBody.deviceId,jsonBody.timestamp)
                 irrigationAccessory.services.forEach((service)=>{
-                  service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
-                  service.getCharacteristic(Characteristic.Active).getValue()
+                  //this.log.warn(service)
+                  if (Service.AccessoryInformation.UUID != service.UUID) {
+                    service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
+                  }
+                  if (Service.Valve.UUID == service.UUID) {
+                    service.getCharacteristic(Characteristic.Active).getValue()
+                  }
+                  if (Service.Switch.UUID == service.UUID) {
+                    service.getCharacteristic(Characteristic.On).getValue()
+                  }
               })
               break;
-            case "SLEEP_MODE_ON"://ProgramMode 0 
+            case "SLEEP_MODE_ON": //ProgramMode 0 
               this.log('<%s> %s %s %s',jsonBody.externalId,jsonBody.title,jsonBody.deviceName,jsonBody.summary)
               irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED)
              break;
-            case "SLEEP_MODE_OFF"://ProgramMode 2
+            case "SLEEP_MODE_OFF": //ProgramMode 2
               this.log('<%s> %s %s %s',jsonBody.externalId,jsonBody.title,jsonBody.deviceName,jsonBody.summary)
               irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.PROGRAM_SCHEDULED_MANUAL_MODE_)
               break;
@@ -1006,17 +1032,23 @@ class RachioPlatform {
         switch(jsonBody.subType){
           case "SCHEDULE_STARTED":     
             this.log.info('<%s> %s %s',jsonBody.externalId,jsonBody.title,jsonBody.summary)
-            activeService.getCharacteristic(Characteristic.On).updateValue(true) 
+            if (Service.IrrigationSystem.UUID != activeService.UUID) {
+              activeService.getCharacteristic(Characteristic.On).updateValue(true)
+            }
             irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE) 
             break;
           case "SCHEDULE_STOPPED":
             this.log.info('<%s> %s %s',jsonBody.externalId,jsonBody.title,jsonBody.summary)
-            activeService.getCharacteristic(Characteristic.On).updateValue(false) 
+            if (Service.IrrigationSystem.UUID != activeService.UUID) {
+              activeService.getCharacteristic(Characteristic.On).updateValue(false)
+            }
             irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE) 
             break;
           case "SCHEDULE_COMPLETED":
             this.log.info('<%s> %s %s',jsonBody.externalId,jsonBody.title,jsonBody.summary)
-            activeService.getCharacteristic(Characteristic.On).updateValue(false) 
+            if (Service.IrrigationSystem.UUID != activeService.UUID) {
+              activeService.getCharacteristic(Characteristic.On).updateValue(false)
+            }
             irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE) 
             break;
         }
