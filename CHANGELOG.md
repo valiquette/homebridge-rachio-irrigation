@@ -1,4 +1,9 @@
 # Changes
+### 1.1.2
+- [Enhancement] 
+-   Optimized code 
+-   Cleaned up charateristic warnings after clearing of cache
+-   Removed the need to cache accesory, accessory will be build new on every restart
 
 ### 1.1.1
 - [Fix] 
@@ -8,7 +13,7 @@
 ### 1.1.0
 - [Fix] 
 -   Fixed an issue (#5) where zone syncing would be off in homekit if webhooks failed.
--   Fixed an issue (#6) better error handling of condition where previousconfig.jason may be corrupt.
+-   Fixed an issue (#6) better error handling of condition where previousconfig.json may be corrupt.
 - [Enhancment] 
 -   Will simulate webhooks locally allow local functionality without webhook support. 
 
