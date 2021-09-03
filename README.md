@@ -24,7 +24,7 @@ This plugin provides 3 options for use in HomeKit<br>Both option have additional
  </div align="left">
 </p>
 <br>There are plus and minus to each, so why not have options.
-<br>Changing this setting in Homebridge will require the accessory to be removed from cache and you may need to reopen Homekit.
+<br>
 
 
 # API Key
