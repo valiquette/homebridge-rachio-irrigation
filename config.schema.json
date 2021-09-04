@@ -59,7 +59,7 @@
       },
       "external_IP_address": {
         "title": "External IP Address",
-        "description": "External IP address for this server, used to receive webhook requests. To find this quick try https://www.myexternalip.com .",
+        "description": "External IP address for this server, used to receive webhook requests.<br/>To find this quick try https://www.myexternalip.com .",
         "type": "string",
         "format": "ipv4",
         "required": false,
@@ -67,20 +67,40 @@
       },
       "external_webhook_port": {
         "title": "External Webhook Port",
-        "description": "External port or source for receiving webhook requests. Your router will need to forward this port to your internal webhook port.",
+        "description": "External port <br/>Source for receiving webhook requests.",
         "type": "number",
         "required": false,
         "default": 12453
       },
       "internal_webhook_port": {
         "title": "Internal Webhook Port",
-        "description": "Internal port or destination for receiving webhook requests.",
+        "description": "Internal port <br/>Destination for receiving webhook requests.",
         "type": "number",
         "required": false,
         "default": 27546
       },
+      "use_basic_auth": {
+        "title": "HTTP basic authentication",
+        "description": "Use HTTP basic authentication.",
+        "type": "boolean",
+        "required": false,
+        "default": false
+      },
+      "user": {
+        "title": "Basic Authentication User",
+        "type": "string",
+        "required": false,
+        "placeholder": "username",
+        "maxLength": 32
+      },
+      "password": {
+        "title": "Basic Authentication Password",
+        "type": "string",
+        "required": false,
+        "placeholder": "password"
+      },
       "delete_webhooks": {
-        "title": "Delete current webhook IDs",
+        "title": "Delete all current webhook IDs",
         "description": "Use this if there is a need to delete current webhook IDs that may be causing problems. Such as errors for 'Webhook received from an unknown external id`",
         "type": "boolean",
         "required": false,
@@ -101,30 +121,76 @@
     },
     {
       "type": "fieldset",
-      "title": "Additional Switches",
+      "title": "Extra Switches",
+      "description": "Expand to expose additonal switches",
       "expandable": true,
       "items": [
         "show_standby",
         "show_schedules",
         "show_runall"
       ]
-    },
-    
+    },   
     {
       "type": "fieldset",
       "title": "Webhooks",
+      "description": "Expand to configure webhooks",
       "expandable": true,
+      "displayFlex": true,
       "items": [
-        "external_IP_address",
-        "external_webhook_port",
-        "internal_webhook_port",
-      {
-          "key": "options",
-          "add": "Add Another Option",
-          "type": "fieldset",
-          "expandable": true,
+        {
+          "type": "flex",
+          "flex-flow": "row wrap",
           "items": [
-            "delete_webhooks"
+            "external_IP_address"
+          ]
+        },
+        {
+        "type": "flex",
+        "flex-flow": "row wrap",
+        "items": [
+          "external_webhook_port",
+          "internal_webhook_port"
+        ]
+      },
+      {
+        "type": "help",
+        "helpvalue": "<i>Important note.<p class='help-block'> Your router will need to forward this external port to your internal webhook port.</p>"
+      },
+      {
+          "key": "Extra stuff",
+          "title": "Options",
+          "description": "Extra webhook settings",
+          "type": "flex",
+          "expandable": true,
+          "displayFlex": true,
+          "flex-flow":"row wrap",
+          "items": [
+              {
+                "type": "flex",
+                "flex-flow": "row wrap",
+                "items": [
+                  "delete_webhooks"
+                ]
+              },
+              {
+                "type": "flex",
+                "flex-flow": "row wrap",
+                "items": [
+                  "use_basic_auth"
+                ]
+              },
+              {
+              "type": "flex",
+              "flex-flow": "row wrap",
+              "items": [
+                "user",
+                "password"
+              ]
+            },
+            {
+              "type": "help",
+              "helpvalue": "<p class='help-block'> Rachio supports HTTP Basic Authentication for webhooks. if checked any incoming message will need to match this user:password</p>"
+            }
           ]
         }
       ]
