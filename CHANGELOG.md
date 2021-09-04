@@ -1,9 +1,9 @@
 # Changes
 ### 1.1.2
 - [Enhancement] 
+-   Added support for webhooks http basic authentication
 -   Optimized code 
--   Cleaned up charateristic warnings after clearing of cache
--   Removed the need to cache accesory, accessory will be build new on every restart
+-   Removed the need to cache accesory, accessory will be built new on every restart
 
 ### 1.1.1
 - [Fix] 
