@@ -41,7 +41,6 @@ class RachioPlatform {
     this.external_IP_address = config["external_IP_address"]
     this.external_webhook_port = config["external_webhook_port"]
     this.internal_webhook_port = config["internal_webhook_port"]
-    //this.external_webhook_address = "http://"+this.external_IP_address+':'+this.external_webhook_port
     this.webhook_key = 'hombridge-'+config["name"]
     this.webhook_key_local = 'simulated-webhook'
     this.delete_webhooks = config["delete_webhooks"]
@@ -93,7 +92,7 @@ class RachioPlatform {
 
     // for config changes that will require clearing of the cache
     // read previous config
-    // depricated will remove cleanup in the future
+    // depricated routine removeing un-needed file, this will cleanup in the future release
     if (fs.existsSync(storagePath+'/previousconfig.json')) {
       fs.unlinkSync(storagePath+'/previousconfig.json')
     }
