@@ -24,7 +24,7 @@ This plugin provides 3 options for use in HomeKit<br>Both option have additional
  </div align="left">
 </p>
 <br>There are plus and minus to each, so why not have options.
-<br>Changing this setting in Homebridge will require the accessory to be removed from cache and you may need to reopen Homekit.
+<br>
 
 
 # API Key
@@ -56,15 +56,18 @@ If you see log messages like `Webhook received from an unknown external id`, you
 "platforms": [
         {
             "name": "Rachio-Dev",
-            "api_key": "da441e57-f2b6-4dc9-967a-f24d978c6c60",
+            "api_key": "8e600a4c-0027-4a9a-9bda-abc8d5c90350",
             "default_runtime": 3,
             "use_irrigation_display": true,
             "show_standby": true,
-            "show_runall": false,
+            "show_runall": true,
             "show_schedules": true,
-            "external_IP_address": "76.25.73.137",
+            "external_IP_address": "76.33.22.111",
             "external_webhook_port": 12453,
             "internal_webhook_port": 27543,
+            "use_basic_auth": true,
+            "user": "username",
+            "password": "password",
             "delete_webhooks": false,
             "_bridge": {
                 "username": "0E:79:49:DC:71:A9",

@@ -15,14 +15,14 @@
       },
       "api_key": {
         "title": "Rachio API Key",
-        "description": "Rachio API key, visit https://rachio.readme.io/docs/authentication for help.",
+        "description": "Rachio API key",
         "type": "string",
         "required": true,
         "placeholder": "API KEY"
       },
       "default_runtime": {
         "title": "Default Runtime in Minutes",
-        "description": "Default number of minutes to run zone if not provided",
+        "description": "Default number of minutes to run zones if not provided.",
         "type": "integer",
         "minimum": 1,
         "maximum": 60,
@@ -31,35 +31,34 @@
       },
       "use_irrigation_display": {
         "title": "Display as Irrigation System in HomeKit",
-        "description": "Display accessory in HomeKit as a irrigation system with sprinker zones. If unchecked; zones will display as single/separate tiles.",
         "type": "boolean",
         "required": true,
         "default": true
       },
       "show_standby": {
         "title": "Expose switch for controller standby",
-        "description": "Exposes standby mode switch, when turned on all schedules will be disabled",
+        "description": "Exposes standby mode switch, when turned on all schedules from Rachio will be disabled.",
         "type": "boolean",
         "required": true,
         "default": true
       },
       "show_runall": {
         "title": "All zones",
-        "description": "Adds a switch to run all zones for the default time",
+        "description": "Adds a switch to run all zones for the default time.",
         "type": "boolean",
         "required": true,
         "default": true
       },
       "show_schedules": {
         "title": "Expose switches for schedules",
-        "description": "Exposes schedules as defined in the Rachio app as a switch for quick run",
+        "description": "Exposes schedules as defined in the Rachio app as a switches for quick run from HomeKit.",
         "type": "boolean",
         "required": true,
         "default": true
       },
       "external_IP_address": {
         "title": "External IP Address",
-        "description": "External IP address for this server, used to receive webhook requests. To find this quick try https://www.myexternalip.com .",
+        "description": "External IP address for this server, used to receive webhook requests.<br/>To find this quick click <a target='blank' href='https://www.myexternalip.com'>here</a>.",
         "type": "string",
         "format": "ipv4",
         "required": false,
@@ -67,21 +66,41 @@
       },
       "external_webhook_port": {
         "title": "External Webhook Port",
-        "description": "External port or source for receiving webhook requests. Your router will need to forward this port to your internal webhook port.",
+        "description": "External port <br/>Source for receiving webhook requests.",
         "type": "number",
         "required": false,
         "default": 12453
       },
       "internal_webhook_port": {
         "title": "Internal Webhook Port",
-        "description": "Internal port or destination for receiving webhook requests.",
+        "description": "Internal port <br/>Destination for receiving webhook requests.",
         "type": "number",
         "required": false,
         "default": 27546
       },
+      "use_basic_auth": {
+        "title": "HTTP basic authentication",
+        "description": "Use HTTP basic authentication.",
+        "type": "boolean",
+        "required": false,
+        "default": false
+      },
+      "user": {
+        "title": "Basic Authentication User",
+        "type": "string",
+        "required": false,
+        "placeholder": "username",
+        "maxLength": 32
+      },
+      "password": {
+        "title": "Basic Authentication Password",
+        "type": "string",
+        "required": false,
+        "placeholder": "password"
+      },
       "delete_webhooks": {
-        "title": "Delete current webhook IDs",
-        "description": "Use this if there is a need to delete current webhook IDs that may be causing problems. Such as errors for 'Webhook received from an unknown external id`",
+        "title": "Delete all current webhook IDs",
+        "description": "Use this if there is a need to delete current webhook IDs that may be causing problems.",
         "type": "boolean",
         "required": false,
         "default": false
@@ -90,41 +109,111 @@
   },
   "layout": [
     {
+      "type": "help",
+      "helpvalue": "<h4><b>Required settings<b/></h4>"
+    },
+    {
       "type": "flex",
       "flex-flow": "row wrap",
       "items": [
         "name",
-        "api_key",
-        "default_runtime",
+        "api_key"
+      ]
+    },
+    {
+      "type": "help",
+      "helpvalue": "<p class='help-block'> Visit Rachio <a target='blank' href='https://rachio.readme.io/docs/authentication'>here</a> for instruction on obtaining your API key.</p>"
+    },
+    {
+      "type": "flex",
+      "flex-flow": "row wrap",
+      "items": [
+        "default_runtime"
+      ]
+    },
+    {
+      "type": "help",
+      "helpvalue": "<h6><b>HomeKit Display</b></h6><p class='help-block'> Display this accessory in HomeKit as a irrigation system with integrated sprinker zones.<br/>If unchecked, the irrigation system zones will displayed as individual tiles with the option in Homekit to show single or separate.</p>"
+    },
+    {
+      "type": "flex",
+      "flex-flow": "row wrap",
+      "items": [
         "use_irrigation_display"
       ]
     },
     {
       "type": "fieldset",
-      "title": "Additional Switches",
+      "title": "Extra Switches",
+      "description": "Expand to expose additonal switches",
       "expandable": true,
       "items": [
         "show_standby",
         "show_schedules",
         "show_runall"
       ]
-    },
-    
+    },   
     {
       "type": "fieldset",
       "title": "Webhooks",
+      "description": "Expand to configure webhooks",
       "expandable": true,
+      "displayFlex": true,
       "items": [
-        "external_IP_address",
-        "external_webhook_port",
-        "internal_webhook_port",
-      {
-          "key": "options",
-          "add": "Add Another Option",
-          "type": "fieldset",
-          "expandable": true,
+        {
+          "type": "flex",
+          "flex-flow": "row wrap",
           "items": [
-            "delete_webhooks"
+            "external_IP_address"
+          ]
+        },
+        {
+        "type": "flex",
+        "flex-flow": "row wrap",
+        "items": [
+          "external_webhook_port",
+          "internal_webhook_port"
+        ]
+      },
+      {
+        "type": "help",
+        "helpvalue": "<i>Important note.<p class='help-block'> Your router will need to forward this external port to your internal webhook port.</p>"
+      },
+      {
+          "key": "Extra stuff",
+          "title": "Options",
+          "description": "Extra webhook settings",
+          "type": "flex",
+          "expandable": true,
+          "displayFlex": true,
+          "flex-flow":"row wrap",
+          "items": [
+              {
+                "type": "flex",
+                "flex-flow": "row wrap",
+                "items": [
+                  "delete_webhooks"
+                ]
+              },
+              {
+                "type": "flex",
+                "flex-flow": "row wrap",
+                "items": [
+                  "use_basic_auth"
+                ]
+              },
+              {
+              "type": "flex",
+              "flex-flow": "row wrap",
+              "items": [
+                "user",
+                "password"
+              ]
+            },
+            {
+              "type": "help",
+              "helpvalue": "<p class='help-block'> Rachio supports HTTP Basic Authentication for webhooks. if checked any incoming message will need to match this user:password</p>"
+            }
           ]
         }
       ]
