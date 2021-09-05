@@ -756,24 +756,29 @@ class RachioPlatform {
       this.log.debug('Will listen for Webhooks matching Webhook ID %s',this.webhook_key)
       requestServer = http.createServer((request, response) => {
         let authPassed
-        if(this.use_basic_auth && request.headers.authorization){
-          let b64encoded=(Buffer.from(this.user+":"+this.password,'utf8')).toString('base64')
-          this.log.debug('webhook request received authorization header = %s',request.headers.authorization)
-          this.log.debug('webhook request received authorization header = %s',"Basic "+b64encoded)
-          if(request.headers.authorization == "Basic "+b64encoded){
-            this.log.debug("Webhook authentication passed")
-            authPassed=true
+        if(this.use_basic_auth){
+          if(request.headers.authorization){
+            let b64encoded=(Buffer.from(this.user+":"+this.password,'utf8')).toString('base64')
+            this.log.debug('webhook request received authorization header = %s',request.headers.authorization)
+            this.log.debug('webhook request received authorization header = %s',"Basic "+b64encoded)
+            if(request.headers.authorization == "Basic "+b64encoded){
+              this.log.debug("Webhook authentication passed")
+              authPassed=true
+            }
+            else{
+              this.log.warn("Webhook authentication failed")
+              authPassed=false
+            }
           }
           else{
-            this.log.warn("Webhook authentication failed")
+            this.log.warn('Expecting webhook authentication')
             authPassed=false
-          }
+            return
         }
-        else{
-          this.log.warn('Expecting webhook authentication')
-          authPassed=false
-          return
-        }
+      }
+      else{
+        authPassed=true
+      }
   
         if (request.method === 'GET' && request.url === '/test') {
           this.log.info('Test received on Rachio listener. Webhooks are configured correctly!')
@@ -827,7 +832,7 @@ class RachioPlatform {
         })
         requestServer.listen(this.internal_webhook_port, function () {
           this.log.info('This server is listening on port %s.',this.internal_webhook_port)
-          if(this.use_basic_auth){this.log.info('Using HTTP Basic Authentication')}
+          if(this.use_basic_auth){this.log.info('Using HTTP basic authentication')}
           this.log.info('Make sure your router has port fowarding for %s to this server`s IP address and this port set.',this.external_webhook_address)
         }.bind(this))
       } 
