@@ -10,7 +10,6 @@ Schedule/zone duration when found throws warnings exceding 60 minutes
 'use strict'
 const axios = require('axios')
 const http = require('http')
-const fs = require('fs') // to be removed
 const packageJson = require('./package')
 const RachioAPI = require('./rachioapi')
 let personInfo
@@ -21,7 +20,6 @@ let requestServer
 class RachioPlatform {
 
   constructor(log, config, api) {
-    const storagePath=api.user.storagePath()// to be removed
     this.rachioapi = new RachioAPI(this,log)
     this.log = log;
     this.config = config;
@@ -78,12 +76,6 @@ class RachioPlatform {
      }
     }).catch(err => {this.log.error('Failed to get current external IP', err)}) 
 
-    // for config changes that will require clearing of the cache
-    // read previous config
-    // depricated routine removeing un-needed file, this will cleanup in the future release
-    if (fs.existsSync(storagePath+'/previousconfig.json')) {
-      fs.unlinkSync(storagePath+'/previousconfig.json')
-    }//to be removed
     //** 
     //** Platforms should wait until the "didFinishLaunching" event has fired before registering any new accessories.
     //**  
