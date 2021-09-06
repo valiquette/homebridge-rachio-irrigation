@@ -1,4 +1,10 @@
 # Changes
+## 1.1.3
+Fix
+-   Fixed issue when removing cached accessory manually. 
+Enhancment 
+-   Separated code.
+
 ## 1.1.2
 Enhancement
 -   Added support for webhooks http basic authentication
