@@ -31,7 +31,7 @@ This plugin provides 3 options for use in HomeKit<br>Both option have additional
 
 You can acquire your API key from Rachio io.app [documented here](https://rachio.readme.io/docs/authentication).
 
-## Note on Webhooks
+## Notes on Webhooks
 
 `homebridge-rachio-irrigation` **requires** webhooks to update Homekit accessory status in real time such as a defined schedule from the Rachio app.
 
