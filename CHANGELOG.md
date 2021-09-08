@@ -1,7 +1,7 @@
 # Changes
 ## 1.1.4
 Enhancement 
--   Remove restritions on webhoo external IP address hae to be a IPv4 address, will now support v4, v6 or any FQDN
+-   Remove restritions on webhook external IP address had to be a IPv4 address, will now support v4, v6 or any FQDN
 -   Fix error messaging for unauthorized client 
 
 ## 1.1.3
