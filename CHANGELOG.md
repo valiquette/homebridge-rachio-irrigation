@@ -1,4 +1,9 @@
 # Changes
+## 1.1.4
+Enhancement 
+-   Remove restritions on webhoo external IP address hae to be a IPv4 address, will now support v4, v6 or any FQDN
+-   Fix error messaging for unauthorized client 
+
 ## 1.1.3
 Fix
 -   Fixed issue when removing cached accessory manually. 

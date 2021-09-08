@@ -21,7 +21,10 @@ RachioAPI.prototype={
           url: api_endpoint+'person/info/',
           headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
           responseType: 'json'
-        }).catch(err => {this.log.error('Error getting person %s', err)})
+        }).catch(err => {
+            this.log.error('Error getting person, Status %s',err.response.status)
+            this.log.warn(err.response.data.errors)
+        })
         this.log.debug('personid',response.data.id)
         this.log.debug('response',response.data)
         return  response
