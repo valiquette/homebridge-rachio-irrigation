@@ -60,21 +60,52 @@ class RachioPlatform {
       this.log('Starting Rachio Platform with homebridge API', api.version)
     }
     //check external IP address
-    axios({
-      method: 'get',
-      url: 'http://myexternalip.com/raw',
-      responseType: 'json'
-    }).then(response=> {
-      this.log.debug('retrieved %s configured %s',response.data,this.external_IP_address) 
-      this.realExternalIP=response.data
-      if (this.external_IP_address && this.realExternalIP != this.external_IP_address){
-        this.log.error('Configured external IP of %s does not match this servers detected external IP of %s',this.external_IP_address,this.realExternalIP)
-     }
-     if(!this.external_IP_address){
-       this.external_IP_address=this.realExternalIP
-       this.log.warn('Attempting to use self discovered IP address %s',this.realExternalIP)
-     }
-    }).catch(err => {this.log.error('Failed to get current external IP', err)}) 
+    this.ipv4format = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    this.ipv6format = /(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))/;
+    this.fqdnformat= /(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{0,62}[a-zA-Z0-9]\.)+[a-zA-Z]{2,63}$)/;
+
+    this.ipv4 =CheckIPaddress(this.external_IP_address,this.ipv4format)
+    this.ipv6 =CheckIPaddress(this.external_IP_address,this.ipv6format)
+    this.fqdn =CheckIPaddress(this.external_IP_address,this.fqdnformat)
+
+    function CheckIPaddress(inputText,ipformat)
+    {
+    if(inputText.match(ipformat))
+      {return true}
+    else
+      {return false}
+    }
+
+    if(this.ipv4){
+      axios({
+        method: 'get',
+        url: 'http://ip4only.me/api/',
+        responseType: 'text'
+      }).then(response=> {
+        let addressV4=response.data.split(',')
+        this.realExternalIP=addressV4[1]
+        if (this.ipv4 && this.external_IP_address && this.realExternalIP != this.external_IP_address){
+          this.log.warn('Configured external IPv4 address of %s does not match this servers detected external IP of %s please check webhook config settings.',this.external_IP_address,this.realExternalIP)
+      }
+      }).catch(err => {this.log.error('Failed to get current external IP', err)}) 
+      this.log.debug('using IPv4 webhook external address')
+    }
+    else if(this.ipv6){
+      axios({
+        method: 'get',
+        url: 'http://ip6only.me/api/',
+        responseType: 'text'
+      }).then(response=> {
+        let addressV6=response.data.split(',')
+        this.realExternalIP=addressV6[1]
+        if (this.ipv4 && this.external_IP_address && this.realExternalIP != this.external_IP_address){
+          this.log.warn('Configured external IPv6 address of %s does not match this servers detected external IP of %s please check webhook config settings.',this.external_IP_address,this.realExternalIP)
+      }
+      }).catch(err => {this.log.error('Failed to get current external IP', err)}) 
+      this.log.debug('using IPv6 webhook external address')
+    }
+    else if(this.fqdn){this.log.debug('using FQDN for webhook external destination')} 
+    else {this.log.warn('cannot validate address, please check webhook config settings')}
 
     //** 
     //** Platforms should wait until the "didFinishLaunching" event has fired before registering any new accessories.
@@ -813,8 +844,8 @@ class RachioPlatform {
         })
         requestServer.listen(this.internal_webhook_port, function () {
           this.log.info('This server is listening on port %s.',this.internal_webhook_port)
-          if(this.use_basic_auth){this.log.info('Using HTTP basic authentication')}
-          this.log.info('Make sure your router has port fowarding for %s to this server`s IP address and this port set.',this.external_webhook_address)
+          if(this.use_basic_auth){this.log.info('Using HTTP basic authentication for Webhooks')}
+          this.log.info('Make sure your router has port fowarding turned on for port %s to this server`s IP address and this port %s, unless you are using a relay service.',this.external_webhook_port,this.internal_webhook_port)
         }.bind(this))
       } 
       else {
