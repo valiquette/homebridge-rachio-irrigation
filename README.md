@@ -10,7 +10,7 @@ This plugin provides 3 options for use in HomeKit<br>Both option have additional
 2.	Irrigation System Accessory with separate zones shown as a single tile 
 3.	Irrigation System Accessory with separate zones shown as a separate tiles (option in Homekit)
 
-
+<br> There are plus and minus to each, so why not have options.
 
 ### Screenshots
 <p>
@@ -23,7 +23,6 @@ This plugin provides 3 options for use in HomeKit<br>Both option have additional
   <img width=260 src="images/IMG_3913.PNG"/>
  </div align="left">
 </p>
-<br>There are plus and minus to each, so why not have options.
 <br>
 
 
