@@ -105,7 +105,10 @@ class RachioPlatform {
       this.log.debug('using IPv6 webhook external address')
     }
     else if(this.fqdn){this.log.debug('using FQDN for webhook external destination')} 
-    else {this.log.warn('cannot validate address, please check webhook config settings')}
+    else {
+      this.external_webhook_address=null 
+      this.log.warn('Cannot validate webhook destination address, please check webhook config settings. Will not set Webhooks')
+    }
 
     //** 
     //** Platforms should wait until the "didFinishLaunching" event has fired before registering any new accessories.
