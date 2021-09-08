@@ -1,6 +1,6 @@
 # Changes
 ## 1.1.4
-Enhancment 
+Enhancement 
 -   Remove restritions on webhoo external IP address hae to be a IPv4 address, will now support v4, v6 or any FQDN
 
 ## 1.1.3
