@@ -7,7 +7,7 @@
     "type": "object",
     "properties": {
       "name": {
-        "title": "Accessory Name:",
+        "title": "Accessory Name",
         "description": "Name for the accessory",
         "type": "string",
         "required": true,
