@@ -1,8 +1,14 @@
 # Changes
+## 1.1.5
+Fix 
+-   Fix error handling for configurations with no external IP address defined.
+-   Fixed a possiible issue with updating webhooks without basic auth.
+-   Will not try to configure webhooks if no destination is defined.
+
 ## 1.1.4
 Enhancement 
--   Remove restritions on webhook external IP address had to be a IPv4 address, will now support v4, v6 or any FQDN
--   Fix error messaging for unauthorized client 
+-   Remove restritions on webhook external IP address had to be a IPv4 address, will now support v4, v6 or any FQDN.
+-   Fix error messaging for unauthorized client. 
 
 ## 1.1.3
 Fix
