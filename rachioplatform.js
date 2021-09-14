@@ -46,7 +46,7 @@ class RachioPlatform {
       this.external_webhook_address = "http://"+this.user+":"+this.password+"@"+this.external_IP_address+':'+this.external_webhook_port
     }
     else{
-      this.external_webhook_address = "http://"+this.external_IP_address+':'+this.external_webhook_port
+      this.external_webhook_address  = "http://"+this.external_IP_address+':'+this.external_webhook_port
     }
 
     if(this.use_basic_auth && (!this.user || !this.password)){
@@ -59,7 +59,9 @@ class RachioPlatform {
     else {
       this.log('Starting Rachio Platform with homebridge API', api.version)
     }
+
     //check external IP address
+    if(this.external_IP_address){  
     this.ipv4format = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
     this.ipv6format = /(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))/;
     this.fqdnformat= /(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{0,62}[a-zA-Z0-9]\.)+[a-zA-Z]{2,63}$)/;
@@ -67,13 +69,22 @@ class RachioPlatform {
     this.ipv4 =CheckIPaddress(this.external_IP_address,this.ipv4format)
     this.ipv6 =CheckIPaddress(this.external_IP_address,this.ipv6format)
     this.fqdn =CheckIPaddress(this.external_IP_address,this.fqdnformat)
+    }
+    else{
+    this.log.warn('No external IP or domain name configured, will not configure webhooks. Reference Readme for instructions')
+    }
 
-    function CheckIPaddress(inputText,ipformat)
-    {
-    if(inputText.match(ipformat))
-      {return true}
-    else
-      {return false}
+    function CheckIPaddress(inputText,ipformat){
+    try{
+      if(inputText.match(ipformat))
+        {return true}
+      else
+        {return false}
+      }
+      catch (err) {  
+        log.warn('Error validating IP address ' + err)
+        return
+      }
     }
 
     if(this.ipv4){
@@ -147,18 +158,19 @@ class RachioPlatform {
             this.log.info('Found Account for username %s',personInfo.data.username)
             deviceState= response.data
             this.log('Retrieved Device state %s with a %s running',deviceState.state.state,deviceState.state.desiredState,deviceState.state.firmwareVersion)
-              
-            this.rachioapi.configureWebhooks(this.token,this.external_webhook_address,this.delete_webhooks,newDevice.id,this.webhook_key)
             
+            if(this.external_webhook_address){  
+              this.rachioapi.configureWebhooks(this.token,this.external_webhook_address,this.delete_webhooks,newDevice.id,this.webhook_key)
+            }
             //remove cached accessory
             this.log.debug('Removed cached device')
             if(this.accessories[uuid]){
               this.api.unregisterPlatformAccessories(PluginName, PlatformName, [this.accessories[uuid]])
             }
             this.accessories=[]
-          
-            this.log.debug('Creating and configuring new device')
             let switchService
+            
+            this.log.debug('Creating and configuring new device')
             let irrigationAccessory = this.createIrrigationAccessory(newDevice)
             this.configureIrrigationService(newDevice,irrigationAccessory.getService(Service.IrrigationSystem))
           
