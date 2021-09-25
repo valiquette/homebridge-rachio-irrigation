@@ -11,6 +11,7 @@ This plugin provides 3 options for use in HomeKit<br>Both option have additional
 3.	Irrigation System Accessory with separate zones shown as a separate tiles (option in Homekit)
 
 <br> There are plus and minus to each, so why not have options.
+<br> if you have more than one home on your Rachio account you may filter a home based on the street address for the location you want to display in Homekit.
 
 ### Screenshots
 <p>
@@ -83,6 +84,7 @@ If you see log messages like `Webhook received from an unknown external id`, you
         {
             "name": "Rachio-Dev",
             "api_key": "8e600a4c-0027-4a9a-9bda-abc8d5c90350",
+            "location_address": "123 Main St",
             "default_runtime": 3,
             "use_irrigation_display": true,
             "show_standby": true,

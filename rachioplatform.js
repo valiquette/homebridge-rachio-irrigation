@@ -20,33 +20,36 @@ let requestServer
 class RachioPlatform {
 
   constructor(log, config, api) {
-    this.rachioapi = new RachioAPI(this,log)
-    this.log = log;
-    this.config = config;
-    this.token = config["api_key"]
-    this.external_IP_address = config["external_IP_address"]
-    this.external_webhook_port = config["external_webhook_port"]
-    this.internal_webhook_port = config["internal_webhook_port"]
-    this.webhook_key = 'hombridge-'+config["name"]
-    this.webhook_key_local = 'simulated-webhook'
-    this.delete_webhooks = config["delete_webhooks"]
-    this.use_basic_auth = config["use_basic_auth"]
-    this.user = config["user"]
-    this.password = config["password"]
-    this.use_irrigation_display = config["use_irrigation_display"]
-    this.default_runtime = config["default_runtime"]*60
-    this.show_standby = config["show_standby"]
-    this.show_runall = config["show_runall"]
-    this.show_schedules = config["show_schedules"]
-    this.accessories = []
+    this.rachioapi=new RachioAPI(this,log)
+    this.log=log
+    this.config=config
+    this.token=config.api_key
+    this.external_IP_address=config.external_IP_address
+    this.external_webhook_port=config.external_webhook_port
+    this.internal_webhook_port=config.internal_webhook_port
+    this.webhook_key='hombridge-'+config.name
+    this.webhook_key_local='simulated-webhook'
+    this.delete_webhooks=config.delete_webhooks
+    this.use_basic_auth=config.use_basic_auth
+    this.user=config.user
+    this.password=config.password
+    this.use_irrigation_display=config.use_irrigation_display
+    this.default_runtime=config.default_runtime*60
+    this.show_standby=config.show_standby
+    this.show_runall=config.show_runall
+    this.show_schedules=config.show_schedules
+    this.locationAddress=config.location_address
+    this.locationMatch=true
+    this.accessories=[]
     this.realExternalIP
     this.previousConfig
     this.fakeWebhook 
+    this.foundLocation
     if(this.use_basic_auth && this.user && this.password){
-      this.external_webhook_address = "http://"+this.user+":"+this.password+"@"+this.external_IP_address+':'+this.external_webhook_port
+      this.external_webhook_address="http://"+this.user+":"+this.password+"@"+this.external_IP_address+':'+this.external_webhook_port
     }
     else{
-      this.external_webhook_address  = "http://"+this.external_IP_address+':'+this.external_webhook_port
+      this.external_webhook_address="http://"+this.external_IP_address+':'+this.external_webhook_port
     }
 
     if(this.use_basic_auth && (!this.user || !this.password)){
@@ -138,7 +141,9 @@ class RachioPlatform {
   }
   
   getRachioDevices() {
-    this.log.debug("Fetching device info...");
+    // configure listerner for webhook messages
+    this.configureListener()
+    this.log.debug("Fetching build info...")  
     this.log.info('Getting Person info...')
     this.rachioapi.getPersonInfo(this.token).then(response => {
       personId = response.data.id
@@ -148,16 +153,38 @@ class RachioPlatform {
       this.rachioapi.getPersonId(this.token,personId).then(response => {
         personInfo=response
         this.log.info('Found Account for username %s',personInfo.data.username)
-        this.configureListener()
-        personInfo.data.devices.forEach((newDevice)=>{    
-          this.log.info('Found Device %s Status %s',newDevice.name,newDevice.status)
-          let uuid = newDevice.id
+        this.log.info('Getting Location info...')
+        this.rachioapi.getLocationList(this.token,).then(response=>{
+          response.data.locationSummary.forEach(address =>{
+            this.log.info('Found Location: id = %s address = %s geo = %s',address.location.id,address.location.address.addressLine1,address.location.geoPoint)
+            this.foundLocation=response.data.locationSummary
+            address.location.deviceId.forEach(device =>{
+              this.log.info('Found Location: device id = %s ',device)
+            })
+          })
 
-          this.log.info('Getting Device State info...')
+        personInfo.data.devices.filter((newDevice) => {
+          this.foundLocation.forEach((address)=>{
+            address.location.deviceId.forEach((device)=>{
+              if(!this.locationAddress || (this.locationAddress==address.location.address.addressLine1 && newDevice.id==device)){  
+                this.log.info('Adding controller %s found at the configured location %s',newDevice.name,address.location.address.addressLine1)
+                this.locationMatch=true
+              }
+              else{
+                this.log.info('Skipping controller %s not found at the configured location %s',newDevice.name,address.location.address.addressLine1)
+                this.locationMatch=false
+              }
+            })
+          })
+          return this.locationMatch
+        }).forEach((newDevice)=>{    
+          //adding devices that met filter criteria
+          this.log.info('Found sevice %s status %s',newDevice.name,newDevice.status)
+          let uuid = newDevice.id
+          this.log.info('Getting device state info...')
           this.rachioapi.getDeviceState(this.token,newDevice.id).then(response => {
-            this.log.info('Found Account for username %s',personInfo.data.username)
             deviceState= response.data
-            this.log('Retrieved Device state %s with a %s running',deviceState.state.state,deviceState.state.desiredState,deviceState.state.firmwareVersion)
+            this.log('Retrieved device state %s for %s with a %s state, running',deviceState.state.state,newDevice.name,deviceState.state.desiredState,deviceState.state.firmwareVersion)
             
             if(this.external_webhook_address){  
               this.rachioapi.configureWebhooks(this.token,this.external_webhook_address,this.delete_webhooks,newDevice.id,this.webhook_key)
@@ -238,14 +265,15 @@ class RachioPlatform {
             //match state to Rachio state  
             this.setOnlineStatus(newDevice)
             this.setDeviceStatus(newDevice)
-            
+           
             //find any running zone and set its state
             this.rachioapi.currentSchedule (this.token,newDevice.id).then(response => {   
-              this.setValveStatus(response)  
+              this.setValveStatus(response)
+              this.log.info('API rate limiting; call limit of %s remaining out of %s until reset at %s',response.headers['x-ratelimit-remaining'],response.headers['x-ratelimit-limit'], new Date(response.headers['x-ratelimit-reset']).toString())
             }).catch(err => {this.log.error('Failed to get current schedule', err)})      
           }).catch(err => {this.log.error('Failed to get device state', err)}) 
         })
-        this.log.info('API rate limiting; call limit %s remaining out of %s until reset at %s',personInfo.headers['x-ratelimit-remaining'],personInfo.headers['x-ratelimit-limit'], new Date(personInfo.headers['x-ratelimit-reset']).toString())
+      }).catch(err => {this.log.error('Failed to get location summary', err)})
       }).catch(err => {this.log.error('Failed to get person info for build', err)})
     }).catch(err => {this.log.error('Failed to get info for build', err)})
   }
