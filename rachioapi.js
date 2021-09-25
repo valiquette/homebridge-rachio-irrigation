@@ -15,7 +15,7 @@ RachioAPI.prototype={
 
   getPersonInfo:  async function(token) {
     try {  
-      this.log.debug('Retrieving Person Info')
+      this.log.debug('Retrieving Person ID')
         const response = await axios({
           method: 'get',
           url: api_endpoint+'person/info/',
@@ -25,21 +25,23 @@ RachioAPI.prototype={
             this.log.error('Error getting person, Status %s',err.response.status)
             this.log.warn(err.response.data.errors)
         })
-        this.log.debug('get person info response',JSON.stringify(response.data,null,2))
+        this.log.debug('personid',response.data.id)
+        this.log.debug('response',response.data)
         return  response
       }catch(err) {this.log.error('Error retrieving deviceId %s', err)}
   },
   
   getPersonId:  async function(token,personId) {
     try {  
-      this.log.debug('Retrieving Person ID')
+      this.log.debug('Retrieving Person Info')
         const response = await axios({
           method: 'get',
           url: api_endpoint+'person/'+personId,
           headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
           responseType: 'json'
         }).catch(err => {this.log.error('Error getting device %s', err)})
-        this.log.debug('get person id response',JSON.stringify(response.data,null,2))
+        this.log.debug('Retrieved',response.data.fullName)
+        this.log.debug('response',response.data)
         return  response
       }catch(err) {this.log.error('Error retrieving deviceId %s', err)}
   },
@@ -56,7 +58,7 @@ RachioAPI.prototype={
         },
         responseType: 'json'
       }).catch(err => {this.log.error('Error setting standby to %s %s', state,err)})
-      this.log.debug('device standby response status',response.status)
+      this.log.debug('start response',response.status)
       return  response
     }catch(err) {this.log.error('Error setting standby %s', err)}
   },
@@ -70,54 +72,12 @@ RachioAPI.prototype={
         headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
         responseType: 'json'
       }).catch(err => {this.log.error('Error getting schedule %s', err)})
-      this.log.debug('get device state response',JSON.stringify(response.data,null,2))
+      this.log.debug('status',response.data.status)
+      this.log.debug('response',response.data)
       return  response
     }catch(err) {this.log.error('Error getting device state %s', err)}
   },
   
-  getDeviceDetails: async function(token,device) {
-    try {
-      this.log.debug('Getting current device state',device)
-      const response = await axios({
-        method: 'get',
-        url: alt_api_endpoint+'device/getDeviceDetails/'+device,
-        headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        responseType: 'json'
-      }).catch(err => {this.log.error('Error getting schedule %s', err)})
-      this.log.debug('get device details response',JSON.stringify(response.data,null,2))
-      return  response
-    }catch(err) {this.log.error('Error getting device state %s', err)}
-  },
-
-  getLocationList: async function(token) {
-    try {
-      this.log.debug('Getting Location List')
-      const response = await axios({
-        method: 'get',
-        url: alt_api_endpoint+'location/listLocations/true',
-        headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        responseType: 'json'
-      }).catch(err => {this.log.error('Error getting location list %s', err)})
-      this.log.debug('get location list response',JSON.stringify(response.data,null,2))
-      
-      return  response
-    }catch(err) {this.log.error('Error getting location list %s', err)}
-  },
-
-  getDeviceInfo: async function(token,device) {
-    try {
-      this.log.debug('Getting current device state',device)
-      const response = await axios({
-        method: 'get',
-        url: api_endpoint+'device/'+device,
-        headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        responseType: 'json'
-      }).catch(err => {this.log.error('Error getting schedule %s', err)})
-      this.log.debug('get device info response',JSON.stringify(response.data,null,2))
-      return  response
-    }catch(err) {this.log.error('Error getting device state %s', err)}
-  },
-
   currentSchedule: async function(token,device) {
     try {
       this.log.debug('Checking current schedule',device)
@@ -128,7 +88,7 @@ RachioAPI.prototype={
         responseType: 'json'
       }).catch(err => {this.log.error('Error getting schedule %s', err)})
       this.log.debug('status',response.data.status)
-      this.log.debug('get current schedule response',JSON.stringify(response.data,null,2))
+      this.log.debug('response',response.data)
       return  response
     }catch(err) {this.log.error('Error getting current schedule %s', err)}
   },
@@ -163,7 +123,7 @@ RachioAPI.prototype={
         },
         responseType: 'json'
       }).catch(err => {this.log.error('Error sending start schedule %s', err)})
-      this.log.debug('start schedule response',response.status)
+      this.log.debug('start response',response.status)
       return  response
     }catch(err) {this.log.error('Error Starting Schedule %s', err)}
   },
@@ -210,7 +170,7 @@ RachioAPI.prototype={
         },
         responseType: 'json'  
       }).catch(err => {this.log.error('Error sending start %s', err)})
-      this.log.debug('start multiple response',response.status)
+      this.log.debug('start response',response.status)
       return  response
     }catch(err) {this.log.error('Error Starting Multiple Zones %s', err)}
   },
@@ -226,7 +186,7 @@ RachioAPI.prototype={
       }).catch(err => {this.log.error('Error retrieving webhooks %s', err)})
   
       const webhooks = response.data
-      this.log.debug('configured webhooks response',JSON.stringify(response.data,null,2))
+      this.log.debug('response',response.data)
       if (!webhooks || !Array.isArray(webhooks)) return
     
       if (delete_webhooks) {
@@ -286,7 +246,7 @@ RachioAPI.prototype={
            }
           }).catch(err => {this.log.error('Error configuring new webhook $s : $s', webhook.id,err)})
       }  
-      this.log.debug('create/update webhooks response',JSON.stringify(response.data,null,2))
+      this.log.debug('webhook response ', response.data)
       const test_webhook_url = external_webhook_address + '/test'
       if (response && response.status === 200) {
         this.log.info('Successfully configured webhook with external ID "%s" ', webhook_key)

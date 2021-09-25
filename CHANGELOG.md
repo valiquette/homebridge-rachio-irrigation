@@ -1,10 +1,4 @@
 # Changes
-## 1.2.0
-Enhancment 
--   Added support for multiple locations.
--   Code cleanup.
--   Improved debug logging.
-
 ## 1.1.5
 Fix 
 -   Fix error handling for configurations with no external IP address defined.
