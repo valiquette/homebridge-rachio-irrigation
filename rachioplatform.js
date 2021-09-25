@@ -166,7 +166,6 @@ class RachioPlatform {
         personInfo.data.devices.filter((newDevice) => {
           this.foundLocation.forEach((address)=>{
             address.location.deviceId.forEach((device)=>{
-              this.log.warn(this.locationAddress,address.location.address.addressLine1,newDevice.id,device)
               if(!this.locationAddress || (this.locationAddress==address.location.address.addressLine1 && newDevice.id==device)){  
                 this.log.info('Adding controller %s found at the configured location %s',newDevice.name,address.location.address.addressLine1)
                 this.locationMatch=true
