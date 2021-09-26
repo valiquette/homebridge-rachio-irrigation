@@ -139,7 +139,7 @@
     },
     {
       "type": "help",
-      "helpvalue": "<p class='help-block'> If you have more than one location and want to display them in separate Homebridge/HomeKit homes you can retrive only the device at this address otherwise leave blank.<br/>The address must match the address configured in the Rachio app, review the log file to see how the adresses as configured in the Rachio app.</p>"
+      "helpvalue": "<p class='help-block'> If you have more than one location and want to display them in separate Homebridge/HomeKit homes you can retrive only the devices at this address otherwise leave blank.<br/>The address must match the address configured in the Rachio app, review the log file to see how the adresses as configured in the Rachio app.</p>"
     },
     {
       "type": "flex",
