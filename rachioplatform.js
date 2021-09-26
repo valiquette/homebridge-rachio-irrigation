@@ -193,8 +193,8 @@ class RachioPlatform {
             this.log.debug('Removed cached device')
             if(this.accessories[uuid]){
               this.api.unregisterPlatformAccessories(PluginName, PlatformName, [this.accessories[uuid]])
+              delete this.accessories[uuid]
             }
-            this.accessories=[]
             let switchService
             
             this.log.debug('Creating and configuring new device')
