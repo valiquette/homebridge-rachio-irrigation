@@ -4,7 +4,7 @@ Enhancment
 -   Added support for multiple locations.
 -   Code cleanup.
 -   Improved debug logging.
--   fixed possible bug with cache when adding more than one contoller.
+-   Fixed possible bug with cache cleanup when adding more than one contoller.
 
 ## 1.1.5
 Fix 
