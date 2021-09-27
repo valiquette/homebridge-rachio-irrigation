@@ -135,13 +135,13 @@ class RachioPlatform {
     }
 
   identify (){
-    this.log("Identify the sprinkler!")
+    this.log('Identify the sprinkler!')
   }
   
   getRachioDevices() {
     // configure listerner for webhook messages
     this.configureListener()
-    this.log.debug("Fetching build info...")  
+    this.log.debug('Fetching build info...')  
     this.log.info('Getting Person info...')
     this.rachioapi.getPersonInfo(this.token).then(response=>{
       personId = response.data.id
