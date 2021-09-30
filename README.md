@@ -1,6 +1,10 @@
+<p align="left">
+ <img width="300" src="logo/homebridge-rachio.png" />
+</p>
+
 # homebridge-rachio-irrigation
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
-<br>Rachio Irrigation System platform plugin for [HomeBridge](https://github.com/nfarina/homebridge).
+<br>Rachio Irrigation System platform plugin for [Homebridge](https://github.com/nfarina/homebridge).
 
 
 ## About
@@ -74,7 +78,7 @@ If you see log messages like `Webhook received from an unknown external id`, you
 ## Installation
 1. Install this plugin using: npm install -g homebridge-rachio-irrigation
 2. Suggest running as a child bridge	
-3. Use plugin settings to edit ``config.json`` and add your login detail.
+3. Use plugin settings to edit ``config.json`` and add your account detail.
 4. Run Homebridge
 5. Pair to HomeKit
 
