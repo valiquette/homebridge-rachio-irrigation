@@ -40,7 +40,6 @@ class RachioPlatform {
     this.locationMatch=true
     this.accessories=[]
     this.realExternalIP
-    this.previousConfig
     this.fakeWebhook 
     this.foundLocation
     if(this.use_basic_auth && this.user && this.password){
@@ -194,8 +193,8 @@ class RachioPlatform {
                 delete this.accessories[uuid]
               }
               let switchService
-              
-              this.log.debug('Creating and configuring new device')
+              // Create and configure Irrigation Service
+              this.log.debug('Creating and configuring new device')            
               let irrigationAccessory = this.createIrrigationAccessory(newDevice)
               this.configureIrrigationService(newDevice,irrigationAccessory.getService(Service.IrrigationSystem))
             
@@ -242,14 +241,14 @@ class RachioPlatform {
               }
               if(this.show_runall){
                 this.log.debug('adding new run all switch')
-                switchService=this.createSwitchService(newDevice,'Run All')
+                switchService=this.createSwitchService(newDevice,newDevice.name+' Run All')
                 this.configureSwitchService(newDevice, switchService)
                 irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService) 
                 irrigationAccessory.addService(switchService)
                 }
               if(this.show_standby){
                 this.log.debug('adding new standby switch')
-                switchService=this.createSwitchService(newDevice,'Standby')
+                switchService=this.createSwitchService(newDevice,newDevice.name+' Standby')
                 this.configureSwitchService(newDevice, switchService)
                 irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService) 
                 irrigationAccessory.addService(switchService)
@@ -592,7 +591,8 @@ class RachioPlatform {
   createSwitchService(device,switchName) {
     // Create Valve Service
     this.log.debug('adding new switch')
-    let uuid = this.api.hap.uuid.generate(switchName)
+    //let uuid = this.api.hap.uuid.generate(switchName)
+    let uuid = UUIDGen.generate(switchName)
     let switchService = new Service.Switch(switchName, uuid) 
     switchService.addCharacteristic(Characteristic.ConfiguredName)
     switchService 
@@ -614,7 +614,7 @@ class RachioPlatform {
   setSwitchValue(device, switchService, value, callback) {
     this.log.debug('toggle switch state %s',switchService.getCharacteristic(Characteristic.Name).value)
     switch(switchService.getCharacteristic(Characteristic.Name).value){
-      case "Standby": 
+      case device.name+' Standby': 
         if(switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
           callback('error')
         }
@@ -630,7 +630,7 @@ class RachioPlatform {
           callback()
         } 
       break
-      case "Run All": 
+      case device.name+' Run All': 
         if(switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
           callback('error')
         }
@@ -745,9 +745,8 @@ class RachioPlatform {
       this.log.debug(myJson)
       let irrigationAccessory = this.accessories[myJson.deviceId];
       let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
-      let service = irrigationAccessory.getServiceById(Service.Switch,this.api.hap.uuid.generate('Standby'))
       this.log.debug('Updating standby switch state')
-      this.updateService(irrigationSystemService,service,myJson)
+      this.updateService(irrigationSystemService,irrigationSystemService,myJson)
     }
   }
 
@@ -993,6 +992,7 @@ class RachioPlatform {
         case "DEVICE_STATUS":
           this.log.debug('Device Status Update') 
           let irrigationAccessory = this.accessories[jsonBody.deviceId]
+          let switchService = irrigationAccessory.getServiceById(Service.Switch,UUIDGen.generate(jsonBody.deviceName+' Standby'))
           switch(jsonBody.subType){
             case 'ONLINE':
               this.log('<%s> %s connected at %s',jsonBody.externalId,jsonBody.deviceId,new Date(jsonBody.timestamp).toString())
@@ -1040,14 +1040,17 @@ class RachioPlatform {
             case "SLEEP_MODE_ON": //ProgramMode 0 
               this.log('<%s> %s %s %s',jsonBody.externalId,jsonBody.title,jsonBody.deviceName,jsonBody.summary)
               irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED)
-            break
+              switchService.getCharacteristic(Characteristic.On).updateValue(true)
+              break
             case "SLEEP_MODE_OFF": //ProgramMode 2
               this.log('<%s> %s %s %s',jsonBody.externalId,jsonBody.title,jsonBody.deviceName,jsonBody.summary)
               irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.PROGRAM_SCHEDULED_MANUAL_MODE_)
-            break
+              switchService.getCharacteristic(Characteristic.On).updateValue(false)
+              break
             default: //ProgramMode 1
             this.log('<%s> %s ??? mode',jsonBody.externalId,jsonBody.deviceId)
               irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.PROGRAM_SCHEDULED)
+              switchService.getCharacteristic(Characteristic.On).updateValue(false)
             break
             }
         break

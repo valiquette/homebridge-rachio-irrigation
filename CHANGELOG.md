@@ -1,10 +1,11 @@
 # Changes
-## 1.2.0
+## 1.2.0 Beta
 Enhancment 
 -   Added support for multiple locations.
 -   Code cleanup.
 -   Improved debug logging.
 -   Fixed possible bug with cache cleanup when adding more than one contoller.
+-   Inclued device name in additional switches
 
 ## 1.1.5
 Fix 
