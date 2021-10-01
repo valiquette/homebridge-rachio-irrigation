@@ -200,7 +200,7 @@ RachioAPI.prototype={
           )
         }
       })
-      this.log.debug('multiple run data',JSON.stringify(body,null," "))
+    this.log.debug('multiple run data',JSON.stringify(body,null,2))
       const response = await axios({
         method: 'put',
         url: api_endpoint+'zone/start_multiple',
