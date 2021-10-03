@@ -1,11 +1,19 @@
 # Changes
+## 1.2.1
+Enhancment 
+-   Finalized beta.
+-   Cleaned up code.
+
+
 ## 1.2.0 Beta
 Enhancment 
 -   Added support for multiple locations.
--   Code cleanup.
+-   Fixed issue with standby switch not updating from remote source.
 -   Improved debug logging.
 -   Fixed possible bug with cache cleanup when adding more than one contoller.
--   Inclued device name in additional switches
+-   Inclued device name in additional switches.
+-   Corrected typos in readme.
+-   Corrected typos in config schema.
 
 ## 1.1.5
 Fix 
