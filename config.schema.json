@@ -8,7 +8,7 @@
     "properties": {
       "name": {
         "title": "Accessory Name",
-        "description": "Name for the accessory",
+        "description": "Name for this accessory",
         "type": "string",
         "required": true,
         "placeholder": "Rachio",

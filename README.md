@@ -12,10 +12,10 @@
 This plugin provides 3 options for use in HomeKit<br>Both option have additional switches as options for Standby mode and a Run All along with any Rachio Schedules
 1.	Irrigation System Accessory with zones that are linked (default in configuration)
 2.	Irrigation System Accessory with separate zones shown as a single tile 
-3.	Irrigation System Accessory with separate zones shown as a separate tiles (option in Homekit)
+3.	Irrigation System Accessory with separate zones shown as a separate tiles (option in HomeKit)
 
 <br> There are plus and minus to each, so why not have options.
-<br> if you have more than one home on your Rachio account you may filter a home based on the street address for the location you want to display in Homekit.
+<br> if you have more than one home on your Rachio account you may filter devices for a home based on the street address for the location you want to display in HomeKit.
 
 ### Screenshots
 <p>
@@ -37,7 +37,7 @@ You can acquire your API key from Rachio io.app [documented here](https://rachio
 
 ## Notes on Webhooks
 
-`homebridge-rachio-irrigation` **requires** webhooks to update Homekit accessory status in real time such as a defined schedule from the Rachio app.
+`homebridge-rachio-irrigation` **requires** webhooks to update HomeKit accessory status in real time such as a defined schedule from the Rachio app.
 
 
 ### Setting up webhooks, the easy way (if your router supports it):
