@@ -6,10 +6,10 @@ Schedule/zone duration when found throws warnings exceding 60 minutes
 */
 
 'use strict'
-const axios = require('axios')
-const http = require('http')
-const packageJson = require('./package')
-const RachioAPI = require('./rachioapi')
+const axios=require('axios')
+const http=require('http')
+const packageJson=require('./package')
+const RachioAPI=require('./rachioapi')
 let personInfo
 let personId
 let deviceState
@@ -17,7 +17,7 @@ let requestServer
 
 class RachioPlatform {
 
-  constructor(log, config, api) {
+  constructor(log, config, api){
     this.rachioapi=new RachioAPI(this,log)
     this.log=log
     this.config=config
@@ -53,7 +53,7 @@ class RachioPlatform {
       this.log.warn("HTTP Basic Athentication cannot be used for webhooks without a valid user and password")
     }
 
-    if (!this.token) {
+    if(!this.token){
       this.log.error('API KEY is required in order to communicate with the Rachio API, please see https://rachio.readme.io/docs/authentication for instructions')
     }
     else {
@@ -81,7 +81,7 @@ class RachioPlatform {
       else
         {return false}
       }
-      catch (err) {  
+      catch (err){  
         log.warn('Error validating IP address ' + err)
         return
       }
@@ -95,10 +95,10 @@ class RachioPlatform {
       }).then(response=> {
         let addressV4=response.data.split(',')
         this.realExternalIP=addressV4[1]
-        if (this.ipv4 && this.external_IP_address && this.realExternalIP != this.external_IP_address){
+        if(this.ipv4 && this.external_IP_address && this.realExternalIP != this.external_IP_address){
           this.log.warn('Configured external IPv4 address of %s does not match this servers detected external IP of %s please check webhook config settings.',this.external_IP_address,this.realExternalIP)
       }
-      }).catch(err => {this.log.error('Failed to get current external IP', err)}) 
+      }).catch(err=>{this.log.error('Failed to get current external IP', err)}) 
       this.log.debug('using IPv4 webhook external address')
     }
     else if(this.ipv6){
@@ -109,10 +109,10 @@ class RachioPlatform {
       }).then(response=> {
         let addressV6=response.data.split(',')
         this.realExternalIP=addressV6[1]
-        if (this.ipv4 && this.external_IP_address && this.realExternalIP != this.external_IP_address){
+        if(this.ipv4 && this.external_IP_address && this.realExternalIP != this.external_IP_address){
           this.log.warn('Configured external IPv6 address of %s does not match this servers detected external IP of %s please check webhook config settings.',this.external_IP_address,this.realExternalIP)
       }
-      }).catch(err => {this.log.error('Failed to get current external IP', err)}) 
+      }).catch(err=>{this.log.error('Failed to get current external IP', err)}) 
       this.log.debug('using IPv6 webhook external address')
     }
     else if(this.fqdn){this.log.debug('using FQDN for webhook external destination')} 
@@ -124,9 +124,9 @@ class RachioPlatform {
     //** 
     //** Platforms should wait until the "didFinishLaunching" event has fired before registering any new accessories.
     //**  
-    if (api) {
-        this.api = api;
-        this.api.on("didFinishLaunching", function () {
+    if(api){
+        this.api=api;
+        this.api.on("didFinishLaunching", function (){
           //Get devices
           this.getRachioDevices()
         }.bind(this))     
@@ -137,13 +137,13 @@ class RachioPlatform {
     this.log('Identify the sprinkler!')
   }
   
-  getRachioDevices() {
+  getRachioDevices(){
     // configure listerner for webhook messages
     this.configureListener()
     this.log.debug('Fetching build info...')  
     this.log.info('Getting Person info...')
     this.rachioapi.getPersonInfo(this.token).then(response=>{
-      personId = response.data.id
+      personId=response.data.id
       this.log('Found Person ID %s',personId)
 
       this.log.info('Getting Person ID info...')
@@ -153,10 +153,10 @@ class RachioPlatform {
         this.log.info('Getting Location info...')
         this.rachioapi.getLocationList(this.token,).then(response=>{
           response.data.locationSummary.forEach(address=>{
-            this.log.info('Found Location: id = %s address = %s geo = %s',address.location.id,address.location.address.addressLine1,address.location.geoPoint)
+            this.log.info('Found Location: id=%s address=%s geo=%s',address.location.id,address.location.address.addressLine1,address.location.geoPoint)
             this.foundLocation=response.data.locationSummary
             address.location.deviceId.forEach(device=>{
-              this.log.info('Found Location: device id = %s ',device)
+              this.log.info('Found Location: device id=%s ',device)
             })
           })
 
@@ -195,22 +195,22 @@ class RachioPlatform {
               let switchService
               // Create and configure Irrigation Service
               this.log.debug('Creating and configuring new device')            
-              let irrigationAccessory = this.createIrrigationAccessory(newDevice)
+              let irrigationAccessory=this.createIrrigationAccessory(newDevice)
               this.configureIrrigationService(newDevice,irrigationAccessory.getService(Service.IrrigationSystem))
             
               // Create and configure Values services and link to Irrigation Service
-              newDevice.zones = newDevice.zones.sort(function (a, b) {
+              newDevice.zones=newDevice.zones.sort(function (a, b){
                 return a.zoneNumber - b.zoneNumber
               })
               newDevice.zones.forEach((zone)=>{
-                if (!this.use_irrigation_display && !zone.enabled){
+                if(!this.use_irrigation_display && !zone.enabled){
                   this.log.info('Skipping disabled zone %s',zone.name )
                 }
                 else {
                   this.log.debug('adding zone %s',zone.name )
-                  let valveService = this.createValveService(zone)
+                  let valveService=this.createValveService(zone)
                   this.configureValveService(newDevice, valveService)
-                  if (this.use_irrigation_display){
+                  if(this.use_irrigation_display){
                     this.log.debug('Using irrigation system')
                     irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(valveService) 
                   }
@@ -233,7 +233,7 @@ class RachioPlatform {
               if(this.show_schedules){
                 newDevice.flexScheduleRules.forEach((schedule)=>{
                   this.log.debug('adding schedules %s',schedule.name )
-                  switchService = this.createScheduleSwitchService(schedule)
+                  switchService=this.createScheduleSwitchService(schedule)
                   this.configureSwitchService(newDevice, switchService)
                   irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService)
                   irrigationAccessory.addService(switchService)
@@ -257,7 +257,7 @@ class RachioPlatform {
               // Register platform accessory
               this.log.debug('Registering platform accessory')
               this.api.registerPlatformAccessories(PluginName, PlatformName, [irrigationAccessory])
-              this.accessories[uuid] = irrigationAccessory
+              this.accessories[uuid]=irrigationAccessory
               
               //match state to Rachio state  
               this.setOnlineStatus(newDevice)
@@ -278,20 +278,20 @@ class RachioPlatform {
   //**
   //** REQUIRED - Homebridge will call the "configureAccessory" method once for every cached accessory restored
   //**
-  configureAccessory(accessory) {
+  configureAccessory(accessory){
     // Add cached devices to the accessories arrary
     this.log.info('Found cached accessory, configuring %s',accessory.displayName)
     this.accessories[accessory.UUID]=accessory
   }
 
-  createIrrigationAccessory(device) {
+  createIrrigationAccessory(device){
     this.log.debug('Create Irrigation service %s',device.id,device.name)
     // Create new Irrigation System Service
-    let newPlatformAccessory = new PlatformAccessory(device.name, device.id)
+    let newPlatformAccessory=new PlatformAccessory(device.name, device.id)
     newPlatformAccessory.addService(Service.IrrigationSystem, device.name)
-    let irrigationSystemService = newPlatformAccessory.getService(Service.IrrigationSystem)
+    let irrigationSystemService=newPlatformAccessory.getService(Service.IrrigationSystem)
     // Check if the device is connected
-    if (device.status == 'ONLINE') {
+    if(device.status == 'ONLINE'){
       irrigationSystemService.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
     } else {
       irrigationSystemService.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.GENERAL_FAULT)
@@ -309,7 +309,7 @@ class RachioPlatform {
     return newPlatformAccessory;
   }
 
-  configureIrrigationService(device,irrigationSystemService) {
+  configureIrrigationService(device,irrigationSystemService){
     this.log.info('Configure Irrigation service for %s', irrigationSystemService.getCharacteristic(Characteristic.Name).value)
     // Configure IrrigationSystem Service
     irrigationSystemService 
@@ -318,7 +318,7 @@ class RachioPlatform {
       .setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
       .setCharacteristic(Characteristic.RemainingDuration, 0)
     // Check if the device is connected
-    switch (device.status) {
+    switch (device.status){
       case "ONLINE": 
         //irrigationSystemService.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
       break
@@ -326,7 +326,7 @@ class RachioPlatform {
         //irrigationSystemService.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.GENERAL_FAULT)
       break
     }
-    switch (device.scheduleModeType) {
+    switch (device.scheduleModeType){
       case "OFF": 
         irrigationSystemService.setCharacteristic(Characteristic.ProgramMode, Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED)
       break
@@ -355,12 +355,12 @@ class RachioPlatform {
       .on('set', this.setDeviceValue.bind(this, device, irrigationSystemService ))
   }
 
-  getDeviceValue(irrigationSystemService, characteristicName, callback) {
+  getDeviceValue(irrigationSystemService, characteristicName, callback){
     //this.log.debug('%s - Set something %s', irrigationSystemService.getCharacteristic(Characteristic.Name).value) 
-    switch (characteristicName) {
+    switch (characteristicName){
       case "DeviceActive":
         //this.log.debug("%s = %s %s", irrigationSystemService.getCharacteristic(Characteristic.Name).value, characteristicName,irrigationSystemService.getCharacteristic(Characteristic.Active).value);
-        if (irrigationSystemService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+        if(irrigationSystemService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
           callback('error')
         }
         else{
@@ -382,15 +382,15 @@ class RachioPlatform {
     }
   }
 
-  setDeviceValue(device, irrigationSystemService, callback) {
+  setDeviceValue(device, irrigationSystemService, callback){
     //this.log.debug('%s - Get something %s', irrigationSystemService.getCharacteristic(Characteristic.Name).value, value) 
       callback()
   }
 
-  createValveService(zone) {
+  createValveService(zone){
     this.log.debug("Created service for %s with id %s", zone.name, zone.id)
     // Create Valve Service
-    let valve = new Service.Valve(zone.name, zone.id) 
+    let valve=new Service.Valve(zone.name, zone.id) 
     valve.addCharacteristic(Characteristic.CurrentTime) // Use CurrentTime to store the run time ending
     valve.addCharacteristic(Characteristic.SerialNumber) //Use Serial Number to store the zone id
     valve.addCharacteristic(Characteristic.Model)
@@ -408,7 +408,7 @@ class RachioPlatform {
       .setCharacteristic(Characteristic.Name, zone.name)
       .setCharacteristic(Characteristic.ConfiguredName, zone.name)
       .setCharacteristic(Characteristic.Model, zone.customNozzle.name)
-      if (zone.enabled){
+      if(zone.enabled){
         valve.setCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED)}
       else{
         valve.setCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.NOT_CONFIGURED)
@@ -416,7 +416,7 @@ class RachioPlatform {
     return valve
   }
 
-  configureValveService(device, valveService) {
+  configureValveService(device, valveService){
     this.log.info("Configured zone-%s service for %s",valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value, valveService.getCharacteristic(Characteristic.Name).value)
     // Configure Valve Service
     valveService
@@ -436,11 +436,11 @@ class RachioPlatform {
       .on('get', this.getValveValue.bind(this, valveService, "ValveRemainingDuration"))
   }
 
-  getValveValue(valveService, characteristicName, callback) {
-    switch (characteristicName) {
+  getValveValue(valveService, characteristicName, callback){
+    switch (characteristicName){
       case "ValveActive":
         //this.log.debug("%s = %s %s", valveService.getCharacteristic(Characteristic.Name).value, characteristicName,valveService.getCharacteristic(Characteristic.Active).value)
-        if (valveService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+        if(valveService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
           callback('error')
         }
         else{
@@ -457,11 +457,11 @@ class RachioPlatform {
       break
       case "ValveRemainingDuration":
         // Calc remain duration
-          let timeEnding = Date.parse(valveService.getCharacteristic(Characteristic.CurrentTime).value)
-          let timeNow = Date.now()
-          let timeRemaining = Math.max(Math.round((timeEnding - timeNow) / 1000), 0)
-          if (isNaN(timeRemaining)) {
-            timeRemaining = 0
+          let timeEnding=Date.parse(valveService.getCharacteristic(Characteristic.CurrentTime).value)
+          let timeNow=Date.now()
+          let timeRemaining=Math.max(Math.round((timeEnding - timeNow) / 1000), 0)
+          if(isNaN(timeRemaining)){
+            timeRemaining=0
           }
           valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(timeRemaining)
           //this.log.debug("%s = %s %s", valveService.getCharacteristic(Characteristic.Name).value, characteristicName,timeRemaining)
@@ -474,14 +474,14 @@ class RachioPlatform {
     }
   }
 
-  setValveValue(device, valveService, value, callback) {
+  setValveValue(device, valveService, value, callback){
     //this.log.debug('%s - Set Active state to %s', valveService.getCharacteristic(Characteristic.Name).value, value) 
-      let irrigationAccessory = this.accessories[device.id];
-      let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
+      let irrigationAccessory=this.accessories[device.id];
+      let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
       
       // Set homekit state and prepare message for Rachio API
-      let runTime = valveService.getCharacteristic(Characteristic.SetDuration).value
-      if (value == Characteristic.Active.ACTIVE) {
+      let runTime=valveService.getCharacteristic(Characteristic.SetDuration).value
+      if(value == Characteristic.Active.ACTIVE){
         // Turn on/idle the valve
         this.log.info("Starting zone-%s %s for %s mins", valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value, valveService.getCharacteristic(Characteristic.Name).value, runTime/60)
         this.rachioapi.startZone (this.token,valveService.getCharacteristic(Characteristic.SerialNumber).value,runTime)
@@ -529,7 +529,7 @@ class RachioPlatform {
         this.log.debug(myJsonStart)
         this.log.debug('Simulating webhook for %s will update services',myJsonStart.zoneName)
         this.updateService(irrigationSystemService,valveService,myJsonStart)
-        this.fakeWebhook = setTimeout(() => {
+        this.fakeWebhook=setTimeout(()=>{
           this.log.debug('Simulating webhook for %s will update services',myJsonStop.zoneName) 
           this.log.debug(myJsonStop)
           this.updateService(irrigationSystemService,valveService,myJsonStop)
@@ -567,17 +567,17 @@ class RachioPlatform {
     callback()
   }
 
-  setValveDuration(device, valveService, value, callback) {
+  setValveDuration(device, valveService, value, callback){
     // Set default duration from Homekit value 
     valveService.getCharacteristic(Characteristic.SetDuration).updateValue(value) 
     this.log.info("Set %s duration for %s mins", valveService.getCharacteristic(Characteristic.Name).value,value/60)
     callback()
   }
 
-  createScheduleSwitchService(schedule) {
+  createScheduleSwitchService(schedule){
     // Create Valve Service
     this.log.debug("Created service for %s with id %s", schedule.name, schedule.id);
-    let switchService = new Service.Switch(schedule.name, schedule.id) 
+    let switchService=new Service.Switch(schedule.name, schedule.id) 
     switchService.addCharacteristic(Characteristic.ConfiguredName)
     switchService.addCharacteristic(Characteristic.SerialNumber)
     switchService 
@@ -588,12 +588,12 @@ class RachioPlatform {
     return switchService
   }
 
-  createSwitchService(device,switchName) {
+  createSwitchService(device,switchName){
     // Create Valve Service
     this.log.debug('adding new switch')
-    //let uuid = this.api.hap.uuid.generate(switchName)
-    let uuid = UUIDGen.generate(switchName)
-    let switchService = new Service.Switch(switchName, uuid) 
+    //let uuid=this.api.hap.uuid.generate(switchName)
+    let uuid=UUIDGen.generate(switchName)
+    let switchService=new Service.Switch(switchName, uuid) 
     switchService.addCharacteristic(Characteristic.ConfiguredName)
     switchService 
       .setCharacteristic(Characteristic.On, false)
@@ -602,7 +602,7 @@ class RachioPlatform {
     return switchService
   }
 
-  configureSwitchService(device, switchService) {
+  configureSwitchService(device, switchService){
     // Configure Valve Service
     this.log.info("Configured service for %s" ,switchService.getCharacteristic(Characteristic.Name).value)
     switchService
@@ -611,7 +611,7 @@ class RachioPlatform {
       .on('set', this.setSwitchValue.bind(this, device, switchService))
   }
 
-  setSwitchValue(device, switchService, value, callback) {
+  setSwitchValue(device, switchService, value, callback){
     this.log.debug('toggle switch state %s',switchService.getCharacteristic(Characteristic.Name).value)
     switch(switchService.getCharacteristic(Characteristic.Name).value){
       case device.name+' Standby': 
@@ -619,7 +619,7 @@ class RachioPlatform {
           callback('error')
         }
         else{
-          if (!value){
+          if(!value){
             switchService.getCharacteristic(Characteristic.On).updateValue(true)
             this.rachioapi.deviceStandby (this.token,device,'on')
           } 
@@ -635,7 +635,7 @@ class RachioPlatform {
           callback('error')
         }
         else{
-          if (value){
+          if(value){
             switchService.getCharacteristic(Characteristic.On).updateValue(true)
             this.rachioapi.startMultipleZone (this.token,device.zones,this.default_runtime)
           } 
@@ -651,7 +651,7 @@ class RachioPlatform {
           callback('error')
         }
         else{
-          if (value){
+          if(value){
             switchService.getCharacteristic(Characteristic.On).updateValue(true)
             this.rachioapi.startSchedule (this.token,switchService.getCharacteristic(Characteristic.SerialNumber).value)
           } 
@@ -665,9 +665,9 @@ class RachioPlatform {
       }
     }
 
-  getSwitchValue(switchService, callback) {
+  getSwitchValue(switchService, callback){
     //this.log.debug("%s = %s", switchService.getCharacteristic(Characteristic.Name).value,switchService.getCharacteristic(Characteristic.On))
-    if (switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+    if(switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
       callback('error')
     }
     else{
@@ -675,7 +675,7 @@ class RachioPlatform {
     }
   }
 
-  setOnlineStatus(newDevice) {
+  setOnlineStatus(newDevice){
   //set current device status  
   //create a fake webhook response 
     if(newDevice.status){
@@ -702,15 +702,15 @@ class RachioPlatform {
       }
       this.log.debug('Found online device')
       this.log.debug(myJson)
-      let irrigationAccessory = this.accessories[myJson.deviceId];
-      let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
-      let service = irrigationAccessory.getServiceById(Service.IrrigationSystem)
+      let irrigationAccessory=this.accessories[myJson.deviceId];
+      let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem);
+      let service=irrigationAccessory.getServiceById(Service.IrrigationSystem)
       this.log.debug('Updating device status')
       this.updateService(irrigationSystemService,service,myJson)
     }
   } 
 
-  setDeviceStatus(newDevice) {
+  setDeviceStatus(newDevice){
     //set current device state  
     //create a fake webhook response 
     if(deviceState.state.health=='GOOD'){
@@ -743,8 +743,8 @@ class RachioPlatform {
       }
       this.log.debug('Found healthy device')
       this.log.debug(myJson)
-      let irrigationAccessory = this.accessories[myJson.deviceId];
-      let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
+      let irrigationAccessory=this.accessories[myJson.deviceId];
+      let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem);
       this.log.debug('Updating standby switch state')
       this.updateService(irrigationSystemService,irrigationSystemService,myJson)
     }
@@ -772,9 +772,9 @@ class RachioPlatform {
         resourceType: 'DEVICE'
       }
       this.log.debug(myJson)
-      let irrigationAccessory = this.accessories[myJson.deviceId];
-      let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
-      let service = irrigationAccessory.getServiceById(Service.Valve,myJson.zoneId)
+      let irrigationAccessory=this.accessories[myJson.deviceId];
+      let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem);
+      let service=irrigationAccessory.getServiceById(Service.Valve,myJson.zoneId)
       this.log.debug('Webhook match found for zone-%s on start will update services',myJson.zoneNumber)
       this.updateService(irrigationSystemService,service,myJson)
     }
@@ -796,24 +796,24 @@ class RachioPlatform {
         resourceType: 'DEVICE'
       }
       this.log.debug(myJson)
-      let irrigationAccessory = this.accessories[myJson.deviceId];
-      let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem);
-      let service = irrigationAccessory.getServiceById(Service.Switch,myJson.scheduleId)
+      let irrigationAccessory=this.accessories[myJson.deviceId];
+      let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem);
+      let service=irrigationAccessory.getServiceById(Service.Switch,myJson.scheduleId)
       this.log.debug('Webhook match found for schedule %s on start will update services',myJson.scheduleName)
       this.updateService(irrigationSystemService,service,myJson)
     }
   }
 
-  configureListener() {
-    if (this.external_webhook_address && this.internal_webhook_port) {
+  configureListener(){
+    if(this.external_webhook_address && this.internal_webhook_port){
       this.log.debug('Will listen for Webhooks matching Webhook ID %s',this.webhook_key)
-      requestServer = http.createServer((request, response) => {
+      requestServer=http.createServer((request, response)=>{
         let authPassed
         if(this.use_basic_auth){
           if(request.headers.authorization){
             let b64encoded=(Buffer.from(this.user+":"+this.password,'utf8')).toString('base64')
-            this.log.debug('webhook request received authorization header = %s',request.headers.authorization)
-            this.log.debug('webhook request received authorization header = %s',"Basic "+b64encoded)
+            this.log.debug('webhook request received authorization header=%s',request.headers.authorization)
+            this.log.debug('webhook request received authorization header=%s',"Basic "+b64encoded)
             if(request.headers.authorization == "Basic "+b64encoded){
               this.log.debug("Webhook authentication passed")
               authPassed=true
@@ -833,35 +833,35 @@ class RachioPlatform {
         authPassed=true
       }
   
-        if (request.method === 'GET' && request.url === '/test') {
+        if(request.method === 'GET' && request.url === '/test'){
           this.log.info('Test received on Rachio listener. Webhooks are configured correctly!')
           response.writeHead(200)
           response.write( new Date().toTimeString()+' Webhooks are configured correctly!')
           return response.end()
         } 
-        else if (request.method === 'POST' && request.url === '/' && authPassed) {
-          let body = []
-          request.on('data', (chunk) => {
+        else if(request.method === 'POST' && request.url === '/' && authPassed){
+          let body=[]
+          request.on('data', (chunk)=>{
             body.push(chunk)
-          }).on('end', () => {  
+          }).on('end', ()=>{  
             try {
-              body = Buffer.concat(body).toString().trim()
-              const jsonBody = JSON.parse(body)
+              body=Buffer.concat(body).toString().trim()
+              const jsonBody=JSON.parse(body)
               this.log.debug('webhook request received from < %s > %s',jsonBody.externalId,jsonBody)
-              if (jsonBody.externalId === this.webhook_key) {
-                let irrigationAccessory = this.accessories[jsonBody.deviceId]
-                let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
+              if(jsonBody.externalId === this.webhook_key){
+                let irrigationAccessory=this.accessories[jsonBody.deviceId]
+                let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
                 let service
-                if (jsonBody.zoneId){
-                  service = irrigationAccessory.getServiceById(Service.Valve,jsonBody.zoneId)
+                if(jsonBody.zoneId){
+                  service=irrigationAccessory.getServiceById(Service.Valve,jsonBody.zoneId)
                   this.log.debug('Webhook match found for %s will update zone services',jsonBody.zoneName)
                 }
-                else if (jsonBody.scheduleId){
-                  service = irrigationAccessory.getServiceById(Service.Switch,jsonBody.scheduleId)
+                else if(jsonBody.scheduleId){
+                  service=irrigationAccessory.getServiceById(Service.Switch,jsonBody.scheduleId)
                   this.log.debug('Webhook match found for %s will update zone services',jsonBody.scheduleName)
                 }
-                else if (jsonBody.deviceId){
-                  service = irrigationAccessory.getServiceById(Service.IrrigationSystem)
+                else if(jsonBody.deviceId){
+                  service=irrigationAccessory.getServiceById(Service.IrrigationSystem)
                   this.log.debug('Webhook match found for %s will update zone services',jsonBody.deviceName)
               }
               this.updateService(irrigationSystemService,service,jsonBody)
@@ -875,7 +875,7 @@ class RachioPlatform {
               }
               //this.log.warn('Unsupported HTTP Request %s  %s', request.method, request.url)
             }
-            catch (err) {  
+            catch (err){  
                 this.log.warn('Error parsing webhook request ' + err)
                 response.writeHead(404)
                 return response.end()
@@ -883,7 +883,7 @@ class RachioPlatform {
           })
         } 
         })
-        requestServer.listen(this.internal_webhook_port, function () {
+        requestServer.listen(this.internal_webhook_port, function (){
           this.log.info('This server is listening on port %s.',this.internal_webhook_port)
           if(this.use_basic_auth){this.log.info('Using HTTP basic authentication for Webhooks')}
           this.log.info('Make sure your router has port fowarding turned on for port %s to this server`s IP address and this port %s, unless you are using a relay service.',this.external_webhook_port,this.internal_webhook_port)
@@ -991,19 +991,19 @@ class RachioPlatform {
         break
         case "DEVICE_STATUS":
           this.log.debug('Device Status Update') 
-          let irrigationAccessory = this.accessories[jsonBody.deviceId]
-          let switchService = irrigationAccessory.getServiceById(Service.Switch,UUIDGen.generate(jsonBody.deviceName+' Standby'))
+          let irrigationAccessory=this.accessories[jsonBody.deviceId]
+          let switchService=irrigationAccessory.getServiceById(Service.Switch,UUIDGen.generate(jsonBody.deviceName+' Standby'))
           switch(jsonBody.subType){
             case 'ONLINE':
               this.log('<%s> %s connected at %s',jsonBody.externalId,jsonBody.deviceId,new Date(jsonBody.timestamp).toString())
                 irrigationAccessory.services.forEach((service)=>{
-                  if (Service.AccessoryInformation.UUID != service.UUID) {
+                  if(Service.AccessoryInformation.UUID != service.UUID){
                     service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
                   }
-                  if (Service.Valve.UUID == service.UUID) {
+                  if(Service.Valve.UUID == service.UUID){
                     service.getCharacteristic(Characteristic.Active).getValue()
                   }
-                  if (Service.Switch.UUID == service.UUID) {
+                  if(Service.Switch.UUID == service.UUID){
                     service.getCharacteristic(Characteristic.On).getValue()
                   }
               })
@@ -1011,28 +1011,28 @@ class RachioPlatform {
             case 'COLD_REBOOT':
               this.log('<%s> Device,%s connected at %s from a %s',jsonBody.externalId,jsonBody.deviceName,new Date(jsonBody.timestamp).toString(),jsonBody.title)
               irrigationAccessory.services.forEach((service)=>{
-                if (Service.AccessoryInformation.UUID != service.UUID) {
+                if(Service.AccessoryInformation.UUID != service.UUID){
                   service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
                 }
-                if (Service.Valve.UUID == service.UUID) {
+                if(Service.Valve.UUID == service.UUID){
                   service.getCharacteristic(Characteristic.Active).getValue()
                 }
-                if (Service.Switch.UUID == service.UUID) {
+                if(Service.Switch.UUID == service.UUID){
                   service.getCharacteristic(Characteristic.On).getValue()
                 }
             })
             break
             case 'OFFLINE':
               this.log('<%s> %s disconnected at %s',jsonBody.externalId,jsonBody.deviceId,jsonBody.timestamp)
-              this.log.warn('%s disconnected at %s This will show as non-responding in Homekit untill the connection is restored',jsonBody.deviceId,jsonBody.timestamp)
+              this.log.warn('%s disconnected at %s This will show as non-responding in Homekit until the connection is restored',jsonBody.deviceId,jsonBody.timestamp)
                 irrigationAccessory.services.forEach((service)=>{
-                  if (Service.AccessoryInformation.UUID != service.UUID) {
+                  if(Service.AccessoryInformation.UUID != service.UUID){
                     service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
                   }
-                  if (Service.Valve.UUID == service.UUID) {
+                  if(Service.Valve.UUID == service.UUID){
                     service.getCharacteristic(Characteristic.Active).getValue()
                   }
-                  if (Service.Switch.UUID == service.UUID) {
+                  if(Service.Switch.UUID == service.UUID){
                     service.getCharacteristic(Characteristic.On).getValue()
                   }
               })
@@ -1059,21 +1059,21 @@ class RachioPlatform {
         switch(jsonBody.subType){
           case "SCHEDULE_STARTED":     
             this.log.info('<%s> %s %s',jsonBody.externalId,jsonBody.title,jsonBody.summary)
-            if (Service.IrrigationSystem.UUID != activeService.UUID) {
+            if(Service.IrrigationSystem.UUID != activeService.UUID){
               activeService.getCharacteristic(Characteristic.On).updateValue(true)
             }
             irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE) 
           break
           case "SCHEDULE_STOPPED":
             this.log.info('<%s> %s %s',jsonBody.externalId,jsonBody.title,jsonBody.summary)
-            if (Service.IrrigationSystem.UUID != activeService.UUID) {
+            if(Service.IrrigationSystem.UUID != activeService.UUID){
               activeService.getCharacteristic(Characteristic.On).updateValue(false)
             }
             irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE) 
           break
           case "SCHEDULE_COMPLETED":
             this.log.info('<%s> %s %s',jsonBody.externalId,jsonBody.title,jsonBody.summary)
-            if (Service.IrrigationSystem.UUID != activeService.UUID) {
+            if(Service.IrrigationSystem.UUID != activeService.UUID){
               activeService.getCharacteristic(Characteristic.On).updateValue(false)
             }
             irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE) 
@@ -1085,4 +1085,4 @@ class RachioPlatform {
     }
   }
 
-module.exports = RachioPlatform;
+module.exports=RachioPlatform;
