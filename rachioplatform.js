@@ -344,15 +344,12 @@ class RachioPlatform {
     irrigationSystemService
       .getCharacteristic(Characteristic.Active)
       .on('get',this.getDeviceValue.bind(this, irrigationSystemService, "DeviceActive"))
-      .on('set',this.setDeviceValue.bind(this, device, irrigationSystemService ))
     irrigationSystemService
       .getCharacteristic(Characteristic.InUse)
       .on('get', this.getDeviceValue.bind(this, irrigationSystemService, "DeviceInUse"))
-      .on('set', this.setDeviceValue.bind(this, device, irrigationSystemService ))
     irrigationSystemService
       .getCharacteristic(Characteristic.ProgramMode)
       .on('get', this.getDeviceValue.bind(this, irrigationSystemService, "DeviceProgramMode"))
-      .on('set', this.setDeviceValue.bind(this, device, irrigationSystemService ))
   }
 
   getDeviceValue(irrigationSystemService, characteristicName, callback){
@@ -380,11 +377,6 @@ class RachioPlatform {
         callback()
       break
     }
-  }
-
-  setDeviceValue(device, irrigationSystemService, callback){
-    //this.log.debug('%s - Get something %s', irrigationSystemService.getCharacteristic(Characteristic.Name).value, value) 
-      callback()
   }
 
   createValveService(zone){

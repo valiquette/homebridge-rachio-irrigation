@@ -1,4 +1,10 @@
 # Changes
+
+## 1.2.2
+Fix
+-   Fixed a bug where homekit may show incorrect non-responding state.
+-   Bummped dependancy revs.
+
 ## 1.2.1
 Enhancment 
 -   Finalized beta.
