@@ -2,6 +2,10 @@
 
 ## 1.2.2
 Fix
+-   Suppressed benign error message in log when show standby switch is false.
+
+## 1.2.2
+Fix
 -   Fixed a bug where homekit may show incorrect non-responding state.
 -   Bummped dependancy revs.
 

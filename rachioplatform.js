@@ -1032,17 +1032,17 @@ class RachioPlatform {
             case "SLEEP_MODE_ON": //ProgramMode 0 
               this.log('<%s> %s %s %s',jsonBody.externalId,jsonBody.title,jsonBody.deviceName,jsonBody.summary)
               irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED)
-              switchService.getCharacteristic(Characteristic.On).updateValue(true)
+              if(this.show_standby){switchService.getCharacteristic(Characteristic.On).updateValue(true)}
               break
             case "SLEEP_MODE_OFF": //ProgramMode 2
               this.log('<%s> %s %s %s',jsonBody.externalId,jsonBody.title,jsonBody.deviceName,jsonBody.summary)
               irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.PROGRAM_SCHEDULED_MANUAL_MODE_)
-              switchService.getCharacteristic(Characteristic.On).updateValue(false)
+              if(this.show_standby){switchService.getCharacteristic(Characteristic.On).updateValue(false)}
               break
             default: //ProgramMode 1
             this.log('<%s> %s ??? mode',jsonBody.externalId,jsonBody.deviceId)
               irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.PROGRAM_SCHEDULED)
-              switchService.getCharacteristic(Characteristic.On).updateValue(false)
+              if(this.show_standby){switchService.getCharacteristic(Characteristic.On).updateValue(false)}
             break
             }
         break
