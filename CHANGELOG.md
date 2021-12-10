@@ -2,8 +2,8 @@
 
 ## 1.2.5
 Update
--   code cleanup
--   Bumped dependancies 
+-   Code cleanup.
+-   Bumped dependancies.
 
 ## 1.2.4
 Update
