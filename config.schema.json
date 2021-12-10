@@ -1,6 +1,6 @@
 {
   "pluginAlias": "rachio",
-  "headerDisplay": "Homebridge Plugin for Rachio Controllers",
+  "headerDisplay": "Homebridge plugin for Rachio Controllers",
   "pluginType": "platform",
   "singular": true,
   "schema": {
