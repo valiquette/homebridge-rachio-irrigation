@@ -82,7 +82,7 @@ If you see log messages like `Webhook received from an unknown external id`, you
 4. Run Homebridge
 5. Pair to HomeKit
 
-## Config.json example
+## Config.json example with child bridge
 ```
 "platforms": [
         {

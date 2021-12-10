@@ -1,4 +1,9 @@
 # Changes
+
+## 1.2.5
+Update
+-   code cleanup
+
 ## 1.2.4
 Update
 -   Bumped nodejs dependancy to 14.18.0 or 16.13.0
