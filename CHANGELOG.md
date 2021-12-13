@@ -1,4 +1,14 @@
 # Changes
+
+## 1.2.6-beta
+Fix
+-   Fixed an issue with location matching when a location has multiple controllers.
+
+## 1.2.5
+Update
+-   Code cleanup.
+-   Bumped dependancies.
+
 ## 1.2.4
 Update
 -   Bumped nodejs dependancy to 14.18.0 or 16.13.0

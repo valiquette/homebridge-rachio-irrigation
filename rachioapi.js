@@ -98,7 +98,7 @@ RachioAPI.prototype={
         headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
         responseType: 'json'
       }).catch(err => {this.log.error('Error getting location list %s', err)})
-      this.log.debug('get location list response',JSON.stringify(response.data,null,2))
+      this.log.debug('get list locations response',JSON.stringify(response.data,null,2))
       
       return  response
     }catch(err) {this.log.error('Error getting location list %s', err)}

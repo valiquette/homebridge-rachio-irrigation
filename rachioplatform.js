@@ -41,7 +41,7 @@ class RachioPlatform {
     this.accessories=[]
     this.realExternalIP
     this.fakeWebhook 
-    this.foundLocation
+    this.foundLocations
     if(this.use_basic_auth && this.user && this.password){
       this.external_webhook_address="http://"+this.user+":"+this.password+"@"+this.external_IP_address+':'+this.external_webhook_port
     }
@@ -151,32 +151,36 @@ class RachioPlatform {
         personInfo=response
         this.log.info('Found Account for username %s',personInfo.data.username)
         this.log.info('Getting Location info...')
-        this.rachioapi.getLocationList(this.token,).then(response=>{
+        this.rachioapi.getLocationList(this.token).then(response=>{   
           response.data.locationSummary.forEach(address=>{
             this.log.info('Found Location: id=%s address=%s geo=%s',address.location.id,address.location.address.addressLine1,address.location.geoPoint)
-            this.foundLocation=response.data.locationSummary
+            this.foundLocations=response.data.locationSummary
             address.location.deviceId.forEach(device=>{
               this.log.info('Found Location: device id=%s ',device)
             })
           })
 
         personInfo.data.devices.filter((newDevice)=>{
-          this.foundLocation.forEach((address)=>{
-            address.location.deviceId.forEach((device)=>{
-              if(!this.locationAddress || (this.locationAddress==address.location.address.addressLine1 && newDevice.id==device)){  
-                this.log.info('Adding controller %s found at the configured location: %s',newDevice.name,address.location.address.addressLine1)
+          this.foundLocations.forEach((location)=>{
+            location.location.deviceId.forEach((device)=>{
+              if(!this.locationAddress || this.locationAddress==location.location.address.addressLine1){
+                if(newDevice.id==device){  
+                this.log.info('Adding controller %s found at the configured location: %s',newDevice.name,location.location.address.addressLine1)
                 this.locationMatch=true
+                }
               }
               else{
-                this.log.info('Skipping controller %s at %s, not found at the configured location: %s',newDevice.name,this.locationAddress,address.location.address.addressLine1)
+                if(newDevice.id==device){ 
+                this.log.info('Skipping controller %s at %s, not found at the configured location: %s',newDevice.name,location.location.address.addressLine1,this.locationAddress,)
                 this.locationMatch=false
+                }
               }
             })
           })
           return this.locationMatch
           }).forEach((newDevice)=>{    
             //adding devices that met filter criteria
-            this.log.info('Found sevice %s status %s',newDevice.name,newDevice.status)
+            this.log.info('Found device %s status %s',newDevice.name,newDevice.status)
             let uuid=newDevice.id
             this.log.info('Getting device state info...')
             this.rachioapi.getDeviceState(this.token,newDevice.id).then(response=>{
@@ -212,13 +216,14 @@ class RachioPlatform {
                   this.configureValveService(newDevice, valveService)
                   if(this.use_irrigation_display){
                     this.log.debug('Using irrigation system')
-                    irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(valveService) 
+                    irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(valveService)
+                    irrigationAccessory.addService(valveService)
                   }
                   else{
                     this.log.debug('Using separate tiles')
                     irrigationAccessory.getService(Service.IrrigationSystem)
+                    irrigationAccessory.addService(valveService)
                   }           
-                  irrigationAccessory.addService(valveService);
                 }
               })
               if(this.show_schedules){
@@ -387,7 +392,6 @@ class RachioPlatform {
     valve.addCharacteristic(Characteristic.SerialNumber) //Use Serial Number to store the zone id
     valve.addCharacteristic(Characteristic.Model)
     valve.addCharacteristic(Characteristic.ConfiguredName)
-    //valve.getCharacteristic(Characteristic.SetDuration).setProps({minValue:60, maxValue:3600, minStep:1, validValues:[60,180,300,600,1200]})
     valve 
       .setCharacteristic(Characteristic.Active, Characteristic.Active.INACTIVE)
       .setCharacteristic(Characteristic.InUse, Characteristic.InUse.NOT_IN_USE)
@@ -477,8 +481,8 @@ class RachioPlatform {
         // Turn on/idle the valve
         this.log.info("Starting zone-%s %s for %s mins", valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value, valveService.getCharacteristic(Characteristic.Name).value, runTime/60)
         this.rachioapi.startZone (this.token,valveService.getCharacteristic(Characteristic.SerialNumber).value,runTime)
-        valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
         irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.Active.ACTIVE)
+        valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)  
         let myJsonStart={
           type: 'ZONE_STATUS',
           title: valveService.getCharacteristic(Characteristic.Name).value+' Started',
@@ -530,8 +534,8 @@ class RachioPlatform {
         // Turn off/stopping the valve
         this.log.info("Stopping Zone", valveService.getCharacteristic(Characteristic.Name).value);
         this.rachioapi.stopDevice (this.token,device.id)
-        valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
         irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.Active.INACTIVE)
+        valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
         let myJsonStop={
           type: 'ZONE_STATUS',
           title: valveService.getCharacteristic(Characteristic.Name).value+' Stopped',
@@ -675,7 +679,7 @@ class RachioPlatform {
       switch(newDevice.status){
         case "ONLINE":
           myJson={
-              externalId: "hombridge-Rachio-Dev",
+              externalId: this.webhook_key_local,
               type: "DEVICE_STATUS",
               deviceId: newDevice.id,
               subType: "ONLINE",
@@ -684,7 +688,7 @@ class RachioPlatform {
         break
         case "OFFLINE":
           myJson={
-            externalId: "hombridge-Rachio-Dev",
+            externalId: this.webhook_key_local,
             type: "DEVICE_STATUS",
             deviceId: newDevice.id,
             subType: "OFFLINE",
@@ -811,12 +815,14 @@ class RachioPlatform {
               authPassed=true
             }
             else{
-              this.log.warn("Webhook authentication failed")
+              this.log.warn('Webhook authentication failed')
+              this.log.debug("Webhook authentication failed",request.headers.authorization)
               authPassed=false
             }
           }
           else{
             this.log.warn('Expecting webhook authentication')
+            this.log.debug('Expecting webhook authentication',request) //debug line
             authPassed=false
             return
         }
@@ -846,15 +852,15 @@ class RachioPlatform {
                 let service
                 if(jsonBody.zoneId){
                   service=irrigationAccessory.getServiceById(Service.Valve,jsonBody.zoneId)
-                  this.log.debug('Webhook match found for %s will update zone services',jsonBody.zoneName)
+                  this.log.debug('Webhook match found for %s will update zone service',jsonBody.zoneName)
                 }
                 else if(jsonBody.scheduleId){
                   service=irrigationAccessory.getServiceById(Service.Switch,jsonBody.scheduleId)
-                  this.log.debug('Webhook match found for %s will update zone services',jsonBody.scheduleName)
+                  this.log.debug('Webhook match found for %s will update schedule service',jsonBody.scheduleName)
                 }
                 else if(jsonBody.deviceId){
                   service=irrigationAccessory.getServiceById(Service.IrrigationSystem)
-                  this.log.debug('Webhook match found for %s will update zone services',jsonBody.deviceName)
+                  this.log.debug('Webhook match found for %s will update irrigation service',jsonBody.deviceName)
               }
               this.updateService(irrigationSystemService,service,jsonBody)
               response.writeHead(204)
@@ -948,7 +954,7 @@ class RachioPlatform {
                 activeService.getCharacteristic(Characteristic.CurrentTime).updateValue(jsonBody.endTime) // Store zone run end time to calulate remaianing duration
               break
               case "ZONE_STOPPED":
-                this.log('<%s> %s, started for duration %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
+                this.log('<%s> %s, stopped after %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
                 irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
                 activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
                 activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
@@ -956,25 +962,25 @@ class RachioPlatform {
                 activeService.getCharacteristic(Characteristic.CurrentTime).updateValue( new Date().toISOString())
               break
               case "ZONE_PAUSED":
-                this.log('<%s> %s, started for duration %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
+                this.log('<%s> %s, paused for duration %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
                 irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE) 
                 activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
                 activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)            
               break
               case "ZONE_CYCLING":
-                this.log('<%s> %s, started for duration %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
+                this.log('<%s> %s, cycling for duration %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
                 irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE) 
                 activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
                 activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)            
               break
               case "ZONE_COMPLETED":
-                this.log('<%s> %s, started for duration %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
+                this.log('<%s> %s, completed after %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
                 irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE) 
                 activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
                 activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)                          
               break
               case "ZONE_CYCLING_COMPLETED":
-                this.log('<%s> %s, started for duration %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
+                this.log('<%s> %s, cycling completed after %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
                 irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE) 
                 activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
                 activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
