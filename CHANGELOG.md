@@ -1,5 +1,9 @@
 # Changes
 
+## 1.2.6-beta
+Fix
+-   Fixed an issue with location matching when a location has multiple controllers.
+
 ## 1.2.5
 Update
 -   Code cleanup.
