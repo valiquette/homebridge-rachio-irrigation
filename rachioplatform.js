@@ -41,7 +41,7 @@ class RachioPlatform {
     this.accessories=[]
     this.realExternalIP
     this.fakeWebhook 
-    this.foundLocation
+    this.foundLocations
     if(this.use_basic_auth && this.user && this.password){
       this.external_webhook_address="http://"+this.user+":"+this.password+"@"+this.external_IP_address+':'+this.external_webhook_port
     }
@@ -151,25 +151,29 @@ class RachioPlatform {
         personInfo=response
         this.log.info('Found Account for username %s',personInfo.data.username)
         this.log.info('Getting Location info...')
-        this.rachioapi.getLocationList(this.token,).then(response=>{
+        this.rachioapi.getLocationList(this.token).then(response=>{   
           response.data.locationSummary.forEach(address=>{
             this.log.info('Found Location: id=%s address=%s geo=%s',address.location.id,address.location.address.addressLine1,address.location.geoPoint)
-            this.foundLocation=response.data.locationSummary
+            this.foundLocations=response.data.locationSummary
             address.location.deviceId.forEach(device=>{
               this.log.info('Found Location: device id=%s ',device)
             })
           })
 
         personInfo.data.devices.filter((newDevice)=>{
-          this.foundLocation.forEach((address)=>{
-            address.location.deviceId.forEach((device)=>{
-              if(!this.locationAddress || (this.locationAddress==address.location.address.addressLine1 && newDevice.id==device)){  
-                this.log.info('Adding controller %s found at the configured location: %s',newDevice.name,address.location.address.addressLine1)
+          this.foundLocations.forEach((location)=>{
+            location.location.deviceId.forEach((device)=>{
+              if(!this.locationAddress || this.locationAddress==location.location.address.addressLine1){
+                if(newDevice.id==device){  
+                this.log.info('Adding controller %s found at the configured location: %s',newDevice.name,location.location.address.addressLine1)
                 this.locationMatch=true
+                }
               }
               else{
-                this.log.info('Skipping controller %s at %s, not found at the configured location: %s',newDevice.name,this.locationAddress,address.location.address.addressLine1)
+                if(newDevice.id==device){ 
+                this.log.info('Skipping controller %s at %s, not found at the configured location: %s',newDevice.name,location.location.address.addressLine1,this.locationAddress,)
                 this.locationMatch=false
+                }
               }
             })
           })
@@ -675,7 +679,7 @@ class RachioPlatform {
       switch(newDevice.status){
         case "ONLINE":
           myJson={
-              externalId: "hombridge-Rachio-Dev",
+              externalId: this.webhook_key_local,
               type: "DEVICE_STATUS",
               deviceId: newDevice.id,
               subType: "ONLINE",
@@ -684,7 +688,7 @@ class RachioPlatform {
         break
         case "OFFLINE":
           myJson={
-            externalId: "hombridge-Rachio-Dev",
+            externalId: this.webhook_key_local,
             type: "DEVICE_STATUS",
             deviceId: newDevice.id,
             subType: "OFFLINE",
@@ -811,14 +815,14 @@ class RachioPlatform {
               authPassed=true
             }
             else{
-              this.log.warn("Webhook authentication failed")
-              this.log.warn("Webhook authentication failed",request.headers.authorization)//debug line
-              this.log.warn("Webhook authentication failed",request)//debug line
+              this.log.warn('Webhook authentication failed')
+              this.log.debug("Webhook authentication failed",request.headers.authorization)
               authPassed=false
             }
           }
           else{
             this.log.warn('Expecting webhook authentication')
+            this.log.debug('Expecting webhook authentication',request) //debug line
             authPassed=false
             return
         }
@@ -848,15 +852,15 @@ class RachioPlatform {
                 let service
                 if(jsonBody.zoneId){
                   service=irrigationAccessory.getServiceById(Service.Valve,jsonBody.zoneId)
-                  this.log.debug('Webhook match found for %s will update zone services',jsonBody.zoneName)
+                  this.log.debug('Webhook match found for %s will update zone service',jsonBody.zoneName)
                 }
                 else if(jsonBody.scheduleId){
                   service=irrigationAccessory.getServiceById(Service.Switch,jsonBody.scheduleId)
-                  this.log.debug('Webhook match found for %s will update zone services',jsonBody.scheduleName)
+                  this.log.debug('Webhook match found for %s will update schedule service',jsonBody.scheduleName)
                 }
                 else if(jsonBody.deviceId){
                   service=irrigationAccessory.getServiceById(Service.IrrigationSystem)
-                  this.log.debug('Webhook match found for %s will update zone services',jsonBody.deviceName)
+                  this.log.debug('Webhook match found for %s will update irrigation service',jsonBody.deviceName)
               }
               this.updateService(irrigationSystemService,service,jsonBody)
               response.writeHead(204)
