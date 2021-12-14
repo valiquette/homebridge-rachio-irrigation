@@ -6,10 +6,10 @@ Schedule/zone duration when found throws warnings exceding 60 minutes
 */
 
 'use strict'
-const axios=require('axios')
-const http=require('http')
-const packageJson=require('./package')
-const RachioAPI=require('./rachioapi')
+let axios=require('axios')
+let http=require('http')
+let packageJson=require('./package')
+let RachioAPI=require('./rachioapi')
 let personInfo
 let personId
 let deviceState
@@ -25,7 +25,7 @@ class RachioPlatform {
     this.external_IP_address=config.external_IP_address
     this.external_webhook_port=config.external_webhook_port
     this.internal_webhook_port=config.internal_webhook_port
-    this.webhook_key='hombridge-'+config.name
+    this.webhook_key='homebridge-'+config.name
     this.webhook_key_local='simulated-webhook'
     this.delete_webhooks=config.delete_webhooks
     this.use_basic_auth=config.use_basic_auth
@@ -844,7 +844,7 @@ class RachioPlatform {
           }).on('end', ()=>{  
             try {
               body=Buffer.concat(body).toString().trim()
-              const jsonBody=JSON.parse(body)
+              let jsonBody=JSON.parse(body)
               this.log.debug('webhook request received from < %s > %s',jsonBody.externalId,jsonBody)
               if(jsonBody.externalId === this.webhook_key){
                 let irrigationAccessory=this.accessories[jsonBody.deviceId]

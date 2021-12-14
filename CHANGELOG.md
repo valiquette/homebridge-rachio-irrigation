@@ -3,6 +3,8 @@
 ## 1.2.6-beta
 Fix
 -   Fixed an issue with location matching when a location has multiple controllers.
+-   Fixed spelling errors in logging.
+-   Webhook update to automatically remove a conflicting or duplicate webhook.
 
 ## 1.2.5
 Update
