@@ -4,7 +4,7 @@
 Fix
 -   Fixed an issue with location matching when a location has multiple controllers.
 -   Fixed spelling errors in logging.
--   Webhook update to automatically remove a conflicting or duplicate webhook.
+-   Webhook update to automatically remove a conflicting or duplicate webhook. Removes the need to clear old webhook after renaming plugin.
 
 ## 1.2.5
 Update
