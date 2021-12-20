@@ -845,22 +845,25 @@ class RachioPlatform {
             try {
               body=Buffer.concat(body).toString().trim()
               let jsonBody=JSON.parse(body)
-              this.log.debug('webhook request received from < %s > %s',jsonBody.externalId,jsonBody)
+              this.log.debug('webhook request received from <%s> %s',jsonBody.externalId,jsonBody)
               if(jsonBody.externalId === this.webhook_key){
                 let irrigationAccessory=this.accessories[jsonBody.deviceId]
                 let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
                 let service
                 if(jsonBody.zoneId){
                   service=irrigationAccessory.getServiceById(Service.Valve,jsonBody.zoneId)
-                  this.log.debug('Webhook match found for %s will update zone service',jsonBody.zoneName)
+                  //this.log.debug('Webhook match found for %s will update zone service',jsonBody.zoneName)
+                  this.log.debug('Webhook match found for %s will update zone service',service.getCharacteristic(Characteristic.Name).value)
                 }
                 else if(jsonBody.scheduleId){
                   service=irrigationAccessory.getServiceById(Service.Switch,jsonBody.scheduleId)
-                  this.log.debug('Webhook match found for %s will update schedule service',jsonBody.scheduleName)
+                  //this.log.debug('Webhook match found for %s will update schedule service',jsonBody.scheduleName)
+                  this.log.debug('Webhook match found for %s will update schedule service',service.getCharacteristic(Characteristic.Name).value)
                 }
                 else if(jsonBody.deviceId){
                   service=irrigationAccessory.getServiceById(Service.IrrigationSystem)
-                  this.log.debug('Webhook match found for %s will update irrigation service',jsonBody.deviceName)
+                  //this.log.debug('Webhook match found for %s will update irrigation service',jsonBody.deviceName)
+                  this.log.debug('Webhook match found for %s will update irrigation service',service.getCharacteristic(Characteristic.Name).value)
               }
               this.updateService(irrigationSystemService,service,jsonBody)
               response.writeHead(204)
