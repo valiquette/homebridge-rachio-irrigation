@@ -1,6 +1,6 @@
 # Changes
 
-## 1.2.6-beta
+## 1.2.6
 Fix
 -   Fixed an issue with location matching when a location has multiple controllers.
 -   Fixed spelling errors in logging.
