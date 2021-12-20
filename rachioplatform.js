@@ -6,10 +6,10 @@ Schedule/zone duration when found throws warnings exceding 60 minutes
 */
 
 'use strict'
-const axios=require('axios')
-const http=require('http')
-const packageJson=require('./package')
-const RachioAPI=require('./rachioapi')
+let axios=require('axios')
+let http=require('http')
+let packageJson=require('./package')
+let RachioAPI=require('./rachioapi')
 let personInfo
 let personId
 let deviceState
@@ -25,7 +25,7 @@ class RachioPlatform {
     this.external_IP_address=config.external_IP_address
     this.external_webhook_port=config.external_webhook_port
     this.internal_webhook_port=config.internal_webhook_port
-    this.webhook_key='hombridge-'+config.name
+    this.webhook_key='homebridge-'+config.name
     this.webhook_key_local='simulated-webhook'
     this.delete_webhooks=config.delete_webhooks
     this.use_basic_auth=config.use_basic_auth
@@ -844,23 +844,26 @@ class RachioPlatform {
           }).on('end', ()=>{  
             try {
               body=Buffer.concat(body).toString().trim()
-              const jsonBody=JSON.parse(body)
-              this.log.debug('webhook request received from < %s > %s',jsonBody.externalId,jsonBody)
+              let jsonBody=JSON.parse(body)
+              this.log.debug('webhook request received from <%s> %s',jsonBody.externalId,jsonBody)
               if(jsonBody.externalId === this.webhook_key){
                 let irrigationAccessory=this.accessories[jsonBody.deviceId]
                 let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
                 let service
                 if(jsonBody.zoneId){
                   service=irrigationAccessory.getServiceById(Service.Valve,jsonBody.zoneId)
-                  this.log.debug('Webhook match found for %s will update zone service',jsonBody.zoneName)
+                  //this.log.debug('Webhook match found for %s will update zone service',jsonBody.zoneName)
+                  this.log.debug('Webhook match found for %s will update zone service',service.getCharacteristic(Characteristic.Name).value)
                 }
                 else if(jsonBody.scheduleId){
                   service=irrigationAccessory.getServiceById(Service.Switch,jsonBody.scheduleId)
-                  this.log.debug('Webhook match found for %s will update schedule service',jsonBody.scheduleName)
+                  //this.log.debug('Webhook match found for %s will update schedule service',jsonBody.scheduleName)
+                  this.log.debug('Webhook match found for %s will update schedule service',service.getCharacteristic(Characteristic.Name).value)
                 }
                 else if(jsonBody.deviceId){
                   service=irrigationAccessory.getServiceById(Service.IrrigationSystem)
-                  this.log.debug('Webhook match found for %s will update irrigation service',jsonBody.deviceName)
+                  //this.log.debug('Webhook match found for %s will update irrigation service',jsonBody.deviceName)
+                  this.log.debug('Webhook match found for %s will update irrigation service',service.getCharacteristic(Characteristic.Name).value)
               }
               this.updateService(irrigationSystemService,service,jsonBody)
               response.writeHead(204)

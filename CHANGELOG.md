@@ -1,8 +1,10 @@
 # Changes
 
-## 1.2.6-beta
+## 1.2.6
 Fix
 -   Fixed an issue with location matching when a location has multiple controllers.
+-   Fixed spelling errors in logging.
+-   Webhook update to automatically remove a conflicting or duplicate webhook. Removes the need to clear old webhook after renaming plugin.
 
 ## 1.2.5
 Update

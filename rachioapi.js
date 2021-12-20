@@ -1,8 +1,8 @@
 
 'use strict'
-const axios = require('axios')
-const api_endpoint='https://api.rach.io/1/public/'
-const alt_api_endpoint='https://cloud-rest.rach.io/'
+let axios = require('axios')
+let api_endpoint='https://api.rach.io/1/public/'
+let alt_api_endpoint='https://cloud-rest.rach.io/'
 
 module.exports = RachioAPI
 
@@ -16,7 +16,7 @@ RachioAPI.prototype={
   getPersonInfo:  async function(token) {
     try {  
       this.log.debug('Retrieving Person Info')
-        const response = await axios({
+        let response = await axios({
           method: 'get',
           url: api_endpoint+'person/info/',
           headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -33,7 +33,7 @@ RachioAPI.prototype={
   getPersonId:  async function(token,personId) {
     try {  
       this.log.debug('Retrieving Person ID')
-        const response = await axios({
+        let response = await axios({
           method: 'get',
           url: api_endpoint+'person/'+personId,
           headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -47,7 +47,7 @@ RachioAPI.prototype={
   deviceStandby: async function(token,device,state) {
     try {
       this.log.debug('Setting Standby Mode on',device.id)
-      const response = await axios({
+      let response = await axios({
         method: 'put',
         url: api_endpoint+'device/'+state,
         headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -64,7 +64,7 @@ RachioAPI.prototype={
   getDeviceState: async function(token,device) {
     try {
       this.log.debug('Getting current device state',device)
-      const response = await axios({
+      let response = await axios({
         method: 'get',
         url: alt_api_endpoint+'device/getDeviceState/'+device,
         headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -78,7 +78,7 @@ RachioAPI.prototype={
   getDeviceDetails: async function(token,device) {
     try {
       this.log.debug('Getting current device state',device)
-      const response = await axios({
+      let response = await axios({
         method: 'get',
         url: alt_api_endpoint+'device/getDeviceDetails/'+device,
         headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -92,7 +92,7 @@ RachioAPI.prototype={
   getLocationList: async function(token) {
     try {
       this.log.debug('Getting Location List')
-      const response = await axios({
+      let response = await axios({
         method: 'get',
         url: alt_api_endpoint+'location/listLocations/true',
         headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -107,7 +107,7 @@ RachioAPI.prototype={
   getDeviceInfo: async function(token,device) {
     try {
       this.log.debug('Getting current device state',device)
-      const response = await axios({
+      let response = await axios({
         method: 'get',
         url: api_endpoint+'device/'+device,
         headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -121,7 +121,7 @@ RachioAPI.prototype={
   currentSchedule: async function(token,device) {
     try {
       this.log.debug('Checking current schedule',device)
-      const response = await axios({
+      let response = await axios({
         method: 'get',
         url: api_endpoint+'device/'+device+'/current_schedule',
         headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -136,7 +136,7 @@ RachioAPI.prototype={
   startZone: async function(token,zone,runtime) {
     try {
       this.log.debug('Starting Zone',zone)
-      const response = await axios({
+      let response = await axios({
         method: 'put',
         url: api_endpoint+'zone/start',
         headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -154,7 +154,7 @@ RachioAPI.prototype={
   startSchedule: async function(token,schedule) {
     try {
       this.log.debug('Starting Schedule',schedule)
-      const response = await axios({
+      let response = await axios({
         method: 'put',
         url: api_endpoint+'schedulerule/start',
         headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -171,7 +171,7 @@ RachioAPI.prototype={
   stopDevice: async function(token,deviceId) {
     try {
       this.log.debug('Stopping',deviceId)
-      const response = await axios({
+      let response = await axios({
         method: 'put',
         url: api_endpoint+'device/stop_water',
         headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -201,7 +201,7 @@ RachioAPI.prototype={
         }
       })
     this.log.debug('multiple run data',JSON.stringify(body,null,2))
-      const response = await axios({
+      let response = await axios({
         method: 'put',
         url: api_endpoint+'zone/start_multiple',
         headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -225,24 +225,24 @@ RachioAPI.prototype={
         responseType: 'json'
       }).catch(err => {this.log.error('Error retrieving webhooks %s', err)})
   
-      const webhooks = response.data
+      let webhooks = response.data
       this.log.debug('configured webhooks response',JSON.stringify(response.data,null,2))
       if (!webhooks || !Array.isArray(webhooks)) return
     
       if (delete_webhooks) {
         //delete exsisting webhooks
-        for (const oldWebhook of webhooks) {
-          if (oldWebhook.externalId === webhook_key) continue //Skip the current webhook and let it be updated
+        webhooks.forEach(async(webhook)=>{  
+          if (webhook.externalId === webhook_key) return //Skip the current webhook and let it be updated
           response = await axios({
             method: 'delete',
-            url: api_endpoint+'notification/' + 'webhook/' + oldWebhook.id,
+            url: api_endpoint+'notification/' + 'webhook/' + webhook.id,
             headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
             responseType: 'json'
-          }).catch(err => {this.log.error('Error deleting old webhook $s : $s', oldWebhook.id, err)})
+          }).catch(err => {this.log.error('Error deleting old webhook $s : $s', webhook.id, err)})
           if (response.status === 204) {
-            this.log.debug('Successfully deleted old webhook %s', oldWebhook.id)
+            this.log.debug('Successfully deleted old webhook %s', webhook.id)
           }
-        }
+        })
       }
       /*********************************************
       Event Type options from get events
@@ -256,21 +256,40 @@ RachioAPI.prototype={
               "id": 12="ZONE_DELTA"
               "id": 14="DELTA"
       **********************************************/
-      const webhook = webhooks.find(webhook=> webhook.externalId === webhook_key)
-      if (webhook) {
-        this.log.info('Updating Rachio Webhook ID %s, for destination %s', webhook.id, external_webhook_address)
+      let updateWebhook=false
+      let count=0
+      webhooks.forEach(async(webhook)=>{
+        if(webhook.externalId==webhook_key || webhook.url==external_webhook_address){
+          count++
+          if(count==1){
+            updateWebhook=webhook
+            return
+          }
+          response = await axios({
+            method: 'delete',
+            url: api_endpoint+'notification/' + 'webhook/' + webhook.id,
+            headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            responseType: 'json'
+          }).catch(err => {this.log.error('Error deleting extra webhook $s : $s', webhook.id, err)})
+          if (response.status === 204) {
+            this.log.debug('Successfully deleted extra webhook %s', webhook.id)
+          } 
+        }
+      })
+      if (updateWebhook) {
+        this.log.info('Updating Rachio Webhook ID %s, for destination %s', updateWebhook.id, external_webhook_address)
         response = await axios({
           method: 'put',
           url: api_endpoint+'notification/webhook/',
           headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
           responseType: 'json',
           data: {
-            id: webhook.id,
+            id: updateWebhook.id,
             externalId: webhook_key,
             url: external_webhook_address,
             eventTypes: [{"id":5},{"id":10},{"id":6},{"id":7},{"id":9}]
            }
-          }).catch(err => {this.log.error('Error updating exsisting webhook $s : $s', webhook.id, err)})
+          }).catch(err => {this.log.error('Error updating exsisting webhook $s : $s', updateWebhook.id, err)})
       } else {
         this.log.info('Creating Webhook for ' + external_webhook_address)
         response = await axios({
@@ -284,13 +303,13 @@ RachioAPI.prototype={
             url: external_webhook_address,
             eventTypes: [{"id":5},{"id":10},{"id":6},{"id":7},{"id":9}]       
            }
-          }).catch(err => {this.log.error('Error configuring new webhook $s : $s', webhook.id,err)})
+          }).catch(err => {this.log.error('Error configuring new webhook $s : $s', updateWebhook.id,err)})
       }  
       this.log.debug('create/update webhooks response',JSON.stringify(response.data,null,2))
-      const test_webhook_url = external_webhook_address + '/test'
+      let test_webhook_url = external_webhook_address + '/test'
       if (response && response.status === 200) {
         this.log.info('Successfully configured webhook with external ID "%s" ', webhook_key)
-        this.log.info('To test Webhook setup, navagate to %s to ensure port forwarding is configured correctly. '
+        this.log.info('To test Webhook setup, navigate to %s to ensure port forwarding is configured correctly. '
                       +'This will not work from this server, you cannot be connect to the same router doing the fowarding. '
                       +'The best way to test is with a cell phone, with WiFi off.',test_webhook_url)
       }
