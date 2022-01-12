@@ -29,13 +29,34 @@
       },
       "default_runtime": {
         "title": "Default Runtime in Minutes",
-        "description": "Default number of minutes to run zones if not provided. Could be useful for blowing out lines",
+        "description": "Default number of minutes to run zones if not provided. Could be useful for blowing out lines.",
         "type": "integer",
         "minimum": 1,
         "maximum": 60,
         "required": true,
         "default": 3
       },
+			"runtime_source": {
+				"title": "Runtime source",
+				"type": "integer",
+				"required": true,
+				"default": 0,
+				"description": "Select a source to load intial values for each zones runtime. These can be changed in HomeKit.<br/>These sources need to be configuted or present in Rachio app or the default time will be used.",
+				"oneOf": [
+					{
+						"title": "Plugin default runtime",
+						"enum": [0]
+					},
+					{
+						"title": "Fixed runtimes from Rachio",
+						"enum": [1]
+					},
+					{
+						"title": "Watering adjusted runtimes from Rachio",
+						"enum": [2]
+					}
+				]
+			},
       "use_irrigation_display": {
         "title": "Display as Irrigation System in HomeKit",
         "type": "boolean",
@@ -139,13 +160,14 @@
     },
     {
       "type": "help",
-      "helpvalue": "<p class='help-block'> If you have more than one location and want to display them in separate Homebridge/HomeKit homes you can retrive only the devices at this address otherwise leave blank.<br/>The address must match the address configured in the Rachio app, review the log file to see how the adresses as configured in the Rachio app.</p>"
+      "helpvalue": "<h6><b>Location Support</b></h6><p class='help-block'> If you have more than one location and want to display them in separate Homebridge/HomeKit homes you can retrive only the devices at this street address otherwise leave blank.<br/>The address must match the address configured in the Rachio app, review the log file to see how the adresses as configured in the Rachio app.</p>"
     },
     {
       "type": "flex",
       "flex-flow": "row wrap",
       "items": [
-        "default_runtime"
+        "default_runtime",
+				"runtime_source"
       ]
     },
     {
@@ -185,53 +207,53 @@
           ]
         },
         {
-        "type": "flex",
-        "flex-flow": "row wrap",
-        "items": [
-          "external_webhook_port",
-          "internal_webhook_port"
-        ]
-      },
-      {
-        "type": "help",
-        "helpvalue": "<i>Important note.<p class='help-block'> Your router will need to forward this external port to your internal webhook port.</p>"
-      },
-      {
-          "key": "Extra stuff",
-          "title": "Options",
-          "description": "Extra webhook settings",
-          "type": "flex",
-          "expandable": true,
-          "displayFlex": true,
-          "flex-flow":"row wrap",
-          "items": [
-              {
-                "type": "flex",
-                "flex-flow": "row wrap",
-                "items": [
-                  "delete_webhooks"
-                ]
-              },
-              {
-                "type": "flex",
-                "flex-flow": "row wrap",
-                "items": [
-                  "use_basic_auth"
-                ]
-              },
-              {
-              "type": "flex",
-              "flex-flow": "row wrap",
-              "items": [
-                "user",
-                "password"
-              ]
-            },
-            {
-              "type": "help",
-              "helpvalue": "<p class='help-block'> Rachio supports HTTP Basic Authentication for webhooks. if checked any incoming message will need to match this user:password</p>"
-            }
-          ]
+					"type": "flex",
+					"flex-flow": "row wrap",
+					"items": [
+						"external_webhook_port",
+						"internal_webhook_port"
+						]
+				},
+      	{
+					"type": "help",
+					"helpvalue": "<i>Important note.<p class='help-block'> Your router will need to forward this external port to your internal webhook port. Consult the readme for additional webhook information.</p>"
+				},
+				{
+					"key": "Extra stuff",
+					"title": "Options",
+					"description": "Extra webhook settings",
+					"type": "flex",
+					"expandable": true,
+					"displayFlex": true,
+					"flex-flow":"row wrap",
+					"items": [
+						{
+							"type": "flex",
+							"flex-flow": "row wrap",
+							"items": [
+								"delete_webhooks"
+							]
+						},
+						{
+							"type": "flex",
+							"flex-flow": "row wrap",
+							"items": [
+								"use_basic_auth"
+							]
+						},
+						{
+							"type": "flex",
+							"flex-flow": "row wrap",
+							"items": [
+								"user",
+								"password"
+							]
+						},
+						{
+							"type": "help",
+							"helpvalue": "<p class='help-block'> Rachio supports HTTP Basic Authentication for webhooks. if checked any incoming message will need to match this user:password</p>"
+						}
+					]
         }
       ]
     }

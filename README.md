@@ -16,6 +16,7 @@ This plugin provides 3 options for use in HomeKit<br>Both option have additional
 
 <br> There are plus and minus to each, so why not have options.
 <br> if you have more than one home on your Rachio account you may filter devices for a home based on the street address for the location you want to display in HomeKit.
+<br> Rachio caluclated runtimes based on your zones configuration, these runtimes can be used for the inital runtimes seen in HomeKit.
 
 ### Screenshots
 <p>
@@ -31,7 +32,7 @@ This plugin provides 3 options for use in HomeKit<br>Both option have additional
 <br>
 
 
-# API Key
+## API Key
 
 You can acquire your API key from Rachio io.app [documented here](https://rachio.readme.io/docs/authentication).
 
@@ -85,27 +86,28 @@ If you see log messages like `Webhook received from an unknown external id`, you
 ## Config.json example with child bridge
 ```
 "platforms": [
-        {
-            "name": "Rachio-Dev",
-            "api_key": "8e600a4c-0027-4a9a-9bda-abc8d5c90350",
-            "location_address": "123 Main St",
-            "default_runtime": 3,
-            "use_irrigation_display": true,
-            "show_standby": true,
-            "show_runall": true,
-            "show_schedules": true,
-            "external_IP_address": "76.33.22.111",
-            "external_webhook_port": 12453,
-            "internal_webhook_port": 27543,
-            "use_basic_auth": true,
-            "user": "username",
-            "password": "password",
-            "delete_webhooks": false,
-            "_bridge": {
-                "username": "0E:79:49:DC:71:A9",
-                "port": 46062
-            },
-            "platform": "rachio"
-        }
+	{
+		"name": "Rachio-Dev",
+		"api_key": "8e600a4c-0027-4a9a-9bda-abc8d5c90350",
+		"location_address": "123 Main St",
+		"default_runtime": 3,
+		"runtime_source": 2,
+		"use_irrigation_display": true,
+		"show_standby": true,
+		"show_runall": true,
+		"show_schedules": true,
+		"external_IP_address": "76.33.22.111",
+		"external_webhook_port": 12453,
+		"internal_webhook_port": 27543,
+		"use_basic_auth": true,
+		"user": "username",
+		"password": "password",
+		"delete_webhooks": false,
+		"_bridge": {
+			"username": "0E:79:49:DC:71:A9",
+			"port": 46062
+		},
+		"platform": "rachio"
+	}
 ]
 ```

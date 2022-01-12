@@ -28,28 +28,29 @@ class RachioPlatform {
     this.webhook_key='homebridge-'+config.name
     this.webhook_key_local='simulated-webhook'
     this.delete_webhooks=config.delete_webhooks
-    this.use_basic_auth=config.use_basic_auth
+    this.useBasicAuth=config.use_basic_auth
     this.user=config.user
     this.password=config.password
-    this.use_irrigation_display=config.use_irrigation_display
-    this.default_runtime=config.default_runtime*60
-    this.show_standby=config.show_standby
-    this.show_runall=config.show_runall
-    this.show_schedules=config.show_schedules
+    this.useIrrigationDisplay=config.use_irrigation_display
+    this.defaultRuntime=config.default_runtime*60
+		this.runtimeSource=config.runtime_source
+    this.showStandby=config.show_standby
+    this.showRunall=config.show_runall
+    this.showSchedules=config.show_schedules
     this.locationAddress=config.location_address
     this.locationMatch=true
     this.accessories=[]
     this.realExternalIP
     this.fakeWebhook 
     this.foundLocations
-    if(this.use_basic_auth && this.user && this.password){
+    if(this.useBasicAuth && this.user && this.password){
       this.external_webhook_address="http://"+this.user+":"+this.password+"@"+this.external_IP_address+':'+this.external_webhook_port
     }
     else{
       this.external_webhook_address="http://"+this.external_IP_address+':'+this.external_webhook_port
     }
 
-    if(this.use_basic_auth && (!this.user || !this.password)){
+    if(this.useBasicAuth && (!this.user || !this.password)){
       this.log.warn("HTTP Basic Athentication cannot be used for webhooks without a valid user and password")
     }
 
@@ -207,14 +208,14 @@ class RachioPlatform {
                 return a.zoneNumber - b.zoneNumber
               })
               newDevice.zones.forEach((zone)=>{
-                if(!this.use_irrigation_display && !zone.enabled){
+                if(!this.useIrrigationDisplay && !zone.enabled){
                   this.log.info('Skipping disabled zone %s',zone.name )
                 }
                 else {
                   this.log.debug('adding zone %s',zone.name )
                   let valveService=this.createValveService(zone)
                   this.configureValveService(newDevice, valveService)
-                  if(this.use_irrigation_display){
+                  if(this.useIrrigationDisplay){
                     this.log.debug('Using irrigation system')
                     irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(valveService)
                     irrigationAccessory.addService(valveService)
@@ -226,7 +227,7 @@ class RachioPlatform {
                   }           
                 }
               })
-              if(this.show_schedules){
+              if(this.showSchedules){
                 newDevice.scheduleRules.forEach((schedule)=>{
                   this.log.debug('adding schedules %s',schedule.name )
                   switchService=this.createScheduleSwitchService(schedule)
@@ -235,7 +236,7 @@ class RachioPlatform {
                   irrigationAccessory.addService(switchService)
               })         
               }
-              if(this.show_schedules){
+              if(this.showSchedules){
                 newDevice.flexScheduleRules.forEach((schedule)=>{
                   this.log.debug('adding schedules %s',schedule.name )
                   switchService=this.createScheduleSwitchService(schedule)
@@ -244,14 +245,14 @@ class RachioPlatform {
                   irrigationAccessory.addService(switchService)
               })         
               }
-              if(this.show_runall){
+              if(this.showRunall){
                 this.log.debug('adding new run all switch')
                 switchService=this.createSwitchService(newDevice,newDevice.name+' Run All')
                 this.configureSwitchService(newDevice, switchService)
                 irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService) 
                 irrigationAccessory.addService(switchService)
                 }
-              if(this.show_standby){
+              if(this.showStandby){
                 this.log.debug('adding new standby switch')
                 switchService=this.createSwitchService(newDevice,newDevice.name+' Standby')
                 this.configureSwitchService(newDevice, switchService)
@@ -315,7 +316,7 @@ class RachioPlatform {
   }
 
   configureIrrigationService(device,irrigationSystemService){
-    this.log.info('Configure Irrigation service for %s', irrigationSystemService.getCharacteristic(Characteristic.Name).value)
+    this.log.info('Configure Irrigation system for %s', irrigationSystemService.getCharacteristic(Characteristic.Name).value)
     // Configure IrrigationSystem Service
     irrigationSystemService 
       .setCharacteristic(Characteristic.Active, Characteristic.Active.ACTIVE)
@@ -385,9 +386,29 @@ class RachioPlatform {
   }
 
   createValveService(zone){
-    this.log.debug("Created service for %s with id %s", zone.name, zone.id)
     // Create Valve Service
     let valve=new Service.Valve(zone.name, zone.id) 
+		let defaultRuntime=this.defaultRuntime
+		try{
+			switch (this.runtimeSource) {
+				case 0:
+					defaultRuntime=this.defaultRuntime
+				break
+				case 1:
+					if(zone.fixedRuntime>0){
+						defaultRuntime=zone.fixedRuntime
+					}
+				break
+				case 2:
+					if(zone.runtime>0){
+						defaultRuntime=zone.runtime
+					}
+				break
+			}
+		}catch(err){
+			this.log.debug('no smart runtime found, using default runtime')
+			}
+		this.log.debug("Created valve service for %s with id %s with %s min runtime", zone.name, zone.id, Math.round(defaultRuntime/60))
     valve.addCharacteristic(Characteristic.CurrentTime) // Use CurrentTime to store the run time ending
     valve.addCharacteristic(Characteristic.SerialNumber) //Use Serial Number to store the zone id
     valve.addCharacteristic(Characteristic.Model)
@@ -396,7 +417,7 @@ class RachioPlatform {
       .setCharacteristic(Characteristic.Active, Characteristic.Active.INACTIVE)
       .setCharacteristic(Characteristic.InUse, Characteristic.InUse.NOT_IN_USE)
       .setCharacteristic(Characteristic.ValveType, Characteristic.ValveType.IRRIGATION)
-      .setCharacteristic(Characteristic.SetDuration, this.default_runtime)
+      .setCharacteristic(Characteristic.SetDuration, Math.round(defaultRuntime/60)*60)
       .setCharacteristic(Characteristic.RemainingDuration, 0)
       .setCharacteristic(Characteristic.ServiceLabelIndex, zone.zoneNumber)
       .setCharacteristic(Characteristic.SerialNumber, zone.id)
@@ -413,7 +434,7 @@ class RachioPlatform {
   }
 
   configureValveService(device, valveService){
-    this.log.info("Configured zone-%s service for %s",valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value, valveService.getCharacteristic(Characteristic.Name).value)
+    this.log.info("Configured zone-%s for %s with %s min runtime",valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value, valveService.getCharacteristic(Characteristic.Name).value, valveService.getCharacteristic(Characteristic.SetDuration).value/60)
     // Configure Valve Service
     valveService
       .getCharacteristic(Characteristic.Active)
@@ -600,7 +621,7 @@ class RachioPlatform {
 
   configureSwitchService(device, switchService){
     // Configure Valve Service
-    this.log.info("Configured service for %s" ,switchService.getCharacteristic(Characteristic.Name).value)
+    this.log.info("Configured switch for %s" ,switchService.getCharacteristic(Characteristic.Name).value)
     switchService
       .getCharacteristic(Characteristic.On)
       .on('get', this.getSwitchValue.bind(this, switchService))
@@ -633,7 +654,7 @@ class RachioPlatform {
         else{
           if(value){
             switchService.getCharacteristic(Characteristic.On).updateValue(true)
-            this.rachioapi.startMultipleZone (this.token,device.zones,this.default_runtime)
+            this.rachioapi.startMultipleZone (this.token,device.zones,this.defaultRuntime)
           } 
           else {
             switchService.getCharacteristic(Characteristic.On).updateValue(false)
@@ -805,7 +826,7 @@ class RachioPlatform {
       this.log.debug('Will listen for Webhooks matching Webhook ID %s',this.webhook_key)
       requestServer=http.createServer((request, response)=>{
         let authPassed
-        if(this.use_basic_auth){
+        if(this.useBasicAuth){
           if(request.headers.authorization){
             let b64encoded=(Buffer.from(this.user+":"+this.password,'utf8')).toString('base64')
             this.log.debug('webhook request received authorization header=%s',request.headers.authorization)
@@ -886,7 +907,7 @@ class RachioPlatform {
         })
         requestServer.listen(this.internal_webhook_port, function (){
           this.log.info('This server is listening on port %s.',this.internal_webhook_port)
-          if(this.use_basic_auth){this.log.info('Using HTTP basic authentication for Webhooks')}
+          if(this.useBasicAuth){this.log.info('Using HTTP basic authentication for Webhooks')}
           this.log.info('Make sure your router has port fowarding turned on for port %s to this server`s IP address and this port %s, unless you are using a relay service.',this.external_webhook_port,this.internal_webhook_port)
         }.bind(this))
       } 
@@ -1041,17 +1062,17 @@ class RachioPlatform {
             case "SLEEP_MODE_ON": //ProgramMode 0 
               this.log('<%s> %s %s %s',jsonBody.externalId,jsonBody.title,jsonBody.deviceName,jsonBody.summary)
               irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED)
-              if(this.show_standby){switchService.getCharacteristic(Characteristic.On).updateValue(true)}
+              if(this.showStandby){switchService.getCharacteristic(Characteristic.On).updateValue(true)}
               break
             case "SLEEP_MODE_OFF": //ProgramMode 2
               this.log('<%s> %s %s %s',jsonBody.externalId,jsonBody.title,jsonBody.deviceName,jsonBody.summary)
               irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.PROGRAM_SCHEDULED_MANUAL_MODE_)
-              if(this.show_standby){switchService.getCharacteristic(Characteristic.On).updateValue(false)}
+              if(this.showStandby){switchService.getCharacteristic(Characteristic.On).updateValue(false)}
               break
             default: //ProgramMode 1
             this.log('<%s> %s ??? mode',jsonBody.externalId,jsonBody.deviceId)
               irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.PROGRAM_SCHEDULED)
-              if(this.show_standby){switchService.getCharacteristic(Characteristic.On).updateValue(false)}
+              if(this.showStandby){switchService.getCharacteristic(Characteristic.On).updateValue(false)}
             break
             }
         break
