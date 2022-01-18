@@ -1,5 +1,9 @@
 # Changes
 
+## 1.2.8
+Update
+-	Security update (CVE-2022-0155).
+
 ## 1.2.7
 Enhancment
 -	Added configuration option to load zones with intial runtime option from Rachio.
