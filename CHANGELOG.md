@@ -1,5 +1,11 @@
 # Changes
 
+## 1.2.9
+Update
+-	Code cleanup.
+-	Fix typo in config.
+-	Bumped dependencies.
+
 ## 1.2.8
 Update
 -	Security update (CVE-2022-0155).

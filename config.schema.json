@@ -41,7 +41,7 @@
 				"type": "integer",
 				"required": true,
 				"default": 0,
-				"description": "Select a source to load intial values for each zones runtime. These can be changed in HomeKit.<br/>These sources need to be configuted or present in Rachio app or the default time will be used.",
+				"description": "Select a source to load intial values for each zones runtime. These can be changed in HomeKit.<br/>These sources need to be configured or present in Rachio app or the default time will be used.",
 				"oneOf": [
 					{
 						"title": "Plugin default runtime",
@@ -151,16 +151,16 @@
       "type": "help",
       "helpvalue": "<p class='help-block'> Visit Rachio <a target='blank' href='https://rachio.readme.io/docs/authentication'>here</a> for instruction on obtaining your API key.</p>"
     },
+		{
+      "type": "help",
+      "helpvalue": "<h6><b>Location Support</b></h6><p class='help-block'> If you have more than one location and want to display them in separate Homebridge/HomeKit homes you can retrive only the devices at this street address otherwise leave blank.<br/>The address must match the address configured in the Rachio app, review the log file to see the adresses as configured in the Rachio app.</p>"
+    },
     {
       "type": "flex",
       "flex-flow": "row wrap",
       "items": [
         "location_address"
       ]
-    },
-    {
-      "type": "help",
-      "helpvalue": "<h6><b>Location Support</b></h6><p class='help-block'> If you have more than one location and want to display them in separate Homebridge/HomeKit homes you can retrive only the devices at this street address otherwise leave blank.<br/>The address must match the address configured in the Rachio app, review the log file to see how the adresses as configured in the Rachio app.</p>"
     },
     {
       "type": "flex",
