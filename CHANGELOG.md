@@ -4,7 +4,7 @@
 Update
 -	Code cleanup.
 -	Fix typo in config.
--	Bumpped dependencies.
+-	Bumped dependencies.
 
 ## 1.2.8
 Update
