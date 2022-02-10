@@ -1,5 +1,10 @@
 # Changes
 
+## 1.2.10
+Update
+-	Bumped dependencies.
+-	Code updates
+
 ## 1.2.9
 Update
 -	Code cleanup.
