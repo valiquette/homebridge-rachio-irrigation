@@ -4,7 +4,7 @@
   "description": "Rachio Irrigation System platform plugin for [HomeBridge](https://github.com/nfarina/homebridge).",
   "main": "index.js",
   "dependencies": {
-    "axios": "^0.25.0"
+    "axios": "^0.26.0"
   },
   "engines": {
     "homebridge": "^1.4.0",

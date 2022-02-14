@@ -1,4 +1,4 @@
-
+//// Public API info https://rachio.readme.io/v1.0/docs
 'use strict'
 let axios = require('axios')
 let api_endpoint='https://api.rach.io/1/public/'
