@@ -15,7 +15,7 @@ This plugin provides 3 options for use in HomeKit<br>Both option have additional
 3.	Irrigation System Accessory with separate zones shown as a separate tiles (option in HomeKit)
 
 <br> There are plus and minus to each, so why not have options.
-<br> if you have more than one home on your Rachio account you may filter devices for a home based on the street address for the location you want to display in HomeKit.
+<br> If you have more than one home on your Rachio account you may filter devices for a home based on the street address for the location you want to display in HomeKit.
 <br> Rachio caluclated runtimes based on your zones configuration, these runtimes can be used for the inital runtimes seen in HomeKit.
 
 ### Screenshots
