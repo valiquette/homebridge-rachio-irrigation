@@ -121,14 +121,14 @@ class RachioPlatform {
     else if(this.fqdn){this.log.debug('using FQDN for webhook external destination')} 
     else {
       this.external_webhook_address=null 
-      this.log.warn('Cannot validate webhook destination address, please check webhook config settings. Will not set Webhooks')
+      this.log.warn('Cannot validate webhook destination address, will not set Webhooks. Please check webhook config settings for proper format and do not include any prefx like http://.')
     }
 
     //** 
     //** Platforms should wait until the "didFinishLaunching" event has fired before registering any new accessories.
     //**  
     if(api){
-        this.api=api;
+        this.api=api
         this.api.on("didFinishLaunching", function (){
           //Get devices
           this.getRachioDevices()
@@ -140,147 +140,134 @@ class RachioPlatform {
     this.log('Identify the sprinkler!')
   }
   
-  getRachioDevices(){
+  async getRachioDevices(){
     // configure listerner for webhook messages
     this.configureListener()
     this.log.debug('Fetching build info...')  
     this.log.info('Getting Person info...')
-    this.rachioapi.getPersonInfo(this.token).then(response=>{
-      personId=response.data.id
-      this.log('Found Person ID %s',personId)
+    let person=await this.rachioapi.getPersonInfo(this.token).catch(err=>{this.log.error('Failed to get info for build', err)})
+		personId=person.data.id
+		this.log('Found Person ID %s',personId)
 
-      this.log.info('Getting Person ID info...')
-      this.rachioapi.getPersonId(this.token,personId).then(response=>{
-        personInfo=response
-        this.log.info('Found Account for username %s',personInfo.data.username)
-        this.log.info('Getting Location info...')
-        this.rachioapi.getLocationList(this.token).then(response=>{   
-          response.data.locationSummary.forEach(address=>{
-            this.log.info('Found Location: id=%s address=%s geo=%s',address.location.id,address.location.address.addressLine1,address.location.geoPoint)
-            this.foundLocations=response.data.locationSummary
-            address.location.deviceId.forEach(device=>{
-              this.log.info('Found Location: device id=%s ',device)
-            })
-          })
+		this.log.info('Getting Person ID info...')
+		let response=await this.rachioapi.getPersonId(this.token,personId).catch(err=>{this.log.error('Failed to get person info for build', err)})
+		personInfo=response
+		this.log.info('Found Account for username %s',personInfo.data.username)
+		this.log.info('Getting Location info...')
 
-        personInfo.data.devices.filter((newDevice)=>{
-          this.foundLocations.forEach((location)=>{
-            location.location.deviceId.forEach((device)=>{
-              if(!this.locationAddress || this.locationAddress==location.location.address.addressLine1){
-                if(newDevice.id==device){  
-                this.log.info('Adding controller %s found at the configured location: %s',newDevice.name,location.location.address.addressLine1)
-                this.locationMatch=true
-                }
-              }
-              else{
-                if(newDevice.id==device){ 
-                this.log.info('Skipping controller %s at %s, not found at the configured location: %s',newDevice.name,location.location.address.addressLine1,this.locationAddress,)
-                this.locationMatch=false
-                }
-              }
-            })
-          })
-          return this.locationMatch
-          }).forEach((newDevice)=>{    
-            //adding devices that met filter criteria
-            this.log.info('Found device %s status %s',newDevice.name,newDevice.status)
-            let uuid=newDevice.id
-            this.log.info('Getting device state info...')
-            this.rachioapi.getDeviceState(this.token,newDevice.id).then(response=>{
-              deviceState=response.data
-              this.log('Retrieved device state %s for %s with a %s state, running',deviceState.state.state,newDevice.name,deviceState.state.desiredState,deviceState.state.firmwareVersion)
-              
-              if(this.external_webhook_address){  
-                this.rachioapi.configureWebhooks(this.token,this.external_webhook_address,this.delete_webhooks,newDevice.id,this.webhook_key)
-              }
-              //remove cached accessory
-              this.log.debug('Removed cached device')
-              if(this.accessories[uuid]){
-                this.api.unregisterPlatformAccessories(PluginName, PlatformName, [this.accessories[uuid]])
-                delete this.accessories[uuid]
-              }
-              let switchService
-              // Create and configure Irrigation Service
-              this.log.debug('Creating and configuring new device')            
-              let irrigationAccessory=this.irrigation.createIrrigationAccessory(newDevice,deviceState)
-              this.irrigation.configureIrrigationService(newDevice,irrigationAccessory.getService(Service.IrrigationSystem))
-            
-              // Create and configure Values services and link to Irrigation Service
-              newDevice.zones=newDevice.zones.sort(function (a, b){
-                return a.zoneNumber - b.zoneNumber
-              })
-              newDevice.zones.forEach((zone)=>{
-                if(!this.useIrrigationDisplay && !zone.enabled){
-                  this.log.info('Skipping disabled zone %s',zone.name )
-                }
-                else {
-                  this.log.debug('adding zone %s',zone.name )
-                  let valveService=this.irrigation.createValveService(zone)
-                  this.irrigation.configureValveService(newDevice, valveService)
-                  if(this.useIrrigationDisplay){
-                    this.log.debug('Using irrigation system')
-                    irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(valveService)
-                    irrigationAccessory.addService(valveService)
-                  }
-                  else{
-                    this.log.debug('Using separate tiles')
-                    irrigationAccessory.getService(Service.IrrigationSystem)
-                    irrigationAccessory.addService(valveService)
-                  }           
-                }
-              })
-              if(this.showSchedules){
-                newDevice.scheduleRules.forEach((schedule)=>{
-                  this.log.debug('adding schedules %s',schedule.name )
-                  switchService=this.switches.createScheduleSwitchService(schedule)
-                  this.switches.configureSwitchService(newDevice, switchService)
-                  irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService)
-                  irrigationAccessory.addService(switchService)
-              })         
-              }
-              if(this.showSchedules){
-                newDevice.flexScheduleRules.forEach((schedule)=>{
-                  this.log.debug('adding schedules %s',schedule.name )
-                  switchService=this.switches.createScheduleSwitchService(schedule)
-                  this.switches.configureSwitchService(newDevice, switchService)
-                  irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService)
-                  irrigationAccessory.addService(switchService)
-              })         
-              }
-              if(this.showRunall){
-                this.log.debug('adding new run all switch')
-                switchService=this.switches.createSwitchService(newDevice,newDevice.name+' Run All')
-                this.switches.configureSwitchService(newDevice, switchService)
-                irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService) 
-                irrigationAccessory.addService(switchService)
-                }
-              if(this.showStandby){
-                this.log.debug('adding new standby switch')
-                switchService=this.switches.createSwitchService(newDevice,newDevice.name+' Standby')
-                this.switches.configureSwitchService(newDevice, switchService)
-                irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService) 
-                irrigationAccessory.addService(switchService)
-              }
-              
-              // Register platform accessory
-              this.log.debug('Registering platform accessory')
-              this.api.registerPlatformAccessories(PluginName, PlatformName, [irrigationAccessory])
-              this.accessories[uuid]=irrigationAccessory
-              
-              //match state to Rachio state  
-              this.setOnlineStatus(newDevice)
-              this.setDeviceStatus(newDevice)
-            
-              //find any running zone and set its state
-              this.rachioapi.currentSchedule (this.token,newDevice.id).then(response=>{   
-                this.setValveStatus(response)
-                this.log.info('API rate limiting; call limit of %s remaining out of %s until reset at %s',response.headers['x-ratelimit-remaining'],response.headers['x-ratelimit-limit'], new Date(response.headers['x-ratelimit-reset']).toString())
-              }).catch(err=>{this.log.error('Failed to get current schedule', err)})      
-            }).catch(err=>{this.log.error('Failed to get device state', err)}) 
-          })
-        }).catch(err=>{this.log.error('Failed to get location summary', err)})
-      }).catch(err=>{this.log.error('Failed to get person info for build', err)})
-    }).catch(err=>{this.log.error('Failed to get info for build', err)})
+		let location=await this.rachioapi.getLocationList(this.token).catch(err=>{this.log.error('Failed to get location summary', err)})
+		location.data.locationSummary.forEach(address=>{
+			this.log.info('Found Location: id=%s address=%s geo=%s',address.location.id,address.location.address.addressLine1,address.location.geoPoint)
+			this.foundLocations=location.data.locationSummary
+			address.location.deviceId.forEach(device=>{
+				this.log.info('Found Location: device id=%s ',device)
+			})
+		})
+
+		personInfo.data.devices.filter((newDevice)=>{
+			this.foundLocations.forEach((location)=>{
+				location.location.deviceId.forEach((device)=>{
+					if(!this.locationAddress || this.locationAddress==location.location.address.addressLine1){
+						if(newDevice.id==device){  
+						this.log.info('Adding controller %s found at the configured location: %s',newDevice.name,location.location.address.addressLine1)
+						this.locationMatch=true
+						}
+					}
+					else{
+						if(newDevice.id==device){ 
+						this.log.info('Skipping controller %s at %s, not found at the configured location: %s',newDevice.name,location.location.address.addressLine1,this.locationAddress,)
+						this.locationMatch=false
+						}
+					}
+				})
+			})
+			return this.locationMatch
+		}).forEach(async(newDevice)=>{    
+			//adding devices that met filter criteria
+			this.log.info('Found device %s status %s',newDevice.name,newDevice.status)
+			let uuid=newDevice.id
+			this.log.info('Getting device state info...')
+			let state=await this.rachioapi.getDeviceState(this.token,newDevice.id).catch(err=>{this.log.error('Failed to get device state', err)}) 
+			deviceState=state.data
+			this.log('Retrieved device state %s for %s with a %s state, running',deviceState.state.state,newDevice.name,deviceState.state.desiredState,deviceState.state.firmwareVersion)
+			
+			if(this.external_webhook_address){  
+				this.rachioapi.configureWebhooks(this.token,this.external_webhook_address,this.delete_webhooks,newDevice.id,this.webhook_key)
+			}
+			//remove cached accessory
+			this.log.debug('Removed cached device')
+			if(this.accessories[uuid]){
+				this.api.unregisterPlatformAccessories(PluginName, PlatformName, [this.accessories[uuid]])
+				delete this.accessories[uuid]
+			}
+			let switchService
+			// Create and configure Irrigation Service
+			this.log.debug('Creating and configuring new device')            
+			let irrigationAccessory=this.irrigation.createIrrigationAccessory(newDevice,deviceState)
+			this.irrigation.configureIrrigationService(newDevice,irrigationAccessory.getService(Service.IrrigationSystem))
+		
+			// Create and configure Values services and link to Irrigation Service
+			newDevice.zones=newDevice.zones.sort(function (a, b){
+				return a.zoneNumber - b.zoneNumber
+			})
+			newDevice.zones.forEach((zone)=>{
+				if(!this.useIrrigationDisplay && !zone.enabled){
+					this.log.info('Skipping disabled zone %s',zone.name )
+				}
+				else {
+					this.log.debug('adding zone %s',zone.name )
+					let valveService=this.irrigation.createValveService(zone)
+					this.irrigation.configureValveService(newDevice, valveService)
+					if(this.useIrrigationDisplay){
+						this.log.debug('Using irrigation system')
+						irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(valveService)
+						irrigationAccessory.addService(valveService)
+					}
+					else{
+						this.log.debug('Using separate tiles')
+						irrigationAccessory.getService(Service.IrrigationSystem)
+						irrigationAccessory.addService(valveService)
+					}           
+				}
+			})
+			if(this.showSchedules){
+				newDevice.flexScheduleRules.forEach((schedule)=>{
+					this.log.debug('adding schedules %s',schedule.name )
+					switchService=this.switches.createScheduleSwitchService(schedule)
+					this.switches.configureSwitchService(newDevice, switchService)
+					irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService)
+					irrigationAccessory.addService(switchService)
+			})         
+			}
+			if(this.showRunall){
+				this.log.debug('adding new run all switch')
+				switchService=this.switches.createSwitchService(newDevice,newDevice.name+' Run All')
+				this.switches.configureSwitchService(newDevice, switchService)
+				irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService) 
+				irrigationAccessory.addService(switchService)
+				}
+			if(this.showStandby){
+				this.log.debug('adding new standby switch')
+				switchService=this.switches.createSwitchService(newDevice,newDevice.name+' Standby')
+				this.switches.configureSwitchService(newDevice, switchService)
+				irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService) 
+				irrigationAccessory.addService(switchService)
+			}
+		
+			// Register platform accessory
+			this.log.debug('Registering platform accessory')
+			this.api.registerPlatformAccessories(PluginName, PlatformName, [irrigationAccessory])
+			this.accessories[uuid]=irrigationAccessory
+				
+			//match state to Rachio state  
+			this.setOnlineStatus(newDevice)
+			this.setDeviceStatus(newDevice)
+		
+			//find any running zone and set its state
+			let schedule=await this.rachioapi.currentSchedule (this.token,newDevice.id).catch(err=>{this.log.error('Failed to get current schedule', err)})  
+			this.setValveStatus(schedule)
+			this.log.info('API rate limiting; call limit of %s remaining out of %s until reset at %s',schedule.headers['x-ratelimit-remaining'],schedule.headers['x-ratelimit-limit'], new Date(schedule.headers['x-ratelimit-reset']).toString())    
+		})  
   }
 
   //**
@@ -319,8 +306,8 @@ class RachioPlatform {
       }
       this.log.debug('Found online device')
       this.log.debug(myJson)
-      let irrigationAccessory=this.accessories[myJson.deviceId];
-      let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem);
+      let irrigationAccessory=this.accessories[myJson.deviceId]
+      let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
       let service=irrigationAccessory.getServiceById(Service.IrrigationSystem)
       this.log.debug('Updating device status')
       this.updateService(irrigationSystemService,service,myJson)
@@ -360,8 +347,8 @@ class RachioPlatform {
       }
       this.log.debug('Found healthy device')
       this.log.debug(myJson)
-      let irrigationAccessory=this.accessories[myJson.deviceId];
-      let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem);
+      let irrigationAccessory=this.accessories[myJson.deviceId]
+      let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
       this.log.debug('Updating standby switch state')
       this.updateService(irrigationSystemService,irrigationSystemService,myJson)
     }
@@ -389,8 +376,8 @@ class RachioPlatform {
         resourceType: 'DEVICE'
       }
       this.log.debug(myJson)
-      let irrigationAccessory=this.accessories[myJson.deviceId];
-      let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem);
+      let irrigationAccessory=this.accessories[myJson.deviceId]
+      let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
       let service=irrigationAccessory.getServiceById(Service.Valve,myJson.zoneId)
       this.log.debug('Webhook match found for zone-%s on start will update services',myJson.zoneNumber)
       this.updateService(irrigationSystemService,service,myJson)
@@ -413,8 +400,8 @@ class RachioPlatform {
         resourceType: 'DEVICE'
       }
       this.log.debug(myJson)
-      let irrigationAccessory=this.accessories[myJson.deviceId];
-      let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem);
+      let irrigationAccessory=this.accessories[myJson.deviceId]
+      let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
       let service=irrigationAccessory.getServiceById(Service.Switch,myJson.scheduleId)
       this.log.debug('Webhook match found for schedule %s on start will update services',myJson.scheduleName)
       this.updateService(irrigationSystemService,service,myJson)
@@ -707,4 +694,4 @@ class RachioPlatform {
     }
   }
 
-module.exports=RachioPlatform;
+module.exports=RachioPlatform

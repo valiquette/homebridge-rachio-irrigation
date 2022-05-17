@@ -1,5 +1,13 @@
 # Changes
 
+## 1.2.11
+Update
+-	Bumped dependencies.
+-	Code updates
+- Improved error messaging for un expected webhook domain name that cause validation to fail
+- Updated Readme for webhook relay
+- Initial support for node.js 18
+
 ## 1.2.10
 Update
 -	Bumped dependencies.

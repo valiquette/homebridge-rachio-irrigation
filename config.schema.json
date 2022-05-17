@@ -25,7 +25,7 @@
         "title": "Street Address",
         "type": "string",
         "required": false,
-        "placeholder": ""
+        "placeholder": "Leave blank for all locations"
       },
       "default_runtime": {
         "title": "Default Runtime in Minutes",

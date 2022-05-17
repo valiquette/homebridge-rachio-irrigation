@@ -62,7 +62,7 @@ You can acquire your API key from Rachio io.app [documented here](https://rachio
      - Copy the `Key`, `Secret`, and `relay CLI command` somewhere.  You'll need them later.
  - Now you'll need to install their Relay software on a computer on your network (probably wherever you have Homebridge installed). Install instructions can be [found here](https://docs.webhookrelay.com/installation-options/installation-options/install-cli).
  - Edit Settings for `homebridge-rachio-irrigation` to use the Webhook Relay
-   - When setting up this plugin and you get to the _External IP Address or Domain_ section, enter the _default public endpoint_ that Webhook Relay provides you with.  It'll look like `somethinglongandrandom.hooks.webhookrelay.com`. You can find it at _Request Forwarding > Buckets_ listed under _Default public endpoint_ in the Webhook Relay dashboard.
+   - When setting up this plugin and you get to the _External IP Address or Domain_ section, enter the _default public endpoint_ that Webhook Relay provides you with.  It'll look like `somethinglongandrandom.hooks.webhookrelay.com` (note don't inlude http(s)://). You can find it at _Request Forwarding > Buckets_ listed under _Default public endpoint_ in the Webhook Relay dashboard.
    - Set the _External Webhook Port_ to: `80`
    - The _Internal Webhook Port_ can be left to the default `27546`. If you change it, be sure to change the _Destination URL_ in the Webhook Relay bucket settings you configured earlier.
    - Save the Config changes, and then restart Homebridge
