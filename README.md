@@ -8,6 +8,7 @@
 
 
 ## About
+NOTE: Option 1 is not working correctly with a bug in IOS 15.4 and 15.5. The bug will cause zone switches to be displayed randomly or not at all.
 
 This plugin provides 3 options for use in HomeKit<br>Both option have additional switches as options for Standby mode and a Run All along with any Rachio Schedules
 1.	Irrigation System Accessory with zones that are linked (default in configuration)

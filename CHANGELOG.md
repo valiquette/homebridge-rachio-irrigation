@@ -1,5 +1,8 @@
 # Changes
 
+## 1.2.12
+Update
+-	Fixed error when restating with and active schedule running and show scheduleds not checked.
 ## 1.2.11
 Update
 -	Bumped dependencies.

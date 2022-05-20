@@ -61,7 +61,7 @@
         "title": "Display as Irrigation System in HomeKit",
         "type": "boolean",
         "required": true,
-        "default": true
+        "default": false
       },
       "show_standby": {
         "title": "Expose switch for controller standby",
