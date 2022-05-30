@@ -17,7 +17,7 @@ irrigation.prototype={
     newPlatformAccessory.addService(Service.IrrigationSystem, device.name)
     let irrigationSystemService=newPlatformAccessory.getService(Service.IrrigationSystem)
     // Check if the device is connected
-    if(device.status == 'ONLINE'){
+    if (device.status == 'ONLINE'){
       irrigationSystemService.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
     } else {
       irrigationSystemService.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.GENERAL_FAULT)
@@ -83,10 +83,10 @@ irrigation.prototype={
     switch (characteristicName){
       case "DeviceActive":
         //this.log.debug("%s = %s %s", irrigationSystemService.getCharacteristic(Characteristic.Name).value, characteristicName,irrigationSystemService.getCharacteristic(Characteristic.Active).value);
-        if(irrigationSystemService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+        if (irrigationSystemService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
           callback('error')
         }
-        else{
+        else {
           callback(null, irrigationSystemService.getCharacteristic(Characteristic.Active).value)
         }
       break    
@@ -109,23 +109,23 @@ irrigation.prototype={
     // Create Valve Service
     let valve=new Service.Valve(zone.name, zone.id) 
 		let defaultRuntime=this.platform.defaultRuntime
-		try{
+		try {
 			switch (this.platform.runtimeSource) {
 				case 0:
 					defaultRuntime=this.platform.defaultRuntime
 				break
 				case 1:
-					if(zone.fixedRuntime>0){
+					if (zone.fixedRuntime>0){
 						defaultRuntime=zone.fixedRuntime
 					}
 				break
 				case 2:
-					if(zone.runtime>0){
+					if (zone.runtime>0){
 						defaultRuntime=zone.runtime
 					}
 				break
 			}
-		}catch(err){
+		}catch (err){
 			this.log.debug('no smart runtime found, using default runtime')
 			}
 		this.log.debug("Created valve service for %s with id %s with %s min runtime", zone.name, zone.id, Math.round(defaultRuntime/60))
@@ -145,9 +145,9 @@ irrigation.prototype={
       .setCharacteristic(Characteristic.Name, zone.name)
       .setCharacteristic(Characteristic.ConfiguredName, zone.name)
       .setCharacteristic(Characteristic.Model, zone.customNozzle.name)
-      if(zone.enabled){
+      if (zone.enabled){
         valve.setCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED)}
-      else{
+      else {
         valve.setCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.NOT_CONFIGURED)
       }   
     return valve
@@ -177,10 +177,10 @@ irrigation.prototype={
     switch (characteristicName){
       case "ValveActive":
         //this.log.debug("%s = %s %s", valveService.getCharacteristic(Characteristic.Name).value, characteristicName,valveService.getCharacteristic(Characteristic.Active).value)
-        if(valveService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+        if (valveService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
           callback('error')
         }
-        else{
+        else {
           callback(null, valveService.getCharacteristic(Characteristic.Active).value)
         }
       break
@@ -197,7 +197,7 @@ irrigation.prototype={
           let timeEnding=Date.parse(valveService.getCharacteristic(Characteristic.CurrentTime).value)
           let timeNow=Date.now()
           let timeRemaining=Math.max(Math.round((timeEnding - timeNow) / 1000), 0)
-          if(isNaN(timeRemaining)){
+          if (isNaN(timeRemaining)){
             timeRemaining=0
           }
           valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(timeRemaining)
@@ -218,7 +218,7 @@ irrigation.prototype={
       
       // Set homekit state and prepare message for Rachio API
       let runTime=valveService.getCharacteristic(Characteristic.SetDuration).value
-      if(value == Characteristic.Active.ACTIVE){
+      if (value == Characteristic.Active.ACTIVE){
         // Turn on/idle the valve
         this.log.info("Starting zone-%s %s for %s mins", valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value, valveService.getCharacteristic(Characteristic.Name).value, runTime/60)
         this.rachioapi.startZone (this.platform.token,valveService.getCharacteristic(Characteristic.SerialNumber).value,runTime)

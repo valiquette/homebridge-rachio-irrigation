@@ -1,8 +1,13 @@
 # Changes
 
+## 1.2.13
+Update
+-	Improved webhook handeling when option switches are not configured.
+-	Code cleanup.
+
 ## 1.2.12
 Update
--	Fixed error when restating with and active schedule running and show scheduleds not checked.
+-	Fixed error when restating with and active schedule running and show schedules not checked.
 - Changed configuration default to false for use irrigation display, due to IOS bug intoduced with 15.4 and still not fixed in 15.5
 - Bumped dependencies.
 

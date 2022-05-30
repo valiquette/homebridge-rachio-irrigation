@@ -190,7 +190,7 @@ RachioAPI.prototype={
       let body=[]
       this.log.debug('Starting Multiple Zones', zones)
       zones.forEach((zone,index)=>{
-        if(zone.enabled){
+        if (zone.enabled){
           body.push(
             {
             id: zone.id,
@@ -259,9 +259,9 @@ RachioAPI.prototype={
       let updateWebhook=false
       let count=0
       webhooks.forEach(async(webhook)=>{
-        if(webhook.externalId==webhook_key || webhook.url==external_webhook_address){
+        if (webhook.externalId==webhook_key || webhook.url==external_webhook_address){
           count++
-          if(count==1){
+          if (count==1){
             updateWebhook=webhook
             return
           }

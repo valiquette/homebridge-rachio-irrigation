@@ -50,11 +50,11 @@ switches.prototype={
     this.log.debug('toggle switch state %s',switchService.getCharacteristic(Characteristic.Name).value)
     switch(switchService.getCharacteristic(Characteristic.Name).value){
       case device.name+' Standby': 
-        if(switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+        if (switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
           callback('error')
         }
-        else{
-          if(!value){
+        else {
+          if (!value){
             switchService.getCharacteristic(Characteristic.On).updateValue(true)
             this.rachioapi.deviceStandby (this.platform.token,device,'on')
           } 
@@ -66,11 +66,11 @@ switches.prototype={
         } 
       break
       case device.name+' Run All': 
-        if(switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+        if (switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
           callback('error')
         }
-        else{
-          if(value){
+        else {
+          if (value){
             switchService.getCharacteristic(Characteristic.On).updateValue(true)
             this.rachioapi.startMultipleZone (this.platform.token,device.zones,this.platform.defaultRuntime)
           } 
@@ -82,11 +82,11 @@ switches.prototype={
         }
         break
         default:
-        if(switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+        if (switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
           callback('error')
         }
-        else{
-          if(value){
+        else {
+          if (value){
             switchService.getCharacteristic(Characteristic.On).updateValue(true)
             this.rachioapi.startSchedule (this.platform.token,switchService.getCharacteristic(Characteristic.SerialNumber).value)
           } 
@@ -102,10 +102,10 @@ switches.prototype={
 
   getSwitchValue(switchService, callback){
     //this.log.debug("%s = %s", switchService.getCharacteristic(Characteristic.Name).value,switchService.getCharacteristic(Characteristic.On))
-    if(switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+    if (switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
       callback('error')
     }
-    else{
+    else {
       callback(null, switchService.getCharacteristic(Characteristic.On).value)
     }
   }
