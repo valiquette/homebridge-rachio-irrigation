@@ -232,6 +232,13 @@ class RachioPlatform {
 			})
 
 			if (this.showSchedules){
+				newDevice.scheduleRules.forEach((schedule)=>{
+					this.log.debug('adding schedules %s',schedule.name )
+					switchService=this.switches.createScheduleSwitchService(schedule)
+					this.switches.configureSwitchService(newDevice, switchService)
+					irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService)
+					irrigationAccessory.addService(switchService)
+				})    
 				newDevice.flexScheduleRules.forEach((schedule)=>{
 					this.log.debug('adding schedules %s',schedule.name )
 					switchService=this.switches.createScheduleSwitchService(schedule)
@@ -473,7 +480,7 @@ class RachioPlatform {
 										this.updateService(irrigationSystemService,service,jsonBody)
 									}
 									else {
-										this.log.debug('Skipping Webhook for %s service, optional switch is not configured',jsonBody.scheduleName)
+										this.log.debug('Skipping Webhook for %s service, optional schedule switch is not configured',jsonBody.scheduleName)
 									}
 								}
 								else if (jsonBody.deviceId){
@@ -483,7 +490,7 @@ class RachioPlatform {
 										this.updateService(irrigationSystemService,service,jsonBody)
 									}
 									else {
-										this.log.debug('Skipping Webhook for %s service, optional switch is not configured',jsonBody.deviceName)
+										this.log.debug('Skipping Webhook for %s service, optional standby switch is not configured',jsonBody.deviceName)
 									}
 								}
 							response.writeHead(204)

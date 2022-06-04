@@ -44,9 +44,9 @@ You can acquire your API key from Rachio io.app [documented here](https://rachio
 
 ### Setting up webhooks, the easy way (if your router supports it):
  - You must know your external network IP address. [You can discover it here](https://www.myexternalip.com) to be entered in the config as the "external_Webhook_address"
- - You must enable port fowarding on your router this server is conected to. Follow you routers instructions for this set.
+ - You must enable port fowarding on the router this server is conected to. Follow you routers instructions for this step.
  - The port forwarding should look like external_webhook_port -> internal_port for your servers IP address which can be found on the Homebridge Status page in system information.
- - **NOTE:** if your IP Address is changed by your ISP, you will need to edit the IP address in the config to match it whenever it changes. You can use a Dynamic IP address DNS service if your IP changes often.
+ - **NOTE:** if your IP Address is changed by your ISP, you will need to edit the IP address in the config to match it whenever it changes. You should use a Dynamic IP address DNS service if your IP changes often.
 
 ### If you cannot setup port forwarding on your router (or don't want to):
  - You must have an always-on computer available on your network (MacOS, Linux, Windows). If you're running Homebridge, you can use that one.
