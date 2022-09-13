@@ -1,5 +1,13 @@
 # Changes
 
+## 1.2.15
+Update
+-	Updated readme.
+- Improved error handeling during startup.
+- Corrected logging message zone stop from homekit.
+- Changed configuration default to true for use irrigation display.
+- API updates.
+
 ## 1.2.14
 Fix
 -	Updated readme.

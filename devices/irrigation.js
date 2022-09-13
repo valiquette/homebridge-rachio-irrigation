@@ -289,7 +289,7 @@ irrigation.prototype={
           summary: valveService.getCharacteristic(Characteristic.Name).value+' stopped watering at '+ new Date().toLocaleTimeString()+' for '+ valveService.getCharacteristic(Characteristic.SetDuration).value+ ' minutes',
           zoneRunState: 'STOPPED',
           durationInMinutes: Math.round((valveService.getCharacteristic(Characteristic.SetDuration).value-(Date.parse(valveService.getCharacteristic(Characteristic.CurrentTime).value)-Date.now())/1000)/60),
-          externalId: this.webhook_key_local,
+          externalId: this.platform.webhook_key_local,
           timeForSummary: new Date().toLocaleTimeString(),
           subType: 'ZONE_STOPPED',
           endTime: new Date(Date.now()+valveService.getCharacteristic(Characteristic.SetDuration).value*1000).toISOString(),
