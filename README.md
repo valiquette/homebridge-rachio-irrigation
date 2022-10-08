@@ -12,7 +12,7 @@ NOTE: Option 1 is not working correctly with a bug in IOS 15.4 and 15.5. The bug
 
 This plugin provides 3 options for use in HomeKit<br>Both option have additional switches as options for Standby mode and a Run All along with any Rachio Schedules
 1.	Irrigation System Accessory with zones that are linked (default in configuration)
-2.	Irrigation System Accessory with separate zones shown as a single tile 
+2.	Irrigation System Accessory with separate zones shown as a single tile
 3.	Irrigation System Accessory with separate zones shown as a separate tiles (option in HomeKit)
 
 <br> There are plus and minus to each, so why not have options.
@@ -40,18 +40,20 @@ You can acquire your API key from Rachio io.app [documented here](https://rachio
 ## Notes on Webhooks
 
 `homebridge-rachio-irrigation` **requires** webhooks to update HomeKit accessory status in real time such as a defined schedule from the Rachio app.
+### Only configure one webhook method at a time, if more than one is configured Webhook Relay will be used.
 
-
+## Port fowarding
 ### Setting up webhooks, the easy way (if your router supports it):
  - You must know your external network IP address. [You can discover it here](https://www.myexternalip.com) to be entered in the config as the "external_Webhook_address"
  - You must enable port fowarding on the router this server is conected to. Follow you routers instructions for this step.
  - The port forwarding should look like external_webhook_port -> internal_port for your servers IP address which can be found on the Homebridge Status page in system information.
  - **NOTE:** if your IP Address is changed by your ISP, you will need to edit the IP address in the config to match it whenever it changes. You should use a Dynamic IP address DNS service if your IP changes often.
 
+## Relay service
 ### If you cannot setup port forwarding on your router (or don't want to):
  - You must have an always-on computer available on your network (MacOS, Linux, Windows). If you're running Homebridge, you can use that one.
  - Create an account at [Webhook Relay](https://webhookrelay.com). The free account should be fine.
- - Create a new webhook relay:
+ - Create a new webhook relay: [here](https://my.webhookrelay.com/new-basic-forwarding)
    - Create a new "New Basic Forwarding" from the quickstart on the Dashboard.
    - Select _Use Default Input Domain_. Then Continue.
    - For _Destination URL_ enter: `http://127.0.0.1:27546/`
@@ -63,8 +65,7 @@ You can acquire your API key from Rachio io.app [documented here](https://rachio
      - Copy the `Key`, `Secret`, and `relay CLI command` somewhere.  You'll need them later.
  - Now you'll need to install their Relay software on a computer on your network (probably wherever you have Homebridge installed). Install instructions can be [found here](https://docs.webhookrelay.com/installation-options/installation-options/install-cli).
  - Edit Settings for `homebridge-rachio-irrigation` to use the Webhook Relay
-   - When setting up this plugin and you get to the _External IP Address or Domain_ section, enter the _default public endpoint_ that Webhook Relay provides you with.  It'll look like `somethinglongandrandom.hooks.webhookrelay.com` (note don't inlude http(s)://). You can find it at _Request Forwarding > Buckets_ listed under _Default public endpoint_ in the Webhook Relay dashboard.
-   - Set the _External Webhook Port_ to: `80`
+   - When setting up this plugin under the `Webhook Relay section` paste the Default Endpoint directly into the `Endpoint` field  It'll look like `somethinglongandrandom.hooks.webhookrelay.com`. You can find it at _Request Forwarding > Buckets_ listed under _Default public endpoint_ in the Webhook Relay dashboard. [found here](https://my.webhookrelay.com/buckets)
    - The _Internal Webhook Port_ can be left to the default `27546`. If you change it, be sure to change the _Destination URL_ in the Webhook Relay bucket settings you configured earlier.
    - Save the Config changes, and then restart Homebridge
  - Test it!
@@ -79,7 +80,7 @@ If you see log messages like `Webhook received from an unknown external id`, you
 
 ## Installation
 1. Install this plugin using: npm install -g homebridge-rachio-irrigation
-2. Suggest running as a child bridge	
+2. Suggest running as a child bridge
 3. Use plugin settings to edit ``config.json`` and add your account detail.
 4. Run Homebridge
 5. Pair to HomeKit
@@ -97,6 +98,7 @@ If you see log messages like `Webhook received from an unknown external id`, you
 	"show_runall": true,
 	"show_schedules": true,
 	"external_IP_address": "76.33.22.111",
+	"internal_IP_address": "127.0.0.1",
 	"external_webhook_port": 12453,
 	"internal_webhook_port": 27543,
 	"use_basic_auth": true,

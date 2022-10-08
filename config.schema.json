@@ -86,16 +86,32 @@
       },
       "external_IP_address": {
         "title": "External IP Address",
-        "description": "External IP address for this server or Domain to be used to receive webhook requests.<br/>To find this quick click <a target='blank' href='https://www.myexternalip.com'>here</a>.",
+        "description": "External IP address or Domain for this server being used to receive webhook messages.<br/>To find this quick click <a target='blank' href='https://www.myexternalip.com'>here</a>.",
         "type": "string",
         "required": false,
         "placeholder": "xxx.xxx.xxx.xxx"
+      },
+			"internal_IP_address": {
+        "title": "Internal IP Address",
+        "description": "internal IP address or Domain for this server<br/>recieving relayed webhook messages.<br/>",
+        "type": "string",
+        "required": false,
+        "placeholder": "127.0.0.1",
+				"default": "127.0.0.1"
+      },
+			"relay_address": {
+        "title": "Endpoint",
+        "description": "Default public endpoint.<br/>This can be found as an input under Buckets <a target='blank' href='https://my.webhookrelay.com/buckets'>here</a>.",
+        "type": "string",
+        "required": false,
+        "placeholder": "https://somethinglongandrandom.hooks.webhookrelay.com"
       },
       "external_webhook_port": {
         "title": "External Webhook Port",
         "description": "External port <br/>Source for receiving webhook requests.",
         "type": "number",
         "required": false,
+				"placeholder": 12453,
         "default": 12453
       },
       "internal_webhook_port": {
@@ -103,11 +119,12 @@
         "description": "Internal port <br/>Destination for receiving webhook requests.",
         "type": "number",
         "required": false,
+				"placeholder": 27546,
         "default": 27546
       },
       "use_basic_auth": {
         "title": "HTTP basic authentication",
-        "description": "Use HTTP basic authentication.",
+        "description": "Use HTTP basic authentication. For use with port fowarding directly from Rachio",
         "type": "boolean",
         "required": false,
         "default": false
@@ -191,11 +208,11 @@
         "show_schedules",
         "show_runall"
       ]
-    },   
+    },
     {
       "type": "fieldset",
       "title": "Webhooks",
-      "description": "Expand to configure webhooks",
+      "description": "Expand to configure webhooks with local port fowarding",
       "expandable": true,
       "displayFlex": true,
       "items": [
@@ -213,6 +230,25 @@
 						"external_webhook_port",
 						"internal_webhook_port"
 						]
+				},
+				{
+					"type": "help",
+					"helpvalue": "<p class='help-block'> Rachio supports HTTP Basic Authentication for webhooks. if checked any incoming message will need to match this user:password</p>"
+				},
+				{
+					"type": "flex",
+					"flex-flow": "row wrap",
+					"items": [
+						"use_basic_auth"
+					]
+				},
+				{
+					"type": "flex",
+					"flex-flow": "row wrap",
+					"items": [
+						"user",
+						"password"
+					]
 				},
       	{
 					"type": "help",
@@ -233,29 +269,46 @@
 							"items": [
 								"delete_webhooks"
 							]
-						},
-						{
-							"type": "flex",
-							"flex-flow": "row wrap",
-							"items": [
-								"use_basic_auth"
-							]
-						},
-						{
-							"type": "flex",
-							"flex-flow": "row wrap",
-							"items": [
-								"user",
-								"password"
-							]
-						},
-						{
-							"type": "help",
-							"helpvalue": "<p class='help-block'> Rachio supports HTTP Basic Authentication for webhooks. if checked any incoming message will need to match this user:password</p>"
 						}
 					]
         }
       ]
-    }
+    },
+		{
+      "type": "fieldset",
+      "title": "Webhook Relay",
+      "description": "Expand to configure Webhook Relay service",
+      "expandable": true,
+      "displayFlex": true,
+      "items": [
+				{
+					"type": "help",
+					"helpvalue": "Input"
+				},
+        {
+          "type": "flex",
+          "flex-flow": "row wrap",
+          "items": [
+            "relay_address"
+          ]
+        },
+				{
+					"type": "help",
+					"helpvalue": "Output"
+				},
+				{
+					"type": "flex",
+					"flex-flow": "row wrap",
+					"items": [
+						"internal_IP_address",
+						"internal_webhook_port"
+						]
+				},
+				{
+					"type": "help",
+					"helpvalue": "<i>Important note.<p class='help-block'> Copy endpoint directly as shown on Webhook Relay. Consult the readme for additional webhook information.</p>"
+				}
+			]
+		}
   ]
 }

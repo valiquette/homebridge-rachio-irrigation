@@ -1,7 +1,7 @@
-/* 
-Known issues 
+/*
+Known issues
 Time remaining for homebridge accessory runs about 2x fast but homekit is fine
-Pause states not reflected corrrecly in homebridge but ok in homekit 
+Pause states not reflected corrrecly in homebridge but ok in homekit
 Schedule/zone duration when found throws warnings exceding 60 minutes
 */
 
@@ -25,10 +25,11 @@ class RachioPlatform {
     this.log=log
     this.config=config
     this.token=config.api_key
-		this.retryWait=config.retryWait||30
+		this.retryWait=config.retryWait || 30
     this.external_IP_address=config.external_IP_address
     this.external_webhook_port=config.external_webhook_port
     this.internal_webhook_port=config.internal_webhook_port
+		this.relay_address=config.relay_address
     this.webhook_key='homebridge-'+config.name
     this.webhook_key_local='simulated-webhook'
     this.delete_webhooks=config.delete_webhooks
@@ -46,12 +47,15 @@ class RachioPlatform {
     this.accessories=[]
     this.realExternalIP
     this.foundLocations
-    if (this.useBasicAuth && this.user && this.password){
-      this.external_webhook_address="http://"+this.user+":"+this.password+"@"+this.external_IP_address+':'+this.external_webhook_port
-    }
-    else {
-      this.external_webhook_address="http://"+this.external_IP_address+':'+this.external_webhook_port
-    }
+		let destination='http://'
+		let port=(this.external_webhook_port) ? ':'+this.external_webhook_port :''
+
+		if (this.useBasicAuth && this.user && this.password){
+			this.external_webhook_address=destination+this.user+":"+this.password+"@"+this.external_IP_address+port
+		}
+		else {
+			this.external_webhook_address=destination+this.external_IP_address+port
+		}
 
     if (this.useBasicAuth && (!this.user || !this.password)){
       this.log.warn("HTTP Basic Athentication cannot be used for webhooks without a valid user and password")
@@ -64,8 +68,13 @@ class RachioPlatform {
       this.log('Starting Rachio Platform with homebridge API', api.version)
     }
 
+		if(this.relay_address){
+			this.log.warn('Using Webhook Relay @ %s',this.relay_address)
+			this.useBasicAuth=false
+			this.external_webhook_address=this.relay_address
+		}
     //check external IP address
-    if (this.external_IP_address){  
+    if (this.external_IP_address){
     this.ipv4format= /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
     this.ipv6format= /(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))/;
     this.fqdnformat= /(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{0,62}[a-zA-Z0-9]\.)+[a-zA-Z]{2,63}$)/;
@@ -85,66 +94,74 @@ class RachioPlatform {
       else
         {return false}
       }
-      catch(err){  
+      catch(err){
         log.warn('Error validating IP address ' + err)
         return
       }
     }
 
-    if (this.ipv4){
-      axios({
-        method: 'get',
-        url: 'http://ip4only.me/api/',
-        responseType: 'text'
-      }).then(response=> {
-        let addressV4=response.data.split(',')
-        this.realExternalIP=addressV4[1]
-        if (this.ipv4 && this.external_IP_address && this.realExternalIP != this.external_IP_address){
-          this.log.warn('Configured external IPv4 address of %s does not match this servers detected external IP of %s please check webhook config settings.',this.external_IP_address,this.realExternalIP)
-      }
-      }).catch(err=>{this.log.error('Failed to get current external IP', err)}) 
-      this.log.debug('using IPv4 webhook external address')
-    }
-    else if (this.ipv6){
-      axios({
-        method: 'get',
-        url: 'http://ip6only.me/api/',
-        responseType: 'text'
-      }).then(response=> {
-        let addressV6=response.data.split(',')
-        this.realExternalIP=addressV6[1]
-        if (this.ipv4 && this.external_IP_address && this.realExternalIP != this.external_IP_address){
-          this.log.warn('Configured external IPv6 address of %s does not match this servers detected external IP of %s please check webhook config settings.',this.external_IP_address,this.realExternalIP)
-      }
-      }).catch(err=>{this.log.error('Failed to get current external IP', err)}) 
-      this.log.debug('using IPv6 webhook external address')
-    }
-    else if (this.fqdn){this.log.debug('using FQDN for webhook external destination')} 
-    else {
-      this.external_webhook_address=null 
-      this.log.warn('Cannot validate webhook destination address, will not set Webhooks. Please check webhook config settings for proper format and does not include any prefx like http://.')
-    }
+		if(this.relay_address){
+			this.log.warn('Using Webhook Relay @ %s',this.relay_address)
+			this.external_IP_address=this.relay_address
+		}
+		else{
+			if (this.ipv4){
+				axios({
+					method: 'get',
+					url: 'http://ip4only.me/api/',
+					responseType: 'text'
+				}).then(response=> {
+					let addressV4=response.data.split(',')
+					this.realExternalIP=addressV4[1]
+					if (this.ipv4 && this.external_IP_address && this.realExternalIP != this.external_IP_address){
+						this.log.warn('Configured external IPv4 address of %s does not match this servers detected external IP of %s please check webhook config settings.',this.external_IP_address,this.realExternalIP)
+				}
+				}).catch(err=>{this.log.error('Failed to get current external IP', err)})
+				this.log.debug('using IPv4 webhook external address')
+			}
+			else if (this.ipv6){
+				axios({
+					method: 'get',
+					url: 'http://ip6only.me/api/',
+					responseType: 'text'
+				}).then(response=> {
+					let addressV6=response.data.split(',')
+					this.realExternalIP=addressV6[1]
+					if (this.ipv4 && this.external_IP_address && this.realExternalIP != this.external_IP_address){
+						this.log.warn('Configured external IPv6 address of %s does not match this servers detected external IP of %s please check webhook config settings.',this.external_IP_address,this.realExternalIP)
+				}
+				}).catch(err=>{this.log.error('Failed to get current external IP', err)})
+				this.log.debug('using IPv6 webhook external address')
+			}
+			else if (this.fqdn){
+				this.log.debug('using FQDN for webhook external destination')
+			}
+			else {
+				this.external_webhook_address=null
+				this.log.warn('Cannot validate webhook destination address, will not set Webhooks. Please check webhook config settings for proper format and does not include any prefx like http://.')
+			}
+		}
 
-    //** 
+    //**
     //** Platforms should wait until the "didFinishLaunching" event has fired before registering any new accessories.
-    //**  
+    //**
     if (api){
         this.api=api
         this.api.on("didFinishLaunching", function (){
           //Get devices
           this.getRachioDevices()
-        }.bind(this))     
+        }.bind(this))
       }
     }
 
   identify (){
     this.log('Identify the sprinkler!')
   }
-  
+
   async getRachioDevices(){
 		try{
     	// getting account info
-			this.log.debug('Fetching build info...')  
+			this.log.debug('Fetching build info...')
 			this.log.info('Getting Person info...')
 			let person=await this.rachioapi.getPersonInfo(this.token).catch(err=>{this.log.error('Failed to get info for build', err)})
 			personId=person.data.id
@@ -172,13 +189,13 @@ class RachioPlatform {
 				this.foundLocations.forEach((location)=>{
 					location.location.deviceId.forEach((device)=>{
 						if (!this.locationAddress || this.locationAddress==location.location.address.addressLine1){
-							if (newDevice.id==device){  
+							if (newDevice.id==device){
 							this.log.info('Adding controller %s found at the configured location: %s',newDevice.name,location.location.address.addressLine1)
 							this.locationMatch=true
 							}
 						}
 						else {
-							if (newDevice.id==device){ 
+							if (newDevice.id==device){
 							this.log.info('Skipping controller %s at %s, not found at the configured location: %s',newDevice.name,location.location.address.addressLine1,this.locationAddress,)
 							this.locationMatch=false
 							}
@@ -186,16 +203,16 @@ class RachioPlatform {
 					})
 				})
 				return this.locationMatch
-			}).forEach(async(newDevice)=>{    
+			}).forEach(async(newDevice)=>{
 				//adding devices that met filter criteria
 				this.log.info('Found device %s status %s',newDevice.name,newDevice.status)
 				let uuid=newDevice.id
 				this.log.info('Getting device state info...')
-				let state=await this.rachioapi.getDeviceState(this.token,newDevice.id).catch(err=>{this.log.error('Failed to get device state', err)}) 
+				let state=await this.rachioapi.getDeviceState(this.token,newDevice.id).catch(err=>{this.log.error('Failed to get device state', err)})
 				if(!state){return}
 				deviceState=state.data
 				this.log('Retrieved device state %s for %s with a %s state, running',deviceState.state.state,newDevice.name,deviceState.state.desiredState,deviceState.state.firmwareVersion)
-				if (this.external_webhook_address){  
+				if (this.external_webhook_address){
 					this.rachioapi.configureWebhooks(this.token,this.external_webhook_address,this.delete_webhooks,newDevice.id,this.webhook_key)
 				}
 				//remove cached accessory
@@ -206,10 +223,10 @@ class RachioPlatform {
 				}
 				let switchService
 				// Create and configure Irrigation Service
-				this.log.debug('Creating and configuring new device')            
+				this.log.debug('Creating and configuring new device')
 				let irrigationAccessory=this.irrigation.createIrrigationAccessory(newDevice,deviceState)
 				this.irrigation.configureIrrigationService(newDevice,irrigationAccessory.getService(Service.IrrigationSystem))
-			
+
 				// Create and configure Values services and link to Irrigation Service
 				newDevice.zones=newDevice.zones.sort(function (a, b){
 					return a.zoneNumber - b.zoneNumber
@@ -231,7 +248,7 @@ class RachioPlatform {
 							this.log.debug('Using separate tiles')
 							irrigationAccessory.getService(Service.IrrigationSystem)
 							irrigationAccessory.addService(valveService)
-						}           
+						}
 					}
 				})
 
@@ -242,53 +259,53 @@ class RachioPlatform {
 						this.switches.configureSwitchService(newDevice, switchService)
 						irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService)
 						irrigationAccessory.addService(switchService)
-					})    
+					})
 					newDevice.flexScheduleRules.forEach((schedule)=>{
 						this.log.debug('adding schedules %s',schedule.name )
 						switchService=this.switches.createScheduleSwitchService(schedule)
 						this.switches.configureSwitchService(newDevice, switchService)
 						irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService)
 						irrigationAccessory.addService(switchService)
-					})         
+					})
 				}
 
 				if (this.showStandby){
 					this.log.debug('adding new standby switch')
 					switchService=this.switches.createSwitchService(newDevice,newDevice.name+' Standby')
 					this.switches.configureSwitchService(newDevice, switchService)
-					irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService) 
+					irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService)
 					irrigationAccessory.addService(switchService)
 				}
-				
+
 				if (this.showRunall){
 					this.log.debug('adding new run all switch')
 					switchService=this.switches.createSwitchService(newDevice,newDevice.name+' Run All')
 					this.switches.configureSwitchService(newDevice, switchService)
-					irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService) 
+					irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService)
 					irrigationAccessory.addService(switchService)
 				}
-			
+
 				// Register platform accessory
 				this.log.debug('Registering platform accessory')
 				this.api.registerPlatformAccessories(PluginName, PlatformName, [irrigationAccessory])
 				this.accessories[uuid]=irrigationAccessory
-					
-				//match state to Rachio state  
+
+				//match state to Rachio state
 				this.setOnlineStatus(newDevice)
 				this.setDeviceStatus(newDevice)
-			
+
 				//find any running zone and set its state
-				let schedule=await this.rachioapi.currentSchedule (this.token,newDevice.id).catch(err=>{this.log.error('Failed to get current schedule', err)})  
+				let schedule=await this.rachioapi.currentSchedule (this.token,newDevice.id).catch(err=>{this.log.error('Failed to get current schedule', err)})
 				this.setValveStatus(schedule)
-				this.log.info('API rate limiting; call limit of %s remaining out of %s until reset at %s',schedule.headers['x-ratelimit-remaining'],schedule.headers['x-ratelimit-limit'], new Date(schedule.headers['x-ratelimit-reset']).toString())    
-			})  
+				this.log.info('API rate limiting; call limit of %s remaining out of %s until reset at %s',schedule.headers['x-ratelimit-remaining'],schedule.headers['x-ratelimit-limit'], new Date(schedule.headers['x-ratelimit-reset']).toString())
+			})
 			setTimeout(()=>{this.log.info('Rachio Platform finished loading')}, 1000)
 		}catch(err){
 			this.log.error('Failed to get devices...%s \nRetrying in %s seconds...', err,this.retryWait)
 			setTimeout(async()=>{
 				this.getRachioDevices()
 			},this.retryWait*1000)
-		}	
+		}
   }
 
   //**
@@ -301,8 +318,8 @@ class RachioPlatform {
   }
 
   setOnlineStatus(newDevice){
-  //set current device status  
-  //create a fake webhook response 
+  //set current device status
+  //create a fake webhook response
     if (newDevice.status){
       let myJson
       switch(newDevice.status){
@@ -333,11 +350,11 @@ class RachioPlatform {
       this.log.debug('Updating device status')
       this.updateService(irrigationSystemService,service,myJson)
     }
-  } 
+  }
 
   setDeviceStatus(newDevice){
-    //set current device state  
-    //create a fake webhook response 
+    //set current device state
+    //create a fake webhook response
     if (deviceState.state.health=='GOOD'){
       let myJson
       switch(deviceState.state.desiredState){
@@ -377,7 +394,7 @@ class RachioPlatform {
 
   setValveStatus(response){
     if (response.data.status=='PROCESSING'){
-      //create a fake webhook response 
+      //create a fake webhook response
       this.log.debug('Found zone-%s running',response.data.zoneNumber)
       let myJson={
         type: 'ZONE_STATUS',
@@ -432,7 +449,7 @@ class RachioPlatform {
   configureListener(){
     if (this.external_webhook_address && this.internal_webhook_port){
       this.log.debug('Will listen for Webhooks matching Webhook ID %s',this.webhook_key)
-      requestServer=http.createServer((request, response)=>{
+			requestServer=http.createServer((request, response)=>{
         let authPassed
         if (this.useBasicAuth){
           if (request.headers.authorization){
@@ -464,12 +481,12 @@ class RachioPlatform {
 					response.writeHead(200)
 					response.write( new Date().toTimeString()+' Webhooks are configured correctly!')
 					return response.end()
-				} 
+				}
 				else if (request.method === 'POST' && request.url === '/' && authPassed){
 					let body=[]
 					request.on('data', (chunk)=>{
 						body.push(chunk)
-					}).on('end', ()=>{  
+					}).on('end', ()=>{
 						try {
 							body=Buffer.concat(body).toString().trim()
 							let jsonBody=JSON.parse(body)
@@ -505,7 +522,7 @@ class RachioPlatform {
 									}
 								}
 							response.writeHead(204)
-							return response.end() 
+							return response.end()
 							}
 							else {
 							this.log.warn('Webhook received from an unknown external id %s',jsonBody.externalId)
@@ -514,31 +531,31 @@ class RachioPlatform {
 							}
 							//this.log.warn('Unsupported HTTP Request %s  %s', request.method, request.url)
 						}
-						catch(err){  
+						catch(err){
 							this.log.error('Error parsing webhook request ' + err)
 							response.writeHead(404)
 							return response.end()
 						}
 					})
-				} 
+				}
 			})
 			requestServer.listen(this.internal_webhook_port, function (){
 				this.log.info('This server is listening on port %s.',this.internal_webhook_port)
 				if (this.useBasicAuth){this.log.info('Using HTTP basic authentication for Webhooks')}
 				this.log.info('Make sure your router has port fowarding turned on for port %s to this server`s IP address and this port %s, unless you are using a relay service.',this.external_webhook_port,this.internal_webhook_port)
 			}.bind(this))
-		} 
+		}
 		else {
 			this.log.warn('Webhook support is disabled. This plugin will not sync Homekit to realtime events from other sources without Webhooks support.')
 		}
-    return 
-  } 
+    return
+  }
 
   updateService(irrigationSystemService,activeService,jsonBody){
 	//	try {
-    /*********************************************************** 
+    /***********************************************************
                 Possiible responses from webhooks
-    Type : DEVICE_STATUS           
+    Type : DEVICE_STATUS
       Subtype:
         OFFLINE
         ONLINE
@@ -550,8 +567,8 @@ class RachioPlatform {
         RAIN_SENSOR_DETECTION_ON
         RAIN_SENSOR_DETECTION_OFF
         RAIN_DELAY_ON
-        RAIN_DELAY_OFF           
-    Type : SCHEDULE_STATUS            
+        RAIN_DELAY_OFF
+    Type : SCHEDULE_STATUS
       Subtype:
         SCHEDULE_STARTED
         SCHEDULE_STOPPED
@@ -559,17 +576,17 @@ class RachioPlatform {
         WEATHER_INTELLIGENCE_NO_SKIP
         WEATHER_INTELLIGENCE_SKIP
         WEATHER_INTELLIGENCE_CLIMATE_SKIP
-        WEATHER_INTELLIGENCE_FREEZE            
-    Type : ZONE_STATUS         
-      Subtype:           
+        WEATHER_INTELLIGENCE_FREEZE
+    Type : ZONE_STATUS
+      Subtype:
         ZONE_STARTED
         ZONE_STOPPED
         ZONE_COMPLETED
         ZONE_PAUSED
         ZONE_CYCLING
-        ZONE_CYCLING_COMPLETED            
+        ZONE_CYCLING_COMPLETED
     Type : DEVICE_DELTA
-      Subtype : DEVICE_DELTA            
+      Subtype : DEVICE_DELTA
     Type : ZONE_DELTA
       Subtype : ZONE_DELTA
     Type : SCHEDULE_DELTA
@@ -577,8 +594,8 @@ class RachioPlatform {
     ************************************************************/
 			try {
 				switch(jsonBody.type){
-					case "ZONE_STATUS":  
-					this.log.debug('Zone Status Update') 
+					case "ZONE_STATUS":
+					this.log.debug('Zone Status Update')
 						/*****************************
 								 Possible states
 						Active	InUse	  HomeKit Shows
@@ -590,7 +607,7 @@ class RachioPlatform {
 						switch(jsonBody.subType){
 								case "ZONE_STARTED":
 									this.log('<%s> %s, started for duration %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
-									irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE) 
+									irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 									activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
 									activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 									activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(jsonBody.duration) //may need check on duration < 3600
@@ -606,32 +623,32 @@ class RachioPlatform {
 								break
 								case "ZONE_PAUSED":
 									this.log('<%s> %s, paused for duration %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
-									irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE) 
+									irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 									activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
-									activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)            
+									activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 								break
 								case "ZONE_CYCLING":
 									this.log('<%s> %s, cycling for duration %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
-									irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE) 
+									irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 									activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
-									activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)            
+									activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 								break
 								case "ZONE_COMPLETED":
 									this.log('<%s> %s, completed after %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
-									irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE) 
+									irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 									activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
-									activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)                          
+									activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 								break
 								case "ZONE_CYCLING_COMPLETED":
 									this.log('<%s> %s, cycling completed after %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
-									irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE) 
+									irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 									activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
 									activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 								break
 						}
 					break
 					case "DEVICE_STATUS":
-						this.log.debug('Device Status Update') 
+						this.log.debug('Device Status Update')
 						let irrigationAccessory=this.accessories[jsonBody.deviceId]
 						let switchService=irrigationAccessory.getServiceById(Service.Switch,UUIDGen.generate(jsonBody.deviceName+' Standby'))
 						switch(jsonBody.subType){
@@ -678,7 +695,7 @@ class RachioPlatform {
 										}
 								})
 							break
-							case "SLEEP_MODE_ON": //ProgramMode 0 
+							case "SLEEP_MODE_ON": //ProgramMode 0
 								this.log('<%s> %s %s %s',jsonBody.externalId,jsonBody.title,jsonBody.deviceName,jsonBody.summary)
 								irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED)
 								if (this.showStandby){switchService.getCharacteristic(Characteristic.On).updateValue(true)}
@@ -696,28 +713,28 @@ class RachioPlatform {
 							}
 					break
 					case "SCHEDULE_STATUS":
-						this.log.debug('Schedule Status Update') 
+						this.log.debug('Schedule Status Update')
 					switch(jsonBody.subType){
-						case "SCHEDULE_STARTED":     
+						case "SCHEDULE_STARTED":
 							this.log.info('<%s> %s %s',jsonBody.externalId,jsonBody.title,jsonBody.summary)
 							if (Service.IrrigationSystem.UUID != activeService.UUID){
 								activeService.getCharacteristic(Characteristic.On).updateValue(true)
 							}
-							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE) 
+							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 						break
 						case "SCHEDULE_STOPPED":
 							this.log.info('<%s> %s %s',jsonBody.externalId,jsonBody.title,jsonBody.summary)
 							if (Service.IrrigationSystem.UUID != activeService.UUID){
 								activeService.getCharacteristic(Characteristic.On).updateValue(false)
 							}
-							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE) 
+							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 						break
 						case "SCHEDULE_COMPLETED":
 							this.log.info('<%s> %s %s',jsonBody.externalId,jsonBody.title,jsonBody.summary)
 							if (Service.IrrigationSystem.UUID != activeService.UUID){
 								activeService.getCharacteristic(Characteristic.On).updateValue(false)
 							}
-							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE) 
+							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 						break
 					}
 					break

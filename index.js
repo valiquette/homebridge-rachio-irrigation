@@ -8,6 +8,6 @@ module.exports = (homebridge) => {
   UUIDGen = homebridge.hap.uuid
   PluginName = packageJson.name
   PlatformName = 'rachio'
-  
+
   homebridge.registerPlatform(PluginName, PlatformName, RachioPlatform, true)
 }
