@@ -129,6 +129,24 @@
         "required": false,
         "default": false
       },
+			"https": {
+        "title": "HTTPS",
+        "description": "Use Experimental HTTPS. For use with port fowarding directly from Rachio to secure local server",
+        "type": "boolean",
+        "required": false
+      },
+			"key": {
+        "title": "key",
+        "description": "Use Experimental HTTPS. For use with port fowarding directly from Rachio to secure local server",
+        "type": "string",
+        "required": false
+      },
+			"cert": {
+        "title": "cert",
+        "description": "Use Experimental HTTPS. For use with port fowarding directly from Rachio to secure local server",
+        "type": "string",
+        "required": false
+      },
       "user": {
         "title": "Basic Authentication User",
         "type": "string",

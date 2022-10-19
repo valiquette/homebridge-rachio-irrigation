@@ -38,14 +38,14 @@ irrigation.prototype={
 	configureIrrigationService(device,irrigationSystemService){
     this.log.info('Configure Irrigation system for %s', irrigationSystemService.getCharacteristic(Characteristic.Name).value)
     // Configure IrrigationSystem Service
-    irrigationSystemService 
+    irrigationSystemService
       .setCharacteristic(Characteristic.Active, Characteristic.Active.ACTIVE)
       .setCharacteristic(Characteristic.InUse, Characteristic.InUse.NOT_IN_USE)
       .setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
       .setCharacteristic(Characteristic.RemainingDuration, 0)
     // Check if the device is connected
     switch (device.status){
-      case "ONLINE": 
+      case "ONLINE":
         //irrigationSystemService.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
       break
       case "OFFLINE":
@@ -53,20 +53,20 @@ irrigation.prototype={
       break
     }
     switch (device.scheduleModeType){
-      case "OFF": 
+      case "OFF":
         irrigationSystemService.setCharacteristic(Characteristic.ProgramMode, Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED)
       break
-      case "SCHEDULED": 
+      case "SCHEDULED":
         irrigationSystemService.setCharacteristic(Characteristic.ProgramMode, Characteristic.ProgramMode.PROGRAM_SCHEDULED)
       break
-      case "MANUAL": 
+      case "MANUAL":
         irrigationSystemService.setCharacteristic(Characteristic.ProgramMode, Characteristic.ProgramMode.PROGRAM_SCHEDULED_MANUAL_MODE_)
       break
       default:
         this.log.info('Failed to retrieve program mode setting a default value. Retrieved-', device.data.scheduleModeType)
         irrigationSystemService.setCharacteristic(Characteristic.ProgramMode, Characteristic.ProgramMode.PROGRAM_SCHEDULED_MANUAL_MODE_)
     break
-    }   
+    }
     irrigationSystemService
       .getCharacteristic(Characteristic.Active)
       .on('get',this.getDeviceValue.bind(this, irrigationSystemService, "DeviceActive"))
@@ -79,7 +79,7 @@ irrigation.prototype={
   },
 
   getDeviceValue(irrigationSystemService, characteristicName, callback){
-    //this.log.debug('%s - Set something %s', irrigationSystemService.getCharacteristic(Characteristic.Name).value) 
+    //this.log.debug('%s - Set something %s', irrigationSystemService.getCharacteristic(Characteristic.Name).value)
     switch (characteristicName){
       case "DeviceActive":
         //this.log.debug("%s = %s %s", irrigationSystemService.getCharacteristic(Characteristic.Name).value, characteristicName,irrigationSystemService.getCharacteristic(Characteristic.Active).value);
@@ -89,7 +89,7 @@ irrigation.prototype={
         else {
           callback(null, irrigationSystemService.getCharacteristic(Characteristic.Active).value)
         }
-      break    
+      break
       case "DeviceInUse":
         //this.log.debug("%s = %s %s", irrigationSystemService.getCharacteristic(Characteristic.Name).value, characteristicName,irrigationSystemService.getCharacteristic(Characteristic.InUse).value);
           callback(null, irrigationSystemService.getCharacteristic(Characteristic.InUse).value)
@@ -107,7 +107,7 @@ irrigation.prototype={
 
   createValveService(zone){
     // Create Valve Service
-    let valve=new Service.Valve(zone.name, zone.id) 
+    let valve=new Service.Valve(zone.name, zone.id)
 		let defaultRuntime=this.platform.defaultRuntime
 		try {
 			switch (this.platform.runtimeSource) {
@@ -133,7 +133,7 @@ irrigation.prototype={
     valve.addCharacteristic(Characteristic.SerialNumber) //Use Serial Number to store the zone id
     valve.addCharacteristic(Characteristic.Model)
     valve.addCharacteristic(Characteristic.ConfiguredName)
-    valve 
+    valve
       .setCharacteristic(Characteristic.Active, Characteristic.Active.INACTIVE)
       .setCharacteristic(Characteristic.InUse, Characteristic.InUse.NOT_IN_USE)
       .setCharacteristic(Characteristic.ValveType, Characteristic.ValveType.IRRIGATION)
@@ -149,7 +149,7 @@ irrigation.prototype={
         valve.setCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED)}
       else {
         valve.setCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.NOT_CONFIGURED)
-      }   
+      }
     return valve
   },
 
@@ -212,10 +212,10 @@ irrigation.prototype={
   },
 
   setValveValue(device, valveService, value, callback){
-    //this.log.debug('%s - Set Active state to %s', valveService.getCharacteristic(Characteristic.Name).value, value) 
+    //this.log.debug('%s - Set Active state to %s', valveService.getCharacteristic(Characteristic.Name).value, value)
       let irrigationAccessory=this.platform.accessories[device.id];
       let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
-      
+
       // Set homekit state and prepare message for Rachio API
       let runTime=valveService.getCharacteristic(Characteristic.SetDuration).value
       if (value == Characteristic.Active.ACTIVE){
@@ -223,7 +223,7 @@ irrigation.prototype={
         this.log.info("Starting zone-%s %s for %s mins", valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value, valveService.getCharacteristic(Characteristic.Name).value, runTime/60)
         this.rachioapi.startZone (this.platform.token,valveService.getCharacteristic(Characteristic.SerialNumber).value,runTime)
         irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.Active.ACTIVE)
-        valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)  
+        valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
         let myJsonStart={
           type: 'ZONE_STATUS',
           title: valveService.getCharacteristic(Characteristic.Name).value+' Started',
@@ -267,10 +267,10 @@ irrigation.prototype={
         this.log.debug('Simulating webhook for %s will update services',myJsonStart.zoneName)
         this.platform.updateService(irrigationSystemService,valveService,myJsonStart)
         this.fakeWebhook=setTimeout(()=>{
-          this.log.debug('Simulating webhook for %s will update services',myJsonStop.zoneName) 
+          this.log.debug('Simulating webhook for %s will update services',myJsonStop.zoneName)
           this.log.debug(myJsonStop)
           this.platform.updateService(irrigationSystemService,valveService,myJsonStop)
-          }, runTime*1000) 
+          }, runTime*1000)
       } else {
         // Turn off/stopping the valve
         this.log.info("Stopping Zone", valveService.getCharacteristic(Characteristic.Name).value);
@@ -305,12 +305,12 @@ irrigation.prototype={
   },
 
   setValveDuration(device, valveService, value, callback){
-    // Set default duration from Homekit value 
-    valveService.getCharacteristic(Characteristic.SetDuration).updateValue(value) 
+    // Set default duration from Homekit value
+    valveService.getCharacteristic(Characteristic.SetDuration).updateValue(value)
     this.log.info("Set %s duration for %s mins", valveService.getCharacteristic(Characteristic.Name).value,value/60)
     callback()
   }
-
+	
 }
 
 module.exports = irrigation

@@ -1,4 +1,3 @@
-let packageJson=require('../package.json')
 let RachioAPI=require('../rachioapi')
 
 function switches (platform,log){
@@ -12,10 +11,10 @@ switches.prototype={
 	createScheduleSwitchService(schedule){
     // Create Valve Service
     this.log.debug("Created service for %s with id %s", schedule.name, schedule.id);
-    let switchService=new Service.Switch(schedule.name, schedule.id) 
+    let switchService=new Service.Switch(schedule.name, schedule.id)
     switchService.addCharacteristic(Characteristic.ConfiguredName)
     switchService.addCharacteristic(Characteristic.SerialNumber)
-    switchService 
+    switchService
       .setCharacteristic(Characteristic.On, false)
       .setCharacteristic(Characteristic.Name, schedule)
       .setCharacteristic(Characteristic.SerialNumber, schedule.id)
@@ -28,9 +27,9 @@ switches.prototype={
     this.log.debug('adding new switch')
     //let uuid=this.api.hap.uuid.generate(switchName)
     let uuid=UUIDGen.generate(switchName)
-    let switchService=new Service.Switch(switchName, uuid) 
+    let switchService=new Service.Switch(switchName, uuid)
     switchService.addCharacteristic(Characteristic.ConfiguredName)
-    switchService 
+    switchService
       .setCharacteristic(Characteristic.On, false)
       .setCharacteristic(Characteristic.Name, switchName)
       .setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
@@ -49,7 +48,7 @@ switches.prototype={
   setSwitchValue(device, switchService, value, callback){
     this.log.debug('toggle switch state %s',switchService.getCharacteristic(Characteristic.Name).value)
     switch(switchService.getCharacteristic(Characteristic.Name).value){
-      case device.name+' Standby': 
+      case device.name+' Standby':
         if (switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
           callback('error')
         }
@@ -57,15 +56,15 @@ switches.prototype={
           if (!value){
             switchService.getCharacteristic(Characteristic.On).updateValue(true)
             this.rachioapi.deviceStandby (this.platform.token,device,'on')
-          } 
+          }
           else {
             switchService.getCharacteristic(Characteristic.On).updateValue(false)
             this.rachioapi.deviceStandby (this.platform.token,device,'off')
           }
           callback()
-        } 
+        }
       break
-      case device.name+' Run All': 
+      case device.name+' Run All':
         if (switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
           callback('error')
         }
@@ -73,7 +72,7 @@ switches.prototype={
           if (value){
             switchService.getCharacteristic(Characteristic.On).updateValue(true)
             this.rachioapi.startMultipleZone (this.platform.token,device.zones,this.platform.defaultRuntime)
-          } 
+          }
           else {
             switchService.getCharacteristic(Characteristic.On).updateValue(false)
             this.rachioapi.stopDevice (this.platform.token,device.id)
@@ -89,7 +88,7 @@ switches.prototype={
           if (value){
             switchService.getCharacteristic(Characteristic.On).updateValue(true)
             this.rachioapi.startSchedule (this.platform.token,switchService.getCharacteristic(Characteristic.SerialNumber).value)
-          } 
+          }
           else {
             switchService.getCharacteristic(Characteristic.On).updateValue(false)
             this.rachioapi.stopDevice (this.platform.token,device.id)

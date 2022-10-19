@@ -5,6 +5,7 @@ Update
 -	Code Cleanup.
 - Added option to use HTTPS for Webhook Relay. Webhook relay now has a separate config section.
 -	Updated readme.
+- Added explict user-agent info to API calls.
 - Bumped dependencies.
 
 ## 1.2.15

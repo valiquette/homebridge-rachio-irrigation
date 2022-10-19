@@ -22,7 +22,8 @@ RachioAPI.prototype={
           url: '/person/info/',
           headers: {
 						'Authorization': `Bearer ${token}`,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'User-Agent': `${PluginName}/${PluginVersion}`
 					},
           responseType: 'json'
         }).catch(err => {
@@ -44,7 +45,8 @@ RachioAPI.prototype={
           url: '/person/'+personId,
 					headers: {
 						'Authorization': `Bearer ${token}`,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'User-Agent': `${PluginName}/${PluginVersion}`
 					},
           responseType: 'json'
         }).catch(err => {
@@ -66,7 +68,8 @@ RachioAPI.prototype={
         url: '/device/getDeviceState/'+device,
 				headers: {
 					'Authorization': `Bearer ${token}`,
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
 				},
         responseType: 'json'
       }).catch(err => {
@@ -88,7 +91,8 @@ RachioAPI.prototype={
         url: '/device/getDeviceDetails/'+device,
 				headers: {
 					'Authorization': `Bearer ${token}`,
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
 				},
         responseType: 'json'
       }).catch(err => {
@@ -110,7 +114,8 @@ RachioAPI.prototype={
         url: '/device/'+device,
 				headers: {
 					'Authorization': `Bearer ${token}`,
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
 				},
         responseType: 'json'
       }).catch(err => {
@@ -132,7 +137,8 @@ RachioAPI.prototype={
         url: '/location/listLocations/true',
    			headers: {
 					'Authorization': `Bearer ${token}`,
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
 				},
         responseType: 'json'
       }).catch(err => {
@@ -155,7 +161,8 @@ RachioAPI.prototype={
         url: '/device/'+device+'/current_schedule',
 				headers: {
 					'Authorization': `Bearer ${token}`,
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
 				},
         responseType: 'json'
       }).catch(err => {
@@ -178,7 +185,8 @@ RachioAPI.prototype={
         url: '/device/'+state,
 				headers: {
 					'Authorization': `Bearer ${token}`,
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
 				},
         data:{
           id: device.id,
@@ -203,7 +211,8 @@ RachioAPI.prototype={
         url: '/zone/start',
 				headers: {
 					'Authorization': `Bearer ${token}`,
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
 				},
         data:{
           id: zone,
@@ -228,7 +237,8 @@ RachioAPI.prototype={
         url: '/schedulerule/start',
 				headers: {
 					'Authorization': `Bearer ${token}`,
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
 				},
         data:{
           id: schedule
@@ -253,7 +263,8 @@ RachioAPI.prototype={
         url: '/device/stop_water',
 				headers: {
 					'Authorization': `Bearer ${token}`,
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
 				},
         data:{
           id: deviceId
@@ -291,7 +302,8 @@ RachioAPI.prototype={
         url: '/zone/start_multiple',
         headers: {
 					'Authorization': `Bearer ${token}`,
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
 				},
         data:{
           zones : body
@@ -316,7 +328,8 @@ RachioAPI.prototype={
         url: '/notification/' + device_Id + '/webhook',
 				headers: {
 					'Authorization': `Bearer ${token}`,
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
 				},
         responseType: 'json'
       }).catch(err => {
@@ -338,7 +351,8 @@ RachioAPI.prototype={
             url: '/notification/webhook/' + webhook.id,
             headers: {
 							'Authorization': `Bearer ${token}`,
-							'Content-Type': 'application/json'
+							'Content-Type': 'application/json',
+							'User-Agent': `${PluginName}/${PluginVersion}`
 						},
             responseType: 'json'
           }).catch(err => {
@@ -377,7 +391,8 @@ RachioAPI.prototype={
             url: '/notification/' + 'webhook/' + webhook.id,
             headers: {
 						'Authorization': `Bearer ${token}`,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'User-Agent': `${PluginName}/${PluginVersion}`
 						},
             responseType: 'json'
           }).catch(err => {
@@ -398,7 +413,8 @@ RachioAPI.prototype={
           url: '/notification/webhook/',
           headers: {
 						'Authorization': `Bearer ${token}`,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'User-Agent': `${PluginName}/${PluginVersion}`
 					},
           responseType: 'json',
           data: {
@@ -420,7 +436,8 @@ RachioAPI.prototype={
           url: '/notification/webhook/',
           headers: {
 						'Authorization': `Bearer ${token}`,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'User-Agent': `${PluginName}/${PluginVersion}`
 					},
           responseType: 'json',
           data: {

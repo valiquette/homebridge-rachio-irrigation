@@ -8,6 +8,8 @@ Schedule/zone duration when found throws warnings exceding 60 minutes
 'use strict'
 let axios=require('axios')
 let http=require('http')
+let https=require('https')
+let fs=require('fs')
 let RachioAPI=require('./rachioapi')
 let irrigation=require('./devices/irrigation')
 let switches=require('./devices/switches')
@@ -25,9 +27,10 @@ class RachioPlatform {
     this.log=log
     this.config=config
     this.token=config.api_key
-		this.retryWait=config.retryWait || 30
+		this.retryWait=config.retryWait || 60
     this.external_IP_address=config.external_IP_address
     this.external_webhook_port=config.external_webhook_port
+		this.internal_IP_address=config.internal_IP_address
     this.internal_webhook_port=config.internal_webhook_port
 		this.relay_address=config.relay_address
     this.webhook_key='homebridge-'+config.name
@@ -47,8 +50,14 @@ class RachioPlatform {
     this.accessories=[]
     this.realExternalIP
     this.foundLocations
+		this.useHttps=config.https || false
+		this.key=config.key
+		this.cert=config.cert
 		let destination='http://'
 		let port=(this.external_webhook_port) ? ':'+this.external_webhook_port :''
+		if(this.useHttps){
+			destination='https://'
+			this.useBasicAuth=false}
 
 		if (this.useBasicAuth && this.user && this.password){
 			this.external_webhook_address=destination+this.user+":"+this.password+"@"+this.external_IP_address+port
@@ -69,7 +78,6 @@ class RachioPlatform {
     }
 
 		if(this.relay_address){
-			this.log.warn('Using Webhook Relay @ %s',this.relay_address)
 			this.useBasicAuth=false
 			this.external_webhook_address=this.relay_address
 		}
@@ -108,7 +116,7 @@ class RachioPlatform {
 			if (this.ipv4){
 				axios({
 					method: 'get',
-					url: 'http://ip4only.me/api/',
+					url: 'https://ip4only.me/api/',
 					responseType: 'text'
 				}).then(response=> {
 					let addressV4=response.data.split(',')
@@ -122,7 +130,7 @@ class RachioPlatform {
 			else if (this.ipv6){
 				axios({
 					method: 'get',
-					url: 'http://ip6only.me/api/',
+					url: 'https://ip6only.me/api/',
 					responseType: 'text'
 				}).then(response=> {
 					let addressV6=response.data.split(',')
@@ -446,113 +454,118 @@ class RachioPlatform {
     }
   }
 
-  configureListener(){
-    if (this.external_webhook_address && this.internal_webhook_port){
-      this.log.debug('Will listen for Webhooks matching Webhook ID %s',this.webhook_key)
-			requestServer=http.createServer((request, response)=>{
-        let authPassed
-        if (this.useBasicAuth){
-          if (request.headers.authorization){
-            let b64encoded=(Buffer.from(this.user+":"+this.password,'utf8')).toString('base64')
-            this.log.debug('webhook request received authorization header=%s',request.headers.authorization)
-            this.log.debug('webhook request received authorization header=%s',"Basic "+b64encoded)
-            if (request.headers.authorization == "Basic "+b64encoded){
-              this.log.debug("Webhook authentication passed")
-              authPassed=true
-            }
-            else {
-              this.log.warn('Webhook authentication failed')
-              this.log.debug("Webhook authentication failed",request.headers.authorization)
-              authPassed=false
-            }
-          }
-          else {
-            this.log.warn('Expecting webhook authentication')
-            this.log.debug('Expecting webhook authentication',request) //debug line
-            authPassed=false
-            return
+	configureListener(){
+		let server=(this.useHttps) ? https : http
+		let options={}
+		if (server==https){
+			options={
+				key: fs.readFileSync(this.key),
+				cert: fs.readFileSync(this.cert)
+			}
+		}
+
+		if ((this.external_IP_address && this.external_webhook_address && this.internal_webhook_port) || (this.relay_address && this.internal_IP_address && this.internal_webhook_port)){
+		this.log.debug('Will listen for Webhooks matching Webhook ID %s',this.webhook_key)
+		requestServer=server.createServer(options,(request, response)=>{
+			let authPassed
+			if (this.useBasicAuth){
+				if (request.headers.authorization){
+					let b64encoded=(Buffer.from(this.user+":"+this.password,'utf8')).toString('base64')
+					this.log.debug('webhook request received authorization header=%s',request.headers.authorization)
+					this.log.debug('webhook request received authorization header=%s',"Basic "+b64encoded)
+					if (request.headers.authorization == "Basic "+b64encoded){
+						this.log.debug("Webhook authentication passed")
+						authPassed=true
+					}
+					else {
+						this.log.warn('Webhook authentication failed')
+						this.log.debug("Webhook authentication failed",request.headers.authorization)
+						authPassed=false
 					}
 				}
 				else {
-					authPassed=true
+					this.log.warn('Expecting webhook authentication')
+					this.log.debug('Expecting webhook authentication',request)
+					authPassed=false
+					return
 				}
-				if (request.method === 'GET' && request.url === '/test'){
-					this.log.info('Test received on Rachio listener. Webhooks are configured correctly!')
-					response.writeHead(200)
-					response.write( new Date().toTimeString()+' Webhooks are configured correctly!')
-					return response.end()
-				}
-				else if (request.method === 'POST' && request.url === '/' && authPassed){
-					let body=[]
-					request.on('data', (chunk)=>{
-						body.push(chunk)
-					}).on('end', ()=>{
-						try {
-							body=Buffer.concat(body).toString().trim()
-							let jsonBody=JSON.parse(body)
-							this.log.debug('webhook request received from <%s> %s',jsonBody.externalId,jsonBody)
-							if (jsonBody.externalId === this.webhook_key){
-								let irrigationAccessory=this.accessories[jsonBody.deviceId]
-								let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
-								let service
-								if (jsonBody.zoneId){
-									service=irrigationAccessory.getServiceById(Service.Valve,jsonBody.zoneId)
-									//this.log.debug('Webhook match found for %s will update zone service',jsonBody.zoneName)
-									this.log.debug('Webhook match found for %s will update zone service',service.getCharacteristic(Characteristic.Name).value)
+			}
+			else {
+				authPassed=true
+			}
+			if (request.method === 'GET' && request.url === '/test'){
+				this.log.info('Test received on Rachio listener. Webhooks are configured correctly!')
+				response.writeHead(200)
+				response.write( new Date().toTimeString()+' Webhooks are configured correctly!')
+				return response.end()
+			}
+			else if (request.method === 'POST' && request.url === '/' && authPassed){
+				let body=[]
+				request.on('data', (chunk)=>{
+					body.push(chunk)
+				}).on('end', ()=>{
+					try {
+						body=Buffer.concat(body).toString().trim()
+						let jsonBody=JSON.parse(body)
+						this.log.debug('webhook request received from <%s> %s',jsonBody.externalId,jsonBody)
+						if (jsonBody.externalId === this.webhook_key){
+							let irrigationAccessory=this.accessories[jsonBody.deviceId]
+							let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
+							let service
+							if (jsonBody.zoneId){
+								service=irrigationAccessory.getServiceById(Service.Valve,jsonBody.zoneId)
+								this.log.debug('Webhook match found for %s will update zone service',service.getCharacteristic(Characteristic.Name).value)
+								this.updateService(irrigationSystemService,service,jsonBody)
+							}
+							else if (jsonBody.scheduleId){
+								service=irrigationAccessory.getServiceById(Service.Switch,jsonBody.scheduleId)
+								if (this.showSchedules){
+									this.log.debug('Webhook match found for %s will update schedule service',service.getCharacteristic(Characteristic.Name).value)
 									this.updateService(irrigationSystemService,service,jsonBody)
 								}
-								else if (jsonBody.scheduleId){
-									service=irrigationAccessory.getServiceById(Service.Switch,jsonBody.scheduleId)
-									if (this.showSchedules){
-										this.log.debug('Webhook match found for %s will update schedule service',service.getCharacteristic(Characteristic.Name).value)
-										this.updateService(irrigationSystemService,service,jsonBody)
-									}
-									else {
-										this.log.debug('Skipping Webhook for %s service, optional schedule switch is not configured',jsonBody.scheduleName)
-									}
+								else {
+									this.log.debug('Skipping Webhook for %s service, optional schedule switch is not configured',jsonBody.scheduleName)
 								}
-								else if (jsonBody.deviceId){
-									service=irrigationAccessory.getServiceById(Service.IrrigationSystem)
-									if (this.showStandby){
-										this.log.debug('Webhook match found for %s will update irrigation service',service.getCharacteristic(Characteristic.Name).value)
-										this.updateService(irrigationSystemService,service,jsonBody)
-									}
-									else {
-										this.log.debug('Skipping Webhook for %s service, optional standby switch is not configured',jsonBody.deviceName)
-									}
+							}
+							else if (jsonBody.deviceId){
+								service=irrigationAccessory.getServiceById(Service.IrrigationSystem)
+								if (this.showStandby){
+									this.log.debug('Webhook match found for %s will update irrigation service',service.getCharacteristic(Characteristic.Name).value)
+									this.updateService(irrigationSystemService,service,jsonBody)
 								}
-							response.writeHead(204)
-							return response.end()
+								else {
+									this.log.debug('Skipping Webhook for %s service, optional standby switch is not configured',jsonBody.deviceName)
+								}
 							}
-							else {
-							this.log.warn('Webhook received from an unknown external id %s',jsonBody.externalId)
-							response.writeHead(404)
-							return response.end()
-							}
-							//this.log.warn('Unsupported HTTP Request %s  %s', request.method, request.url)
+						response.writeHead(204)
+						return response.end()
 						}
-						catch(err){
-							this.log.error('Error parsing webhook request ' + err)
-							response.writeHead(404)
-							return response.end()
+						else {
+						this.log.warn('Webhook received from an unknown external id %s',jsonBody.externalId)
+						response.writeHead(404)
+						return response.end()
 						}
-					})
-				}
-			})
-			requestServer.listen(this.internal_webhook_port, function (){
-				this.log.info('This server is listening on port %s.',this.internal_webhook_port)
-				if (this.useBasicAuth){this.log.info('Using HTTP basic authentication for Webhooks')}
-				this.log.info('Make sure your router has port fowarding turned on for port %s to this server`s IP address and this port %s, unless you are using a relay service.',this.external_webhook_port,this.internal_webhook_port)
-			}.bind(this))
-		}
-		else {
-			this.log.warn('Webhook support is disabled. This plugin will not sync Homekit to realtime events from other sources without Webhooks support.')
-		}
-    return
+					}
+					catch(err){
+						this.log.error('Error parsing webhook request ' + err)
+						response.writeHead(404)
+						return response.end()
+					}
+				})
+			}
+		}).listen(this.internal_webhook_port, function (){
+			this.log.info('This server is listening on port %s.',this.internal_webhook_port)
+			if (this.useBasicAuth){this.log.info('Using HTTP basic authentication for Webhooks')}
+			this.log.info('Make sure your router has port fowarding turned on for port %s to this server`s IP address and this port %s, unless you are using a relay service.',this.external_webhook_port,this.internal_webhook_port)
+		}.bind(this))
+	}
+	else {
+		this.log.warn('Webhook support is disabled. This plugin will not sync Homekit to realtime events from other sources without Webhooks support.')
+	}
+	return
   }
 
   updateService(irrigationSystemService,activeService,jsonBody){
-	//	try {
     /***********************************************************
                 Possiible responses from webhooks
     Type : DEVICE_STATUS
