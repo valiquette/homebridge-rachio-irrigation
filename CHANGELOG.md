@@ -1,5 +1,18 @@
 # Changes
 
+## 1.2.17
+Improvments
+-	Code Cleanup.
+-	Addressed old known issues.
+	- Fixed Homekit display for zone soak time
+	- Fixed displayed duration for pause time.
+	- Fixed warning message with durations greater than 1 hour when started from Rachio app. Homekit will only display minutes but homebridge will show the hour.
+- Fixed Quick Run-All zone switch not updating to off after quick run completes.
+- Bumped dependencies.
+Enhancment
+- Feature Request, Added support for TLS connection for webhooks. Will require valid certificates for local domain.
+- Updated readme.
+
 ## 1.2.16
 Update
 -	Code Cleanup.

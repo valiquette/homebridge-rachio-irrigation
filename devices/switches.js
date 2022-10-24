@@ -64,7 +64,7 @@ switches.prototype={
           callback()
         }
       break
-      case device.name+' Run All':
+      case device.name+' Quick Run-All':
         if (switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
           callback('error')
         }

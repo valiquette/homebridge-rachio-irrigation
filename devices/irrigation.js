@@ -5,7 +5,6 @@ function irrigation (platform,log){
 	this.log=log
 	this.platform=platform
 	this.rachioapi=new RachioAPI(this,log)
-	this.fakeWebhook
 }
 
 irrigation.prototype={
@@ -133,6 +132,18 @@ irrigation.prototype={
     valve.addCharacteristic(Characteristic.SerialNumber) //Use Serial Number to store the zone id
     valve.addCharacteristic(Characteristic.Model)
     valve.addCharacteristic(Characteristic.ConfiguredName)
+		valve
+		.getCharacteristic(Characteristic.SetDuration)
+		.setProps({
+			minValue:0,
+			maxValue:64800
+		})
+		valve
+		.getCharacteristic(Characteristic.RemainingDuration)
+		.setProps({
+			minValue:0,
+			maxValue:64800
+		})
     valve
       .setCharacteristic(Characteristic.Active, Characteristic.Active.INACTIVE)
       .setCharacteristic(Characteristic.InUse, Characteristic.InUse.NOT_IN_USE)
@@ -266,7 +277,7 @@ irrigation.prototype={
         this.log.debug(myJsonStart)
         this.log.debug('Simulating webhook for %s will update services',myJsonStart.zoneName)
         this.platform.updateService(irrigationSystemService,valveService,myJsonStart)
-        this.fakeWebhook=setTimeout(()=>{
+        this.platform.fakeWebhook=setTimeout(()=>{
           this.log.debug('Simulating webhook for %s will update services',myJsonStop.zoneName)
           this.log.debug(myJsonStop)
           this.platform.updateService(irrigationSystemService,valveService,myJsonStop)
@@ -299,7 +310,7 @@ irrigation.prototype={
       this.log.debug(myJsonStop)
       this.log.debug('Simulating webhook for %s will update services',myJsonStop.zoneName)
       this.platform.updateService(irrigationSystemService,valveService,myJsonStop)
-      clearTimeout(this.fakeWebhook)
+      clearTimeout(this.platform.fakeWebhook)
       }
     callback()
   },
@@ -310,7 +321,7 @@ irrigation.prototype={
     this.log.info("Set %s duration for %s mins", valveService.getCharacteristic(Characteristic.Name).value,value/60)
     callback()
   }
-	
+
 }
 
 module.exports = irrigation

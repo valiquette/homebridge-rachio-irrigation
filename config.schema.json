@@ -124,27 +124,29 @@
       },
       "use_basic_auth": {
         "title": "HTTP basic authentication",
-        "description": "Use HTTP basic authentication. For use with port fowarding directly from Rachio",
+        "description": "Use HTTP basic authentication (recommended).",
         "type": "boolean",
         "required": false,
         "default": false
       },
 			"https": {
-        "title": "HTTPS",
-        "description": "Use Experimental HTTPS. For use with port fowarding directly from Rachio to secure local server",
+        "title": "Use HTTPS",
+        "description": "Use a TLS connection from Rachio to your secure local server.<br/>Do not use this feature unless you have a valid signed certificate.",
         "type": "boolean",
         "required": false
       },
 			"key": {
-        "title": "key",
-        "description": "Use Experimental HTTPS. For use with port fowarding directly from Rachio to secure local server",
+        "title": "Key",
+        "description": "Key file",
         "type": "string",
+				"placeholder": "/path/privkey.pem",
         "required": false
       },
 			"cert": {
-        "title": "cert",
-        "description": "Use Experimental HTTPS. For use with port fowarding directly from Rachio to secure local server",
+        "title": "Cert",
+        "description": "Cert file",
         "type": "string",
+				"placeholder": "/path/fullchain.pem",
         "required": false
       },
       "user": {
@@ -273,8 +275,44 @@
 					"helpvalue": "<i>Important note.<p class='help-block'> Your router will need to forward this external port to your internal webhook port. Consult the readme for additional webhook information.</p>"
 				},
 				{
+					"key": "Advanced",
+					"title": "TLS/SSL option",
+					"description": "TLS/SSL option",
+					"type": "flex",
+					"expandable": true,
+					"displayFlex": true,
+					"flex-flow":"row wrap",
+					"items": [
+						{
+							"type": "flex",
+							"flex-flow": "row wrap",
+							"items": [
+								{
+									"type": "help",
+									"helpvalue": "<p class='help-block'>If you have a valid and signed certificate for you system you can use secure https </p>"
+								},
+								{
+									"type": "flex",
+									"flex-flow": "row wrap",
+									"items": [
+										"https"
+									]
+								},
+								{
+									"type": "flex",
+									"flex-flow": "row wrap",
+									"items": [
+										"key",
+										"cert"
+									]
+								}
+							]
+						}
+					]
+        },
+				{
 					"key": "Extra stuff",
-					"title": "Options",
+					"title": "Extra webhook settings",
 					"description": "Extra webhook settings",
 					"type": "flex",
 					"expandable": true,

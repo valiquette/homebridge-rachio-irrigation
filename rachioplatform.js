@@ -1,8 +1,7 @@
 /*
 Known issues
-Time remaining for homebridge accessory runs about 2x fast but homekit is fine
-Pause states not reflected corrrecly in homebridge but ok in homekit
-Schedule/zone duration when found throws warnings exceding 60 minutes
+Time remaining for homebridge accessory, homekit and Rachio run a little out of sync.
+Zone Cyclying message may be out of sequence
 */
 
 'use strict'
@@ -35,6 +34,7 @@ class RachioPlatform {
 		this.relay_address=config.relay_address
     this.webhook_key='homebridge-'+config.name
     this.webhook_key_local='simulated-webhook'
+		this.fakeWebhook
     this.delete_webhooks=config.delete_webhooks
     this.useBasicAuth=config.use_basic_auth
     this.user=config.user
@@ -53,11 +53,9 @@ class RachioPlatform {
 		this.useHttps=config.https || false
 		this.key=config.key
 		this.cert=config.cert
-		let destination='http://'
-		let port=(this.external_webhook_port) ? ':'+this.external_webhook_port :''
-		if(this.useHttps){
-			destination='https://'
-			this.useBasicAuth=false}
+
+		let destination=this.useHttps ? 'https://' : 'http://'
+		let port=this.external_webhook_port ? ':'+this.external_webhook_port : ''
 
 		if (this.useBasicAuth && this.user && this.password){
 			this.external_webhook_address=destination+this.user+":"+this.password+"@"+this.external_IP_address+port
@@ -124,7 +122,7 @@ class RachioPlatform {
 					if (this.ipv4 && this.external_IP_address && this.realExternalIP != this.external_IP_address){
 						this.log.warn('Configured external IPv4 address of %s does not match this servers detected external IP of %s please check webhook config settings.',this.external_IP_address,this.realExternalIP)
 				}
-				}).catch(err=>{this.log.error('Failed to get current external IP', err)})
+				}).catch(err=>{this.log.error('Failed to get current external IP', err.cause)})
 				this.log.debug('using IPv4 webhook external address')
 			}
 			else if (this.ipv6){
@@ -138,7 +136,7 @@ class RachioPlatform {
 					if (this.ipv4 && this.external_IP_address && this.realExternalIP != this.external_IP_address){
 						this.log.warn('Configured external IPv6 address of %s does not match this servers detected external IP of %s please check webhook config settings.',this.external_IP_address,this.realExternalIP)
 				}
-				}).catch(err=>{this.log.error('Failed to get current external IP', err)})
+				}).catch(err=>{this.log.error('Failed to get current external IP', err.cause)})
 				this.log.debug('using IPv6 webhook external address')
 			}
 			else if (this.fqdn){
@@ -287,7 +285,7 @@ class RachioPlatform {
 
 				if (this.showRunall){
 					this.log.debug('adding new run all switch')
-					switchService=this.switches.createSwitchService(newDevice,newDevice.name+' Run All')
+					switchService=this.switches.createSwitchService(newDevice,newDevice.name+' Quick Run-All')
 					this.switches.configureSwitchService(newDevice, switchService)
 					irrigationAccessory.getService(Service.IrrigationSystem).addLinkedService(switchService)
 					irrigationAccessory.addService(switchService)
@@ -471,8 +469,8 @@ class RachioPlatform {
 			if (this.useBasicAuth){
 				if (request.headers.authorization){
 					let b64encoded=(Buffer.from(this.user+":"+this.password,'utf8')).toString('base64')
-					this.log.debug('webhook request received authorization header=%s',request.headers.authorization)
-					this.log.debug('webhook request received authorization header=%s',"Basic "+b64encoded)
+					this.log.debug('webhook request authorization header=%s',request.headers.authorization)
+					this.log.debug('webhook expected authorization header=%s',"Basic "+b64encoded)
 					if (request.headers.authorization == "Basic "+b64encoded){
 						this.log.debug("Webhook authentication passed")
 						authPassed=true
@@ -565,7 +563,7 @@ class RachioPlatform {
 	return
   }
 
-  updateService(irrigationSystemService,activeService,jsonBody){
+  async updateService(irrigationSystemService,activeService,jsonBody){
     /***********************************************************
                 Possiible responses from webhooks
     Type : DEVICE_STATUS
@@ -623,28 +621,36 @@ class RachioPlatform {
 									irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 									activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
 									activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
-									activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(jsonBody.duration) //may need check on duration < 3600
-									activeService.getCharacteristic(Characteristic.CurrentTime).updateValue(jsonBody.endTime) // Store zone run end time to calulate remaianing duration
+									activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(jsonBody.duration)
+									activeService.getCharacteristic(Characteristic.CurrentTime).updateValue(jsonBody.endTime)
 								break
 								case "ZONE_STOPPED":
 									this.log('<%s> %s, stopped after %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
 									irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 									activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
 									activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-									activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(0)
-									activeService.getCharacteristic(Characteristic.CurrentTime).updateValue( new Date().toISOString())
+									activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(jsonBody.duration)
+									activeService.getCharacteristic(Characteristic.CurrentTime).updateValue(jsonBody.endTime)
 								break
 								case "ZONE_PAUSED":
-									this.log('<%s> %s, paused for duration %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
+									clearTimeout(this.fakeWebhook)
+									let pauseDuration=Math.round(((Date.parse(jsonBody.endTime)-Date.now())-(Date.parse(activeService.getCharacteristic(Characteristic.CurrentTime).value)-Date.now()))/1000)
+									let pauseDurationInMinutes=Math.round(pauseDuration/60)
+									this.log('<%s> %s, paused for duration %s mins.',jsonBody.externalId,jsonBody.title,pauseDurationInMinutes)
 									irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 									activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
 									activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
+									activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(pauseDuration)
+									activeService.getCharacteristic(Characteristic.CurrentTime).updateValue(jsonBody.endTime)
 								break
 								case "ZONE_CYCLING":
+									clearTimeout(this.fakeWebhook)
 									this.log('<%s> %s, cycling for duration %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
 									irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 									activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
 									activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
+									activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(jsonBody.duration)
+									activeService.getCharacteristic(Characteristic.CurrentTime).updateValue(jsonBody.endTime)
 								break
 								case "ZONE_COMPLETED":
 									this.log('<%s> %s, completed after %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
@@ -748,6 +754,12 @@ class RachioPlatform {
 								activeService.getCharacteristic(Characteristic.On).updateValue(false)
 							}
 							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
+							//need stop quick run
+							if(this.showRunall){
+								let irrigationAccessory=this.accessories[jsonBody.deviceId]
+								let switchService=irrigationAccessory.getServiceById(Service.Switch,UUIDGen.generate(jsonBody.deviceName+' Quick Run-All'))
+								switchService.getCharacteristic(Characteristic.On).updateValue(false)
+							}
 						break
 					}
 					break

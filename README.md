@@ -48,6 +48,7 @@ You can acquire your API key from Rachio io.app [documented here](https://rachio
  - You must enable port fowarding on the router this server is conected to. Follow you routers instructions for this step.
  - The port forwarding should look like external_webhook_port -> internal_port for your servers IP address which can be found on the Homebridge Status page in system information.
  - **NOTE:** if your IP Address is changed by your ISP, you will need to edit the IP address in the config to match it whenever it changes. You should use a Dynamic IP address DNS service if your IP changes often.
+ - Advanced settings for HTTPS, If you have a registered domanin and a valid signed cerficate you may use TLS connection. 
 
 ## Relay service
 ### If you cannot setup port forwarding on your router (or don't want to):
