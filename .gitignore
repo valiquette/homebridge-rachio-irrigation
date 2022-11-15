@@ -6,3 +6,6 @@ Thumbs.db
 # Dependency directories
 node_modules/
 jspm_packages/
+
+# ignore file
+package-lock.json
