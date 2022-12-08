@@ -1,5 +1,9 @@
 # Changes
 
+## 1.2.18
+Update
+- Bumped dependencies.
+
 ## 1.2.17
 Improvments
 -	Code Cleanup.
