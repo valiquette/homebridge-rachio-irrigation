@@ -12,8 +12,6 @@ let fs=require('fs')
 let RachioAPI=require('./rachioapi')
 let irrigation=require('./devices/irrigation')
 let switches=require('./devices/switches')
-let personInfo
-let personId
 let deviceState
 let requestServer
 
@@ -35,6 +33,7 @@ class RachioPlatform {
     this.webhook_key='homebridge-'+config.name
     this.webhook_key_local='simulated-webhook'
 		this.fakeWebhook
+		this.endTime=[]
     this.delete_webhooks=config.delete_webhooks
     this.useBasicAuth=config.use_basic_auth
     this.user=config.user
@@ -169,20 +168,18 @@ class RachioPlatform {
     	// getting account info
 			this.log.debug('Fetching build info...')
 			this.log.info('Getting Person info...')
-			let person=await this.rachioapi.getPersonInfo(this.token).catch(err=>{this.log.error('Failed to get info for build', err)})
-			personId=person.data.id
+			let personId=(await this.rachioapi.getPersonInfo(this.token).catch(err=>{this.log.error('Failed to get info for build', err)})).data.id
 			this.log('Found Person ID %s',personId)
 
 			this.log.info('Getting Person ID info...')
-			let response=await this.rachioapi.getPersonId(this.token,personId).catch(err=>{this.log.error('Failed to get person info for build', err)})
-			personInfo=response
-			this.log.info('Found Account for username %s',personInfo.data.username)
+			let personInfo=(await this.rachioapi.getPersonId(this.token,personId).catch(err=>{this.log.error('Failed to get person info for build', err)})).data
+			this.log.info('Found Account for username %s',personInfo.username)
 			this.log.info('Getting Location info...')
 
-			let location=await this.rachioapi.getLocationList(this.token).catch(err=>{this.log.error('Failed to get location summary', err)})
-			location.data.locationSummary.forEach(address=>{
+			let location=(await this.rachioapi.getLocationList(this.token).catch(err=>{this.log.error('Failed to get location summary', err)})).data
+			location.locationSummary.forEach(address=>{
 				this.log.info('Found Location: id=%s address=%s geo=%s',address.location.id,address.location.address.addressLine1,address.location.geoPoint)
-				this.foundLocations=location.data.locationSummary
+				this.foundLocations=location.locationSummary
 				address.location.deviceId.forEach(device=>{
 					this.log.info('Found Location: device id=%s ',device)
 				})
@@ -191,7 +188,7 @@ class RachioPlatform {
 			// configure listerner for webhook messages
 			this.configureListener()
 
-			personInfo.data.devices.filter((newDevice)=>{
+			personInfo.devices.filter((newDevice)=>{
 				this.foundLocations.forEach((location)=>{
 					location.location.deviceId.forEach((device)=>{
 						if (!this.locationAddress || this.locationAddress==location.location.address.addressLine1){
@@ -214,9 +211,9 @@ class RachioPlatform {
 				this.log.info('Found device %s status %s',newDevice.name,newDevice.status)
 				let uuid=newDevice.id
 				this.log.info('Getting device state info...')
-				let state=await this.rachioapi.getDeviceState(this.token,newDevice.id).catch(err=>{this.log.error('Failed to get device state', err)})
-				if(!state){return}
-				deviceState=state.data
+				deviceState=(await this.rachioapi.getDeviceState(this.token,newDevice.id).catch(err=>{this.log.error('Failed to get device state', err)})).data
+				if(!deviceState){return}
+				//deviceState=state.data
 				this.log('Retrieved device state %s for %s with a %s state, running',deviceState.state.state,newDevice.name,deviceState.state.desiredState,deviceState.state.firmwareVersion)
 				if (this.external_webhook_address){
 					this.rachioapi.configureWebhooks(this.token,this.external_webhook_address,this.delete_webhooks,newDevice.id,this.webhook_key)
@@ -302,7 +299,7 @@ class RachioPlatform {
 
 				//find any running zone and set its state
 				let schedule=await this.rachioapi.currentSchedule (this.token,newDevice.id).catch(err=>{this.log.error('Failed to get current schedule', err)})
-				this.setValveStatus(schedule)
+				this.setValveStatus(schedule.data)
 				this.log.info('API rate limiting; call limit of %s remaining out of %s until reset at %s',schedule.headers['x-ratelimit-remaining'],schedule.headers['x-ratelimit-limit'], new Date(schedule.headers['x-ratelimit-reset']).toString())
 			})
 			setTimeout(()=>{this.log.info('Rachio Platform finished loading')}, 1000)
@@ -399,23 +396,23 @@ class RachioPlatform {
   }
 
   setValveStatus(response){
-    if (response.data.status=='PROCESSING'){
+    if (response.status=='PROCESSING'){
       //create a fake webhook response
-      this.log.debug('Found zone-%s running',response.data.zoneNumber)
+      this.log.debug('Found zone-%s running',response.zoneNumber)
       let myJson={
         type: 'ZONE_STATUS',
         title: 'Zone Started',
-        deviceId: response.data.deviceId,
-        duration: response.data.zoneDuration,
-        zoneNumber: response.data.zoneNumber,
-        zoneId: response.data.zoneId,
+        deviceId: response.deviceId,
+        duration: response.zoneDuration,
+        zoneNumber: response.zoneNumber,
+        zoneId: response.zoneId,
         zoneRunState: 'STARTED',
-        durationInMinutes: Math.round(response.data.zoneDuration/60),
+        durationInMinutes: Math.round(response.zoneDuration/60),
         externalId: this.webhook_key_local,
         eventType: 'DEVICE_ZONE_RUN_STARTED_EVENT',
         subType: 'ZONE_STARTED',
-        startTime: response.data.zoneStartDate,
-        endTime: new Date(response.data.zoneStartDate+(response.data.zoneDuration*1000)).toISOString(),
+        startTime: response.zoneStartDate,
+        endTime: new Date(response.zoneStartDate+(response.zoneDuration*1000)).toISOString(),
         category: 'DEVICE',
         resourceType: 'DEVICE'
       }
@@ -426,20 +423,20 @@ class RachioPlatform {
       this.log.debug('Zone running match found for zone-%s on start will update services',myJson.zoneNumber)
       this.updateService(irrigationSystemService,service,myJson)
     }
-    if (response.data.status=='PROCESSING' && this.showSchedules && response.data.scheduleId != undefined){
-      this.log.debug('Found schedule %s running',response.data.scheduleId)
+    if (response.status=='PROCESSING' && this.showSchedules && response.scheduleId != undefined){
+      this.log.debug('Found schedule %s running',response.scheduleId)
       let myJson={
         type: 'SCHEDULE_STATUS',
         title: 'Schedule Manually Started',
-        deviceId: response.data.deviceId,
-        deviceName: response.data.name,
-        duration: response.data.zoneDuration/60,
+        deviceId: response.deviceId,
+        deviceName: response.name,
+        duration: response.zoneDuration/60,
         scheduleName: 'Quick Run',
-        scheduleId: response.data.scheduleId,
+        scheduleId: response.scheduleId,
         externalId: this.webhook_key_local,
         eventType: 'SCHEDULE_STARTED_EVENT',
         subType: 'SCHEDULE_STARTED',
-        endTime: new Date(response.data.zoneStartDate+(response.data.zoneDuration*1000)).toISOString(),
+        endTime: new Date(response.zoneStartDate+(response.zoneDuration*1000)).toISOString(),
         category: 'SCHEDULE',
         resourceType: 'DEVICE'
       }
@@ -622,7 +619,7 @@ class RachioPlatform {
 									activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
 									activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 									activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(jsonBody.duration)
-									activeService.getCharacteristic(Characteristic.CurrentTime).updateValue(jsonBody.endTime)
+									this.endTime[activeService.subtype]=jsonBody.endTime
 								break
 								case "ZONE_STOPPED":
 									this.log('<%s> %s, stopped after %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
@@ -630,18 +627,18 @@ class RachioPlatform {
 									activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
 									activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 									activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(jsonBody.duration)
-									activeService.getCharacteristic(Characteristic.CurrentTime).updateValue(jsonBody.endTime)
+									this.endTime[activeService.subtype]=jsonBody.endTime
 								break
 								case "ZONE_PAUSED":
 									clearTimeout(this.fakeWebhook)
-									let pauseDuration=Math.round(((Date.parse(jsonBody.endTime)-Date.now())-(Date.parse(activeService.getCharacteristic(Characteristic.CurrentTime).value)-Date.now()))/1000)
+									let pauseDuration=Math.round(((Date.parse(jsonBody.endTime)-Date.now())-(Date.parse(this.endTime[activeService.subtype])-Date.now()))/1000)
 									let pauseDurationInMinutes=Math.round(pauseDuration/60)
 									this.log('<%s> %s, paused for duration %s mins.',jsonBody.externalId,jsonBody.title,pauseDurationInMinutes)
 									irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 									activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
 									activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 									activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(pauseDuration)
-									activeService.getCharacteristic(Characteristic.CurrentTime).updateValue(jsonBody.endTime)
+									this.endTime[activeService.subtype]=jsonBody.endTime
 								break
 								case "ZONE_CYCLING":
 									clearTimeout(this.fakeWebhook)
@@ -650,7 +647,7 @@ class RachioPlatform {
 									activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
 									activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 									activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(jsonBody.duration)
-									activeService.getCharacteristic(Characteristic.CurrentTime).updateValue(jsonBody.endTime)
+									this.endTime[activeService.subtype]=jsonBody.endTime
 								break
 								case "ZONE_COMPLETED":
 									this.log('<%s> %s, completed after %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)

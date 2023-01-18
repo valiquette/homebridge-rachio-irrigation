@@ -1,4 +1,10 @@
 # Changes
+## 1.2.19
+Update
+- Bumped dependencies.
+- Inital support for Homebridge v2.0.0
+-	Removed dependency on depratacted Homekit characteristic.
+- Code Cleanup.
 
 ## 1.2.18
 Update

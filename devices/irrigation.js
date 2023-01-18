@@ -128,7 +128,6 @@ irrigation.prototype={
 			this.log.debug('no smart runtime found, using default runtime')
 			}
 		this.log.debug("Created valve service for %s with id %s with %s min runtime", zone.name, zone.id, Math.round(defaultRuntime/60))
-    valve.addCharacteristic(Characteristic.CurrentTime) // Use CurrentTime to store the run time ending
     valve.addCharacteristic(Characteristic.SerialNumber) //Use Serial Number to store the zone id
     valve.addCharacteristic(Characteristic.Model)
     valve.addCharacteristic(Characteristic.ConfiguredName)
@@ -205,7 +204,7 @@ irrigation.prototype={
       break
       case "ValveRemainingDuration":
         // Calc remain duration
-          let timeEnding=Date.parse(valveService.getCharacteristic(Characteristic.CurrentTime).value)
+					let timeEnding=Date.parse(this.platform.endTime[valveService.subtype])
           let timeNow=Date.now()
           let timeRemaining=Math.max(Math.round((timeEnding - timeNow) / 1000), 0)
           if (isNaN(timeRemaining)){
@@ -292,15 +291,15 @@ irrigation.prototype={
           type: 'ZONE_STATUS',
           title: valveService.getCharacteristic(Characteristic.Name).value+' Stopped',
           deviceId: device.id,
-          duration: Math.round((valveService.getCharacteristic(Characteristic.SetDuration).value-(Date.parse(valveService.getCharacteristic(Characteristic.CurrentTime).value)-Date.now())/1000)),
+					duration: Math.round((valveService.getCharacteristic(Characteristic.SetDuration).value-(Date.parse(this.platform.endTime[valveService.subtype])-Date.now())/1000)),
           zoneNumber: valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value,
           zoneId: valveService.getCharacteristic(Characteristic.SerialNumber).value,
           zoneName: valveService.getCharacteristic(Characteristic.Name).value,
           timestamp: new Date().toISOString(),
           summary: valveService.getCharacteristic(Characteristic.Name).value+' stopped watering at '+ new Date().toLocaleTimeString()+' for '+ valveService.getCharacteristic(Characteristic.SetDuration).value+ ' minutes',
           zoneRunState: 'STOPPED',
-          durationInMinutes: Math.round((valveService.getCharacteristic(Characteristic.SetDuration).value-(Date.parse(valveService.getCharacteristic(Characteristic.CurrentTime).value)-Date.now())/1000)/60),
-          externalId: this.platform.webhook_key_local,
+					duration: Math.round((valveService.getCharacteristic(Characteristic.SetDuration).value-(Date.parse(this.platform.endTime[valveService.subtype])-Date.now())/1000)/60),
+					externalId: this.platform.webhook_key_local,
           timeForSummary: new Date().toLocaleTimeString(),
           subType: 'ZONE_STOPPED',
           endTime: new Date(Date.now()+valveService.getCharacteristic(Characteristic.SetDuration).value*1000).toISOString(),
