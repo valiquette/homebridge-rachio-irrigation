@@ -1,276 +1,283 @@
 {
-  "pluginAlias": "rachio",
-  "headerDisplay": "Homebridge plugin for Rachio Controllers",
-  "pluginType": "platform",
-  "singular": true,
-  "schema": {
-    "type": "object",
-    "properties": {
-      "name": {
-        "title": "Accessory Name",
-        "description": "Name for this accessory",
-        "type": "string",
-        "required": true,
-        "placeholder": "Rachio",
-        "default": "Rachio"
-      },
-      "api_key": {
-        "title": "Rachio API Key",
-        "description": "Rachio API key",
-        "type": "string",
-        "required": true,
-        "placeholder": "API KEY"
-      },
-      "location_address": {
-        "title": "Street Address",
-        "type": "string",
-        "required": false,
-        "placeholder": "Leave blank for all locations"
-      },
-      "default_runtime": {
-        "title": "Default Runtime in Minutes",
-        "description": "Default number of minutes to run zones if not provided. Could be useful for blowing out lines.",
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 60,
-        "required": true,
-        "default": 3
-      },
-			"runtime_source": {
-				"title": "Runtime source",
-				"type": "integer",
+	"pluginAlias": "rachio",
+	"headerDisplay": "Homebridge plugin for Rachio Controllers",
+	"pluginType": "platform",
+	"singular": true,
+	"schema": {
+		"type": "object",
+		"properties": {
+			"name": {
+				"title": "Accessory Name",
+				"description": "Name for this accessory",
+				"type": "string",
 				"required": true,
-				"default": 0,
-				"description": "Select a source to load intial values for each zones runtime. These can be changed in HomeKit.<br/>These sources need to be configured or present in Rachio app or the default time will be used.",
-				"oneOf": [
-					{
-						"title": "Plugin default runtime",
-						"enum": [0]
-					},
-					{
-						"title": "Fixed runtimes from Rachio",
-						"enum": [1]
-					},
-					{
-						"title": "Watering adjusted runtimes from Rachio",
-						"enum": [2]
-					}
-				]
+				"placeholder": "Rachio",
+				"default": "Rachio"
 			},
-      "use_irrigation_display": {
-        "title": "Display as Irrigation System in HomeKit",
-        "type": "boolean",
-        "required": true,
-        "default": true
-      },
-      "show_standby": {
-        "title": "Expose switch for controller standby",
-        "description": "Exposes standby mode switch, when turned on all schedules from Rachio will be disabled.",
-        "type": "boolean",
-        "required": true,
-        "default": true
-      },
-      "show_runall": {
-        "title": "All zones",
-        "description": "Adds a switch to run all zones for the default time.",
-        "type": "boolean",
-        "required": true,
-        "default": true
-      },
-      "show_schedules": {
-        "title": "Expose switches for schedules",
-        "description": "Exposes schedules as defined in the Rachio app as a switches for quick run from HomeKit.",
-        "type": "boolean",
-        "required": true,
-        "default": true
-      },
-      "external_IP_address": {
-        "title": "External IP Address",
-        "description": "External IP address or Domain for this server being used to receive webhook messages.<br/>To find this quick click <a target='blank' href='https://www.myexternalip.com'>here</a>.",
-        "type": "string",
-        "required": false,
-        "placeholder": "xxx.xxx.xxx.xxx"
-      },
-			"internal_IP_address": {
-        "title": "Internal IP Address",
-        "description": "internal IP address or Domain for this server<br/>recieving relayed webhook messages.<br/>",
-        "type": "string",
-        "required": false,
-        "placeholder": "127.0.0.1",
-				"default": "127.0.0.1"
-      },
-			"relay_address": {
-        "title": "Endpoint",
-        "description": "Default public endpoint.<br/>This can be found as an input under Buckets <a target='blank' href='https://my.webhookrelay.com/buckets'>here</a>.",
-        "type": "string",
-        "required": false,
-        "placeholder": "https://somethinglongandrandom.hooks.webhookrelay.com"
-      },
-      "external_webhook_port": {
-        "title": "External Webhook Port",
-        "description": "External port <br/>Source for receiving webhook requests.",
-        "type": "number",
-        "required": false,
-				"placeholder": 12453,
-        "default": 12453
-      },
-      "internal_webhook_port": {
-        "title": "Internal Webhook Port",
-        "description": "Internal port <br/>Destination for receiving webhook requests.",
-        "type": "number",
-        "required": false,
-				"placeholder": 27546,
-        "default": 27546
-      },
-      "use_basic_auth": {
-        "title": "HTTP basic authentication",
-        "description": "Use HTTP basic authentication (recommended).",
-        "type": "boolean",
-        "required": false,
-        "default": false
-      },
-			"https": {
-        "title": "Use HTTPS",
-        "description": "Use a TLS connection from Rachio to your secure local server.<br/>Do not use this feature unless you have a valid signed certificate.",
-        "type": "boolean",
-        "required": false
-      },
-			"key": {
-        "title": "Key",
-        "description": "Key file",
-        "type": "string",
-				"placeholder": "/path/privkey.pem",
-        "required": false
-      },
-			"cert": {
-        "title": "Cert",
-        "description": "Cert file",
-        "type": "string",
-				"placeholder": "/path/fullchain.pem",
-        "required": false
-      },
-      "user": {
-        "title": "Basic Authentication User",
-        "type": "string",
-        "required": false,
-        "placeholder": "username",
-        "maxLength": 32
-      },
-      "password": {
-        "title": "Basic Authentication Password",
-        "type": "string",
-        "required": false,
-        "placeholder": "password"
-      },
-      "delete_webhooks": {
-        "title": "Delete all current webhook IDs",
-        "description": "Use this if there is a need to delete current webhook IDs that may be causing problems.",
-        "type": "boolean",
-        "required": false,
-        "default": false
-      }
-    }
-  },
-  "layout": [
-    {
-      "type": "help",
-      "helpvalue": "<h4><b>Required settings<b/></h4>"
-    },
-    {
-      "type": "flex",
-      "flex-flow": "row wrap",
-      "items": [
-        "name",
-        "api_key"
-      ]
-    },
-    {
-      "type": "help",
-      "helpvalue": "<p class='help-block'> Visit Rachio <a target='blank' href='https://rachio.readme.io/docs/authentication'>here</a> for instruction on obtaining your API key.</p>"
-    },
+			"api_key": {
+				"title": "Rachio API Key",
+				"description": "Rachio API key",
+				"type": "string",
+				"required": true,
+				"placeholder": "API KEY"
+			},
+			"location_address": {
+				"title": "Street Address",
+				"type": "string",
+				"required": false,
+				"placeholder": "Leave blank for all locations"
+			},
+			"default_runtime": {
+				"title": "Default Runtime in Minutes",
+				"description": "Default number of minutes to run zones if not provided. Could be useful for blowing out lines.",
+				"type": "integer",
+				"minimum": 1,
+				"maximum": 60,
+				"required": true,
+				"default": 3
+			},
+				"runtime_source": {
+					"title": "Runtime source",
+					"type": "integer",
+					"required": true,
+					"default": 0,
+					"description": "Select a source to load intial values for each zones runtime. These can be changed in HomeKit.<br/>These sources need to be configured or present in Rachio app or the default time will be used.",
+					"oneOf": [
+						{
+							"title": "Plugin default runtime",
+							"enum": [0]
+						},
+						{
+							"title": "Fixed runtimes from Rachio",
+							"enum": [1]
+						},
+						{
+							"title": "Watering adjusted runtimes from Rachio",
+							"enum": [2]
+						}
+					]
+				},
+			"use_irrigation_display": {
+				"title": "Display as Irrigation System in HomeKit",
+				"type": "boolean",
+				"required": true,
+				"default": true
+			},
+			"show_standby": {
+				"title": "Expose switch for controller standby",
+				"description": "Exposes standby mode switch, when turned on all schedules from Rachio will be disabled.",
+				"type": "boolean",
+				"required": true,
+				"default": false
+			},
+			"show_runall": {
+				"title": "All zones",
+				"description": "Adds a switch to run all zones for the default time.",
+				"type": "boolean",
+				"required": true,
+				"default": false
+			},
+			"show_schedules": {
+				"title": "Expose switches for schedules",
+				"description": "Exposes schedules as defined in the Rachio app as a switches for quick run from HomeKit.",
+				"type": "boolean",
+				"required": true,
+				"default": false
+			},
+			"external_IP_address": {
+				"title": "External IP Address",
+				"description": "External IP address or Domain for this server being used to receive webhook messages.<br/>To find this quick click <a target='blank' href='https://www.myexternalip.com'>here</a>.",
+				"type": "string",
+				"required": false,
+				"placeholder": "xxx.xxx.xxx.xxx"
+			},
+				"internal_IP_address": {
+				"title": "Internal IP Address",
+				"description": "internal IP address or Domain for this server<br/>recieving relayed webhook messages.<br/>",
+				"type": "string",
+				"required": false,
+				"placeholder": "127.0.0.1",
+					"default": "127.0.0.1"
+			},
+				"relay_address": {
+				"title": "Endpoint",
+				"description": "Default public endpoint.<br/>This can be found as an input under Buckets <a target='blank' href='https://my.webhookrelay.com/buckets'>here</a>.",
+				"type": "string",
+				"required": false,
+				"placeholder": "https://somethinglongandrandom.hooks.webhookrelay.com"
+			},
+			"external_webhook_port": {
+				"title": "External Webhook Port",
+				"description": "External port <br/>Source for receiving webhook requests.",
+				"type": "number",
+				"required": false,
+					"placeholder": 12453,
+				"default": 12453
+			},
+			"internal_webhook_port": {
+				"title": "Internal Webhook Port",
+				"description": "Internal port <br/>Destination for receiving webhook requests.",
+				"type": "number",
+				"required": false,
+					"placeholder": 27546,
+				"default": 27546
+			},
+			"use_basic_auth": {
+				"title": "HTTP basic authentication",
+				"description": "Use HTTP basic authentication (recommended).",
+				"type": "boolean",
+				"required": false,
+				"default": false
+			},
+				"https": {
+				"title": "Use HTTPS",
+				"description": "Use a TLS connection from Rachio to your secure local server.<br/>Do not use this feature unless you have a valid signed certificate.",
+				"type": "boolean",
+				"required": false
+			},
+				"key": {
+				"title": "Key",
+				"description": "Key file",
+				"type": "string",
+					"placeholder": "/path/privkey.pem",
+				"required": false
+			},
+				"cert": {
+				"title": "Cert",
+				"description": "Cert file",
+				"type": "string",
+					"placeholder": "/path/fullchain.pem",
+				"required": false
+			},
+			"user": {
+				"title": "Basic Authentication User",
+				"type": "string",
+				"required": false,
+				"placeholder": "username",
+				"maxLength": 32
+			},
+			"password": {
+				"title": "Basic Authentication Password",
+				"type": "string",
+				"required": false,
+				"placeholder": "password"
+			},
+			"delete_webhooks": {
+				"title": "Delete all current webhook IDs",
+				"description": "Use this if there is a need to delete current webhook IDs that may be causing problems.",
+				"type": "boolean",
+				"required": false,
+				"default": false
+			},
+			"showAPIMessages": {
+				"title": "Show API responses",
+				"type": "boolean",
+				"required": false,
+				"default": false,
+				"description": "Do you want to log API response messages?"
+			}
+		}
+	},
+	"layout": [
 		{
-      "type": "help",
-      "helpvalue": "<h6><b>Location Support</b></h6><p class='help-block'> If you have more than one location and want to display them in separate Homebridge/HomeKit homes you can retrive only the devices at this street address otherwise leave blank.<br/>The address must match the address configured in the Rachio app, review the log file to see the adresses as configured in the Rachio app.</p>"
-    },
-    {
-      "type": "flex",
-      "flex-flow": "row wrap",
-      "items": [
-        "location_address"
-      ]
-    },
-    {
-      "type": "flex",
-      "flex-flow": "row wrap",
-      "items": [
-        "default_runtime",
-				"runtime_source"
-      ]
-    },
-    {
-      "type": "help",
-      "helpvalue": "<h6><b>HomeKit Display</b></h6><p class='help-block'> Display this accessory in HomeKit as a irrigation system with integrated sprinker zones.<br/>If unchecked, the irrigation system zones will displayed as individual tiles with the option in Homekit to show single or separate.</p>"
-    },
-    {
-      "type": "flex",
-      "flex-flow": "row wrap",
-      "items": [
-        "use_irrigation_display"
-      ]
-    },
-    {
-      "type": "fieldset",
-      "title": "Additional Switches",
-      "description": "Expand to expose additonal switches",
-      "expandable": true,
-      "items": [
-        "show_standby",
-        "show_schedules",
-        "show_runall"
-      ]
-    },
-    {
-      "type": "fieldset",
-      "title": "Webhooks",
-      "description": "Expand to configure webhooks with local port fowarding",
-      "expandable": true,
-      "displayFlex": true,
-      "items": [
-        {
-          "type": "flex",
-          "flex-flow": "row wrap",
-          "items": [
-            "external_IP_address"
-          ]
-        },
-        {
+			"type": "help",
+			"helpvalue": "<h4><b>Required settings<b/></h4>"
+		},
+		{
+			"type": "flex",
+			"flex-flow": "row wrap",
+			"items": [
+				"name",
+				"api_key"
+			]
+		},
+		{
+			"type": "help",
+			"helpvalue": "<p class='help-block'> Visit Rachio <a target='blank' href='https://rachio.readme.io/docs/authentication'>here</a> for instruction on obtaining your API key.</p>"
+		},
+		{
+			"type": "help",
+			"helpvalue": "<h6><b>Location Support</b></h6><p class='help-block'> If you have more than one location and want to display them in separate Homebridge/HomeKit homes you can retrive only the devices at this street address otherwise leave blank.<br/>The address must match the address configured in the Rachio app, review the log file to see the adresses as configured in the Rachio app.</p>"
+		},
+		{
+			"type": "flex",
+			"flex-flow": "row wrap",
+			"items": [
+				"location_address"
+			]
+		},
+		{
+			"type": "flex",
+			"flex-flow": "row wrap",
+			"items": [
+				"default_runtime",
+					"runtime_source"
+			]
+		},
+		{
+			"type": "help",
+			"helpvalue": "<h6><b>HomeKit Display</b></h6><p class='help-block'> Display this accessory in HomeKit as a irrigation system with integrated sprinker zones.<br/>If unchecked, the irrigation system zones will displayed as individual tiles with the option in Homekit to show single or separate.</p>"
+		},
+		{
+			"type": "flex",
+			"flex-flow": "row wrap",
+			"items": [
+				"use_irrigation_display"
+			]
+		},
+		{
+			"type": "fieldset",
+			"title": "Additional Switches",
+			"description": "Expand to expose additonal switches",
+			"expandable": true,
+			"items": [
+				"show_standby",
+				"show_schedules",
+				"show_runall"
+			]
+		},
+		{
+			"type": "fieldset",
+			"title": "Webhooks",
+			"description": "Expand to configure webhooks with local port fowarding",
+			"expandable": true,
+			"displayFlex": true,
+			"items": [
+				{
 					"type": "flex",
 					"flex-flow": "row wrap",
 					"items": [
-						"external_webhook_port",
-						"internal_webhook_port"
+					"external_IP_address"
+					]
+				},
+				{
+						"type": "flex",
+						"flex-flow": "row wrap",
+						"items": [
+							"external_webhook_port",
+							"internal_webhook_port"
+							]
+					},
+					{
+						"type": "help",
+						"helpvalue": "<p class='help-block'> Rachio supports HTTP Basic Authentication for webhooks. if checked any incoming message will need to match this user:password</p>"
+					},
+					{
+						"type": "flex",
+						"flex-flow": "row wrap",
+						"items": [
+							"use_basic_auth"
 						]
-				},
+					},
+					{
+						"type": "flex",
+						"flex-flow": "row wrap",
+						"items": [
+							"user",
+							"password"
+						]
+					},
 				{
-					"type": "help",
-					"helpvalue": "<p class='help-block'> Rachio supports HTTP Basic Authentication for webhooks. if checked any incoming message will need to match this user:password</p>"
-				},
-				{
-					"type": "flex",
-					"flex-flow": "row wrap",
-					"items": [
-						"use_basic_auth"
-					]
-				},
-				{
-					"type": "flex",
-					"flex-flow": "row wrap",
-					"items": [
-						"user",
-						"password"
-					]
-				},
-      	{
 					"type": "help",
 					"helpvalue": "<i>Important note.<p class='help-block'> Your router will need to forward this external port to your internal webhook port. Consult the readme for additional webhook information.</p>"
 				},
@@ -309,7 +316,7 @@
 							]
 						}
 					]
-        },
+				},
 				{
 					"key": "Extra stuff",
 					"title": "Extra webhook settings",
@@ -327,27 +334,27 @@
 							]
 						}
 					]
-        }
-      ]
-    },
+				}
+			]
+		},
 		{
-      "type": "fieldset",
-      "title": "Webhook Relay",
-      "description": "Expand to configure Webhook Relay service",
-      "expandable": true,
-      "displayFlex": true,
-      "items": [
+			"type": "fieldset",
+			"title": "Webhook Relay",
+			"description": "Expand to configure Webhook Relay service",
+			"expandable": true,
+			"displayFlex": true,
+			"items": [
 				{
 					"type": "help",
 					"helpvalue": "Input"
 				},
-        {
-          "type": "flex",
-          "flex-flow": "row wrap",
-          "items": [
-            "relay_address"
-          ]
-        },
+				{
+					"type": "flex",
+					"flex-flow": "row wrap",
+					"items": [
+					"relay_address"
+					]
+				},
 				{
 					"type": "help",
 					"helpvalue": "Output"
@@ -365,6 +372,16 @@
 					"helpvalue": "<i>Important note.<p class='help-block'> Copy endpoint directly as shown on Webhook Relay. Consult the readme for additional webhook information.</p>"
 				}
 			]
+		},
+		{
+			"type": "fieldset",
+			"title": "Debug logging",
+			"description": "Expand to enable additional debug logging",
+			"expandable": true,
+			"flex-flow": "row wrap",
+			"items": [
+				"showAPIMessages"
+			]
 		}
-  ]
+	]
 }

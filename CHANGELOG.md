@@ -1,9 +1,16 @@
 # Changes
+
+## 1.2.20
+Update
+- Bumped dependencies.
+- Changed extra switch defaults from true to false
+- improved error handling
+
 ## 1.2.19
 Update
 - Bumped dependencies.
 - Inital support for Homebridge v2.0.0
--	Removed dependency on depratacted Homekit characteristic.
+- emoved dependency on depratacted Homekit characteristic.
 - Code Cleanup.
 
 ## 1.2.18
@@ -12,8 +19,8 @@ Update
 
 ## 1.2.17
 Improvments
--	Code Cleanup.
--	Addressed old known issues.
+- Code Cleanup.
+- Addressed old known issues.
 - Fixed Homekit display for zone soak time
 - Fixed displayed duration for pause time.
 - Fixed warning message with durations greater than 1 hour when started from Rachio app. Homekit will only display minutes but homebridge will show the hour.
@@ -24,15 +31,15 @@ Improvments
 
 ## 1.2.16
 Update
--	Code Cleanup.
+- Code Cleanup.
 - Added option to use HTTPS for Webhook Relay. Webhook relay now has a separate config section.
--	Updated readme.
+- Updated readme.
 - Added explict user-agent info to API calls.
 - Bumped dependencies.
 
 ## 1.2.15
 Update
--	Updated readme.
+- Updated readme.
 - Improved error handeling during startup.
 - Corrected logging message zone stop from homekit.
 - Changed configuration default to true for use irrigation display.
@@ -40,7 +47,7 @@ Update
 
 ## 1.2.14
 Fix
--	Updated readme.
+- Updated readme.
 - Fixed a show schedule bug, not displaying all schedule type.
 
 ## 1.2.13
@@ -50,33 +57,33 @@ Update
 
 ## 1.2.12
 Update
--	Fixed error when restating with and active schedule running and show schedules not checked.
+- Fixed error when restating with and active schedule running and show schedules not checked.
 - Changed configuration default to false for use irrigation display, due to IOS bug intoduced with 15.4 and still not fixed in 15.5
--	Updated readme.
+- Updated readme.
 - Bumped dependencies.
 
 ## 1.2.11
 Update
--	Bumped dependencies.
--	Code updates
+- Bumped dependencies.
+- Code updates
 - Improved error messaging for un expected webhook domain name that cause validation to fail
 - Updated Readme for webhook relay
 - Initial support for node.js 18
 
 ## 1.2.10
 Update
--	Bumped dependencies.
--	Code updates
+- Bumped dependencies.
+- Code updates
 
 ## 1.2.9
 Update
--	Code cleanup.
--	Fix typo in config.
--	Bumped dependencies.
+- Code cleanup.
+- Fix typo in config.
+- Bumped dependencies.
 
 ## 1.2.8
 Update
--	Security update (CVE-2022-0155).
+- Security update (CVE-2022-0155).
 
 ## 1.2.7
 Enhancment

@@ -48,7 +48,7 @@ You can acquire your API key from Rachio io.app [documented here](https://rachio
  - You must enable port fowarding on the router this server is conected to. Follow you routers instructions for this step.
  - The port forwarding should look like external_webhook_port -> internal_port for your servers IP address which can be found on the Homebridge Status page in system information.
  - **NOTE:** if your IP Address is changed by your ISP, you will need to edit the IP address in the config to match it whenever it changes. You should use a Dynamic IP address DNS service if your IP changes often.
- - Advanced settings for HTTPS, If you have a registered domanin and a valid signed cerficate you may use TLS connection. 
+ - Advanced settings for HTTPS, If you have a registered domanin and a valid signed cerficate you may use TLS connection.
 
 ## Relay service
 ### If you cannot setup port forwarding on your router (or don't want to):
@@ -95,9 +95,9 @@ If you see log messages like `Webhook received from an unknown external id`, you
 	"default_runtime": 3,
 	"runtime_source": 2,
 	"use_irrigation_display": true,
-	"show_standby": true,
-	"show_runall": true,
-	"show_schedules": true,
+	"show_standby": false,
+	"show_runall": false,
+	"show_schedules": false,
 	"external_IP_address": "76.33.22.111",
 	"internal_IP_address": "127.0.0.1",
 	"external_webhook_port": 12453,
