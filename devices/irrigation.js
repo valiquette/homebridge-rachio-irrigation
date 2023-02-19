@@ -300,7 +300,6 @@ irrigation.prototype={
 						category: 'DEVICE',
 						resourceType: 'DEVICE'
 					}
-					this.log.debug(myZoneStop)
 					this.log.debug('Simulating webhook for %s will update services',myZoneStop.zoneName)
 					if (this.platform.showWebhookMessages) {this.log.debug('simulated webhook sent from <%s> %s',this.platform.webhook_key_local,myZoneStop)}
 					this.platform.updateService(irrigationSystemService,valveService,myZoneStop)
