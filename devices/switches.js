@@ -25,7 +25,6 @@ switches.prototype={
 	createSwitchService(device,switchName){
 		// Create Valve Service
 		this.log.debug('adding new switch')
-		//let uuid=this.api.hap.uuid.generate(switchName)
 		let uuid=UUIDGen.generate(switchName)
 		let switchService=new Service.Switch(switchName, uuid)
 		switchService.addCharacteristic(Characteristic.ConfiguredName)
@@ -45,21 +44,26 @@ switches.prototype={
 			.on('set', this.setSwitchValue.bind(this, device, switchService))
 	},
 
-	setSwitchValue(device, switchService, value, callback){
+	async setSwitchValue(device, switchService, value, callback){
 		this.log.debug('toggle switch state %s',switchService.getCharacteristic(Characteristic.Name).value)
+		let response
 		switch(switchService.getCharacteristic(Characteristic.Name).value){
 		case device.name+' Standby':
 			if (switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
 				callback('error')
 			}
 			else {
-				if (!value){
-				switchService.getCharacteristic(Characteristic.On).updateValue(true)
-				this.rachioapi.deviceStandby (this.platform.token,device,'on')
+				if (value==false){
+					response=await this.rachioapi.deviceStandby (this.platform.token,device,'on')
+					if (response.status==204){
+						switchService.getCharacteristic(Characteristic.On).updateValue(value)
+					}
 				}
-				else {
-				switchService.getCharacteristic(Characteristic.On).updateValue(false)
-				this.rachioapi.deviceStandby (this.platform.token,device,'off')
+				else if (value==true){
+					response=await this.rachioapi.deviceStandby (this.platform.token,device,'off')
+					if (response.status==204){
+						switchService.getCharacteristic(Characteristic.On).updateValue(value)
+					}
 				}
 				callback()
 			}
@@ -70,28 +74,36 @@ switches.prototype={
 			}
 			else {
 				if (value){
-				switchService.getCharacteristic(Characteristic.On).updateValue(true)
-				this.rachioapi.startMultipleZone (this.platform.token,device.zones,this.platform.defaultRuntime)
+					response=await this.rachioapi.startMultipleZone (this.platform.token,device.zones,this.platform.defaultRuntime)
+					if (response.status==204){
+						switchService.getCharacteristic(Characteristic.On).updateValue(value)
+					}
 				}
 				else {
-				switchService.getCharacteristic(Characteristic.On).updateValue(false)
-				this.rachioapi.stopDevice (this.platform.token,device.id)
-				}
+					response=await this.rachioapi.stopDevice (this.platform.token,device.id)
+					if (response.status==204){
+						switchService.getCharacteristic(Characteristic.On).updateValue(value)
+					}
+					}
 				callback()
 			}
 			break
-		default:
+		default: //using scheule names
 			if (switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
 				callback('error')
 			}
 			else {
 				if (value){
-				switchService.getCharacteristic(Characteristic.On).updateValue(true)
-				this.rachioapi.startSchedule (this.platform.token,switchService.getCharacteristic(Characteristic.SerialNumber).value)
+				response=await this.rachioapi.startSchedule (this.platform.token,switchService.getCharacteristic(Characteristic.SerialNumber).value)
+				if (response.status==204){
+					switchService.getCharacteristic(Characteristic.On).updateValue(true)
+				}
 				}
 				else {
-				switchService.getCharacteristic(Characteristic.On).updateValue(false)
-				this.rachioapi.stopDevice (this.platform.token,device.id)
+				response=await this.rachioapi.stopDevice (this.platform.token,device.id)
+				if (response.status==204){
+					switchService.getCharacteristic(Characteristic.On).updateValue(false)
+				}
 				}
 				callback()
 			}
@@ -100,7 +112,6 @@ switches.prototype={
 		},
 
 	getSwitchValue(switchService, callback){
-		//this.log.debug("%s = %s", switchService.getCharacteristic(Characteristic.Name).value,switchService.getCharacteristic(Characteristic.On))
 		if (switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
 		callback('error')
 		}

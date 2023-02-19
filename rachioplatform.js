@@ -24,7 +24,9 @@ class RachioPlatform {
 		this.log=log
 		this.config=config
 		this.token=config.api_key
-		this.retryWait=config.retryWait || 60
+		this.retryWait=config.retryWait || 60 //sec
+		this.retryMax=config.retryMax || 3 //attempts
+		this.retryAttempt=0
 		this.external_IP_address=config.external_IP_address
 		this.external_webhook_port=config.external_webhook_port
 		this.internal_IP_address=config.internal_IP_address
@@ -53,6 +55,7 @@ class RachioPlatform {
 		this.key=config.key
 		this.cert=config.cert
 		this.showAPIMessages=config.showAPIMessages ? config.showAPIMessages : false
+		this.showWebhookMessages=config.showWebhookMessages ? config.showWebhookMessages : false
 
 		let destination=this.useHttps ? 'https://' : 'http://'
 		let port=this.external_webhook_port ? ':'+this.external_webhook_port : ''
@@ -305,10 +308,16 @@ class RachioPlatform {
 			})
 			setTimeout(()=>{this.log.info('Rachio Platform finished loading')}, 1000)
 		}catch(err){
-			this.log.error('Failed to get devices...%s \nRetrying in %s seconds...', err,this.retryWait)
-			setTimeout(async()=>{
-				this.getRachioDevices()
-			},this.retryWait*1000)
+			if(this.retryAttempt<this.retryMax){
+				this.retryAttempt++
+				this.log.error('Failed to get devices. Retry attempt %s of %s in %s seconds...',this.retryAttempt, this.retryMax, this.retryWait)
+				setTimeout(async()=>{
+					this.getDevices()
+				},this.retryWait*1000)
+			}
+			else{
+				this.log.error('Failed to get devices...\n%s', err)
+			}
 		}
 	}
 
@@ -503,7 +512,7 @@ class RachioPlatform {
 					try {
 						body=Buffer.concat(body).toString().trim()
 						let jsonBody=JSON.parse(body)
-						this.log.debug('webhook request received from <%s> %s',jsonBody.externalId,jsonBody)
+						if (this.showWebhookMessages) {this.log.debug('webhook request received from <%s> %s',jsonBody.externalId,jsonBody)}
 						if (jsonBody.externalId === this.webhook_key){
 							let irrigationAccessory=this.accessories[jsonBody.deviceId]
 							let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
@@ -523,7 +532,7 @@ class RachioPlatform {
 									this.log.debug('Skipping Webhook for %s service, optional schedule switch is not configured',jsonBody.scheduleName)
 								}
 							}
-							else if (jsonBody.deviceId){
+							else if (jsonBody.deviceId && jsonBody.category!='SCHEDULE'){
 								service=irrigationAccessory.getServiceById(Service.IrrigationSystem)
 								if (this.showStandby){
 									this.log.debug('Webhook match found for %s will update irrigation service',service.getCharacteristic(Characteristic.Name).value)
@@ -565,41 +574,41 @@ class RachioPlatform {
 		/***********************************************************
 					 Possiible responses from webhooks
 		Type : DEVICE_STATUS
-		Subtype:
-			OFFLINE
-			ONLINE
-			OFFLINE_NOTIFICATION
-			COLD_REBOOT
-			SLEEP_MODE_ON
-			SLEEP_MODE_OFF
-			BROWNOUT_VALVE
-			RAIN_SENSOR_DETECTION_ON
-			RAIN_SENSOR_DETECTION_OFF
-			RAIN_DELAY_ON
-			RAIN_DELAY_OFF
+			Subtype:
+				OFFLINE
+				ONLINE
+				OFFLINE_NOTIFICATION
+				COLD_REBOOT
+				SLEEP_MODE_ON
+				SLEEP_MODE_OFF
+				BROWNOUT_VALVE
+				RAIN_SENSOR_DETECTION_ON
+				RAIN_SENSOR_DETECTION_OFF
+				RAIN_DELAY_ON
+				RAIN_DELAY_OFF
 		Type : SCHEDULE_STATUS
-		Subtype:
-			SCHEDULE_STARTED
-			SCHEDULE_STOPPED
-			SCHEDULE_COMPLETED
-			WEATHER_INTELLIGENCE_NO_SKIP
-			WEATHER_INTELLIGENCE_SKIP
-			WEATHER_INTELLIGENCE_CLIMATE_SKIP
-			WEATHER_INTELLIGENCE_FREEZE
+			Subtype:
+				SCHEDULE_STARTED
+				SCHEDULE_STOPPED
+				SCHEDULE_COMPLETED
+				WEATHER_INTELLIGENCE_NO_SKIP
+				WEATHER_INTELLIGENCE_SKIP
+				WEATHER_INTELLIGENCE_CLIMATE_SKIP
+				WEATHER_INTELLIGENCE_FREEZE
 		Type : ZONE_STATUS
-		Subtype:
-			ZONE_STARTED
-			ZONE_STOPPED
-			ZONE_COMPLETED
-			ZONE_PAUSED
-			ZONE_CYCLING
-			ZONE_CYCLING_COMPLETED
+			Subtype:
+				ZONE_STARTED
+				ZONE_STOPPED
+				ZONE_COMPLETED
+				ZONE_PAUSED
+				ZONE_CYCLING
+				ZONE_CYCLING_COMPLETED
 		Type : DEVICE_DELTA
-		Subtype : DEVICE_DELTA
+			Subtype : DEVICE_DELTA
 		Type : ZONE_DELTA
-		Subtype : ZONE_DELTA
+			Subtype : ZONE_DELTA
 		Type : SCHEDULE_DELTA
-		Subtype : SCHEDULE_DELTA
+			Subtype : SCHEDULE_DELTA
 		************************************************************/
 		try {
 			switch(jsonBody.type){
@@ -615,7 +624,8 @@ class RachioPlatform {
 					******************************/
 					switch(jsonBody.subType){
 						case "ZONE_STARTED":
-							this.log('<%s> %s, started for duration %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
+							this.log('<%s> %s, started for duration %s minutes.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
+							this.log.debug(jsonBody.summary)
 							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 							activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
 							activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
@@ -623,7 +633,13 @@ class RachioPlatform {
 							this.endTime[activeService.subtype]=jsonBody.endTime
 							break
 						case "ZONE_STOPPED":
-							this.log('<%s> %s, stopped after %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
+							if(jsonBody.duration<60){
+								this.log('<%s> %s, stopped after %s seconds.',jsonBody.externalId,jsonBody.title,jsonBody.duration)
+							}
+							else{
+								this.log('<%s> %s, stopped after %s minutes.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
+							}
+							this.log.debug(jsonBody.summary)
 							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 							activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
 							activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
@@ -634,7 +650,8 @@ class RachioPlatform {
 							clearTimeout(this.fakeWebhook)
 							let pauseDuration=Math.round(((Date.parse(jsonBody.endTime)-Date.now())-(Date.parse(this.endTime[activeService.subtype])-Date.now()))/1000)
 							let pauseDurationInMinutes=Math.round(pauseDuration/60)
-							this.log('<%s> %s, paused for duration %s mins.',jsonBody.externalId,jsonBody.title,pauseDurationInMinutes)
+							this.log('<%s> %s, paused for duration %s minutes.',jsonBody.externalId,jsonBody.title,pauseDurationInMinutes)
+							this.log.debug(jsonBody.summary)
 							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 							activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
 							activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
@@ -643,7 +660,8 @@ class RachioPlatform {
 							break
 						case "ZONE_CYCLING":
 							clearTimeout(this.fakeWebhook)
-							this.log('<%s> %s, cycling for duration %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
+							this.log('<%s> %s, cycling for duration %s minutes.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
+							this.log.debug(jsonBody.summary)
 							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 							activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
 							activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
@@ -651,13 +669,15 @@ class RachioPlatform {
 							this.endTime[activeService.subtype]=jsonBody.endTime
 							break
 						case "ZONE_COMPLETED":
-							this.log('<%s> %s, completed after %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
+							this.log('<%s> %s, completed after %s minutes.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
+							this.log.debug(jsonBody.summary)
 							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 							activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
 							activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 							break
 						case "ZONE_CYCLING_COMPLETED":
-							this.log('<%s> %s, cycling completed after %s mins.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
+							this.log('<%s> %s, cycling completed after %s minutes.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
+							this.log.debug(jsonBody.summary)
 							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 							activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
 							activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
@@ -671,6 +691,7 @@ class RachioPlatform {
 					switch(jsonBody.subType){
 						case 'ONLINE':
 							this.log('<%s> %s connected at %s',jsonBody.externalId,jsonBody.deviceId,new Date(jsonBody.timestamp).toString())
+							this.log.debug(jsonBody.summary)
 								irrigationAccessory.services.forEach((service)=>{
 									if (Service.AccessoryInformation.UUID != service.UUID){
 										service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
@@ -685,6 +706,7 @@ class RachioPlatform {
 							break
 						case 'COLD_REBOOT':
 							this.log('<%s> Device,%s connected at %s from a %s',jsonBody.externalId,jsonBody.deviceName,new Date(jsonBody.timestamp).toString(),jsonBody.title)
+							this.log.debug(jsonBody.summary)
 							irrigationAccessory.services.forEach((service)=>{
 								if (Service.AccessoryInformation.UUID != service.UUID){
 									service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
@@ -700,6 +722,7 @@ class RachioPlatform {
 						case 'OFFLINE':
 							this.log('<%s> %s disconnected at %s',jsonBody.externalId,jsonBody.deviceId,jsonBody.timestamp)
 							this.log.warn('%s disconnected at %s! This will show as non-responding in Homekit until the connection is restored.',jsonBody.deviceId,jsonBody.timestamp)
+							this.log.debug(jsonBody.summary)
 								irrigationAccessory.services.forEach((service)=>{
 									if (Service.AccessoryInformation.UUID != service.UUID){
 										service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
@@ -730,6 +753,7 @@ class RachioPlatform {
 						}
 					break
 				case "SCHEDULE_STATUS":
+					if(!activeService){return} //quick run
 					this.log.debug('Schedule Status Update')
 					switch(jsonBody.subType){
 						case "SCHEDULE_STARTED":
@@ -752,7 +776,7 @@ class RachioPlatform {
 								activeService.getCharacteristic(Characteristic.On).updateValue(false)
 							}
 							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-							//need stop quick run
+							//need stop quick run?
 							if(this.showRunall){
 								let irrigationAccessory=this.accessories[jsonBody.deviceId]
 								let switchService=irrigationAccessory.getServiceById(Service.Switch,UUIDGen.generate(jsonBody.deviceName+' Quick Run-All'))

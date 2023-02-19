@@ -175,6 +175,13 @@
 				"required": false,
 				"default": false,
 				"description": "Do you want to log API response messages?"
+			},
+			"showWebhookMessages": {
+				"title": "Show Webhook messages",
+				"type": "boolean",
+				"required": false,
+				"default": false,
+				"description": "Do you want to log Webhook messages?"
 			}
 		}
 	},
@@ -380,7 +387,8 @@
 			"expandable": true,
 			"flex-flow": "row wrap",
 			"items": [
-				"showAPIMessages"
+				"showAPIMessages",
+				"showWebhookMessages"
 			]
 		}
 	]

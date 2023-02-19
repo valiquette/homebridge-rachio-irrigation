@@ -36,7 +36,7 @@ RachioAPI.prototype={
 				if(this.platform.showAPIMessages){this.log.debug('get person info response',JSON.stringify(response.data,null,2))}
 			return response.data
 			}
-		}catch(err){this.log.error('Error retrieving personId %s', err)}
+		}catch(err){this.log.error('Error retrieving personId \n%s', err)}
 	},
 
 	getPersonId:  async function(token,personId){
@@ -62,7 +62,7 @@ RachioAPI.prototype={
 				if(this.platform.showAPIMessages){this.log.debug('get person id response',JSON.stringify(response.data,null,2))}
 			return response.data
 			}
-		}catch(err){this.log.error('Error retrieving deviceId %s', err)}
+		}catch(err){this.log.error('Error retrieving deviceId \n%s', err)}
 	},
 
 	getDeviceState: async function(token,device){
@@ -88,7 +88,7 @@ RachioAPI.prototype={
 				if(this.platform.showAPIMessages){this.log.debug('get device state response',JSON.stringify(response.data,null,2))}
 			return response.data
 			}
-		}catch(err){this.log.error('Error getting device state %s', err)}
+		}catch(err){this.log.error('Error getting device state \n%s', err)}
 	},
 
 	getDeviceDetails: async function(token,device){
@@ -114,7 +114,7 @@ RachioAPI.prototype={
 				if(this.platform.showAPIMessages){this.log.debug('get device details response',JSON.stringify(response.data,null,2))}
 			return response.data
 			}
-		}catch(err){this.log.error('Error getting device details %s', err)}
+		}catch(err){this.log.error('Error getting device details \n%s', err)}
 	},
 
 	getDeviceInfo: async function(token,device){
@@ -140,7 +140,7 @@ RachioAPI.prototype={
 				if(this.platform.showAPIMessages){this.log.debug('get device info response',JSON.stringify(response.data,null,2))}
 			return response.data
 			}
-		}catch(err){this.log.error('Error getting device info %s', err)}
+		}catch(err){this.log.error('Error getting device info \n%s', err)}
 	},
 
 	getLocationList: async function(token){
@@ -166,7 +166,7 @@ RachioAPI.prototype={
 				if(this.platform.showAPIMessages){this.log.debug('get list locations response',JSON.stringify(response.data,null,2))}
 			return response.data
 			}
-		}catch(err){this.log.error('Error getting location list %s', err)}
+		}catch(err){this.log.error('Error getting location list \n%s', err)}
 	},
 
   currentSchedule: async function(token,device){
@@ -193,7 +193,7 @@ RachioAPI.prototype={
 				if(this.platform.showAPIMessages){this.log.debug('get current schedule response',JSON.stringify(response.data,null,2))}
 				return response
 			}
-    }catch(err){this.log.error('Error getting current schedule %s', err)}
+    }catch(err){this.log.error('Error getting current schedule \n%s', err)}
   },
 
 	deviceStandby: async function(token,device,state){
@@ -219,7 +219,7 @@ RachioAPI.prototype={
 			})
 			this.log.debug('device standby response status',response.status)
 			return response
-		}catch(err){this.log.error('Error setting standby %s', err)}
+		}catch(err){this.log.error('Error setting standby \n%s', err)}
 	},
 
 	startZone: async function(token,zone,runtime){
@@ -246,7 +246,7 @@ RachioAPI.prototype={
 			})
 			this.log.debug('start response',response.status)
 			return response
-		}catch(err){this.log.error('Error Starting Zone %s', err)}
+		}catch(err){this.log.error('Error Starting Zone \n%s', err)}
 	},
 
 	startSchedule: async function(token,schedule){
@@ -272,7 +272,7 @@ RachioAPI.prototype={
 			})
 			this.log.debug('start schedule response',response.status)
 			return response
-		}catch(err){this.log.error('Error Starting Schedule %s', err)}
+		}catch(err){this.log.error('Error Starting Schedule \n%s', err)}
 	},
 
 	stopDevice: async function(token,deviceId){
@@ -298,21 +298,22 @@ RachioAPI.prototype={
 			})
 			this.log.debug('stop response',response.status)
 			return response
-		}catch(err){this.log.error('Error Stopping Device %s', err)}
+		}catch(err){this.log.error('Error Stopping Device \n%s', err)}
 	},
 
 	startMultipleZone: async function(token,zones,duration){
 		try{
 			let body=[]
-			this.log.debug('Starting Multiple Zones', zones)
+			//this.log.debug('Starting Multiple Zones', zones)
 			zones.forEach((zone,index)=>{
 				if(zone.enabled){
 					body.push(
-					{
-						id: zone.id,
-						duration: duration,
-						sortOrder: index
-					}
+						{
+							name: zone.name, //not required
+							id: zone.id,
+							duration: duration,
+							sortOrder: index
+						}
 					)
 				}
 			})
@@ -337,7 +338,7 @@ RachioAPI.prototype={
 			})
 			this.log.debug('start multiple response',response.status)
 			return response
-		}catch(err){this.log.error('Error Starting Multiple Zones %s', err)}
+		}catch(err){this.log.error('Error Starting Multiple Zones \n%s', err)}
 	},
 
 	configureWebhooks: async function(token,external_webhook_address,delete_webhooks,device_Id,webhook_key){
@@ -487,6 +488,6 @@ RachioAPI.prototype={
 									+'\nThe best way to test this is from a cell phone, with WiFi off.', test_webhook_url)
 			}
 			return
-		}catch(err){this.log.error('Error configuring webhook ' + err)}
+		}catch(err){this.log.error('Error configuring webhook \n%s',err)}
 	}
 }

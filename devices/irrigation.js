@@ -78,10 +78,8 @@ irrigation.prototype={
 	},
 
 	getDeviceValue(irrigationSystemService, characteristicName, callback){
-		//this.log.debug('%s - Set something %s', irrigationSystemService.getCharacteristic(Characteristic.Name).value)
 		switch (characteristicName){
 		case "DeviceActive":
-			//this.log.debug("%s = %s %s", irrigationSystemService.getCharacteristic(Characteristic.Name).value, characteristicName,irrigationSystemService.getCharacteristic(Characteristic.Active).value);
 			if (irrigationSystemService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
 				callback('error')
 			}
@@ -90,11 +88,9 @@ irrigation.prototype={
 			}
 			break
 		case "DeviceInUse":
-			//this.log.debug("%s = %s %s", irrigationSystemService.getCharacteristic(Characteristic.Name).value, characteristicName,irrigationSystemService.getCharacteristic(Characteristic.InUse).value);
 				callback(null, irrigationSystemService.getCharacteristic(Characteristic.InUse).value)
 			break
 		case "DeviceProgramMode":
-			//this.log.debug("%s = %s %s", irrigationSystemService.getCharacteristic(Characteristic.Name).value, characteristicName,irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).value);
 			callback(null, irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).value)
 			break
 		default:
@@ -184,132 +180,136 @@ irrigation.prototype={
 	},
 
 	getValveValue(valveService, characteristicName, callback){
-		switch (characteristicName){
-		case "ValveActive":
-			//this.log.debug("%s = %s %s", valveService.getCharacteristic(Characteristic.Name).value, characteristicName,valveService.getCharacteristic(Characteristic.Active).value)
-			if (valveService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
-				callback('error')
+		if (valveService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+			callback('error')
+		}
+		else {
+			switch (characteristicName){
+				case "ValveActive":
+					callback(null, valveService.getCharacteristic(Characteristic.Active).value)
+					break
+				case "ValveInUse":
+					callback(null, valveService.getCharacteristic(Characteristic.InUse).value)
+					break
+				case "ValveSetDuration":
+					callback(null, valveService.getCharacteristic(Characteristic.SetDuration).value)
+					break
+				case "ValveRemainingDuration":
+					// Calc remain duration
+					let timeEnding=Date.parse(this.platform.endTime[valveService.subtype])
+					let timeNow=Date.now()
+					let timeRemaining=Math.max(Math.round((timeEnding - timeNow) / 1000), 0)
+					if (isNaN(timeRemaining)){
+					timeRemaining=0
+					}
+					valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(timeRemaining)
+					callback(null, timeRemaining)
+					break
+				default:
+					this.log.debug("Unknown CharacteristicName called", characteristicName);
+					callback()
+				break
 			}
-			else {
-				callback(null, valveService.getCharacteristic(Characteristic.Active).value)
-			}
-			break
-		case "ValveInUse":
-			//this.log.debug("%s = %s %s", valveService.getCharacteristic(Characteristic.Name).value, characteristicName,valveService.getCharacteristic(Characteristic.Active).value)
-			callback(null, valveService.getCharacteristic(Characteristic.InUse).value)
-			break
-		case "ValveSetDuration":
-			//this.log.debug("%s = %s %s", valveService.getCharacteristic(Characteristic.Name).value, characteristicName,valveService.getCharacteristic(Characteristic.Active).value)
-			callback(null, valveService.getCharacteristic(Characteristic.SetDuration).value)
-			break
-		case "ValveRemainingDuration":
-			// Calc remain duration
-			let timeEnding=Date.parse(this.platform.endTime[valveService.subtype])
-			let timeNow=Date.now()
-			let timeRemaining=Math.max(Math.round((timeEnding - timeNow) / 1000), 0)
-			if (isNaN(timeRemaining)){
-			timeRemaining=0
-			}
-			valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(timeRemaining)
-			//this.log.debug("%s = %s %s", valveService.getCharacteristic(Characteristic.Name).value, characteristicName,timeRemaining)
-			callback(null, timeRemaining)
-			break
-		default:
-			this.log.debug("Unknown CharacteristicName called", characteristicName);
-			callback()
-			break
 		}
 	},
 
-	setValveValue(device, valveService, value, callback){
-		//this.log.debug('%s - Set Active state to %s', valveService.getCharacteristic(Characteristic.Name).value, value)
+	async setValveValue(device, valveService, value, callback){
 		let irrigationAccessory=this.platform.accessories[device.id];
 		let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
-
 		// Set homekit state and prepare message for Rachio API
 		let runTime=valveService.getCharacteristic(Characteristic.SetDuration).value
-		if(value == Characteristic.Active.ACTIVE){
-			// Turn on/idle the valve
-			this.log.info("Starting zone-%s %s for %s mins", valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value, valveService.getCharacteristic(Characteristic.Name).value, runTime/60)
-			this.rachioapi.startZone (this.platform.token,valveService.getCharacteristic(Characteristic.SerialNumber).value,runTime)
-			irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.Active.ACTIVE)
-			valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-			let myJsonStart={
-				type: 'ZONE_STATUS',
-				title: valveService.getCharacteristic(Characteristic.Name).value+' Started',
-				deviceId: device.id,
-				duration: valveService.getCharacteristic(Characteristic.SetDuration).value,
-				zoneNumber: valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value,
-				zoneId: valveService.getCharacteristic(Characteristic.SerialNumber).value,
-				zoneName: valveService.getCharacteristic(Characteristic.Name).value,
-				timestamp: new Date().toISOString(),
-				summary: valveService.getCharacteristic(Characteristic.Name).value+' began watering at '+ new Date().toLocaleTimeString(),
-				zoneRunState: 'STARTED',
-				durationInMinutes: Math.round(valveService.getCharacteristic(Characteristic.SetDuration).value/60),
-				externalId: this.platform.webhook_key_local,
-				timeForSummary: new Date().toLocaleTimeString(),
-				eventType: 'DEVICE_ZONE_RUN_STARTED_EVENT',
-				subType: 'ZONE_STARTED',
-				endTime: new Date(Date.now()+valveService.getCharacteristic(Characteristic.SetDuration).value*1000).toISOString(),
-				category: 'DEVICE',
-				resourceType: 'DEVICE'
+		let response
+		switch(value){
+			case Characteristic.Active.ACTIVE:
+				this.log.info("Starting zone-%s %s for %s mins", valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value, valveService.getCharacteristic(Characteristic.Name).value, runTime/60)
+				response=await this.rachioapi.startZone(this.platform.token,valveService.getCharacteristic(Characteristic.SerialNumber).value,runTime)
+			if (response.status==204){
+				let myZoneStart={
+					type: 'ZONE_STATUS',
+					title: valveService.getCharacteristic(Characteristic.Name).value+' Started',
+					deviceId: device.id,
+					duration: valveService.getCharacteristic(Characteristic.SetDuration).value,
+					zoneNumber: valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value,
+					zoneId: valveService.getCharacteristic(Characteristic.SerialNumber).value,
+					zoneName: valveService.getCharacteristic(Characteristic.Name).value,
+					timestamp: new Date().toISOString(),
+					summary: valveService.getCharacteristic(Characteristic.Name).value+' began watering at '+ new Date().toLocaleTimeString(),
+					zoneRunState: 'STARTED',
+					durationInMinutes: Math.round(valveService.getCharacteristic(Characteristic.SetDuration).value/60),
+					externalId: this.platform.webhook_key_local,
+					timeForSummary: new Date().toLocaleTimeString(),
+					eventType: 'DEVICE_ZONE_RUN_STARTED_EVENT',
+					subType: 'ZONE_STARTED',
+					endTime: new Date(Date.now()+valveService.getCharacteristic(Characteristic.SetDuration).value*1000).toISOString(),
+					category: 'DEVICE',
+					resourceType: 'DEVICE'
+				}
+				let myZoneStop={
+					type: 'ZONE_STATUS',
+					title: valveService.getCharacteristic(Characteristic.Name).value+' Stopped',
+					deviceId: device.id,
+					duration: valveService.getCharacteristic(Characteristic.SetDuration).value,
+					zoneNumber: valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value,
+					zoneId: valveService.getCharacteristic(Characteristic.SerialNumber).value,
+					zoneName: valveService.getCharacteristic(Characteristic.Name).value,
+					timestamp: new Date().toISOString(),
+					summary: valveService.getCharacteristic(Characteristic.Name).value+' stopped watering at '+ new Date().toLocaleTimeString()+' for '+ valveService.getCharacteristic(Characteristic.SetDuration).value+ ' minutes',
+					zoneRunState: 'STOPPED',
+					durationInMinutes: Math.round(valveService.getCharacteristic(Characteristic.SetDuration).value/60),
+					externalId: this.platform.webhook_key_local,
+					timeForSummary: new Date().toLocaleTimeString(),
+					subType: 'ZONE_STOPPED',
+					endTime: new Date(Date.now()+valveService.getCharacteristic(Characteristic.SetDuration).value*1000).toISOString(),
+					category: 'DEVICE',
+					resourceType: 'DEVICE'
+				}
+				this.log.debug('Simulating webhook for %s will update services',myZoneStart.zoneName)
+				if (this.platform.showWebhookMessages) {this.log.debug('simulated webhook sent from <%s> %s',this.platform.webhook_key_local,myZoneStart)}
+				this.platform.updateService(irrigationSystemService,valveService,myZoneStart)
+				this.platform.fakeWebhook=setTimeout(()=>{
+					this.log.debug('Simulating webhook for %s will update services',myZoneStop.zoneName)
+					if (this.platform.showWebhookMessages) {this.log.debug('simulated webhook sent from <%s> %s',this.platform.webhook_key_local,myZoneStop)}
+					this.platform.updateService(irrigationSystemService,valveService,myZoneStop)
+				}, runTime*1000)
 			}
-			let myJsonStop={
-				type: 'ZONE_STATUS',
-				title: valveService.getCharacteristic(Characteristic.Name).value+' Stopped',
-				deviceId: device.id,
-				duration: valveService.getCharacteristic(Characteristic.SetDuration).value,
-				zoneNumber: valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value,
-				zoneId: valveService.getCharacteristic(Characteristic.SerialNumber).value,
-				zoneName: valveService.getCharacteristic(Characteristic.Name).value,
-				timestamp: new Date().toISOString(),
-				summary: valveService.getCharacteristic(Characteristic.Name).value+' stopped watering at '+ new Date().toLocaleTimeString()+' for '+ valveService.getCharacteristic(Characteristic.SetDuration).value+ ' minutes',
-				zoneRunState: 'STOPPED',
-				durationInMinutes: Math.round(valveService.getCharacteristic(Characteristic.SetDuration).value/60),
-				externalId: this.platform.webhook_key_local,
-				timeForSummary: new Date().toLocaleTimeString(),
-				subType: 'ZONE_STOPPED',
-				endTime: new Date(Date.now()+valveService.getCharacteristic(Characteristic.SetDuration).value*1000).toISOString(),
-				category: 'DEVICE',
-				resourceType: 'DEVICE'
+			else {
+				this.log.info('Failed to start valve')
 			}
-			this.log.debug(myJsonStart)
-			this.log.debug('Simulating webhook for %s will update services',myJsonStart.zoneName)
-			this.platform.updateService(irrigationSystemService,valveService,myJsonStart)
-			this.platform.fakeWebhook=setTimeout(()=>{
-				this.log.debug('Simulating webhook for %s will update services',myJsonStop.zoneName)
-				this.log.debug(myJsonStop)
-				this.platform.updateService(irrigationSystemService,valveService,myJsonStop)
-			}, runTime*1000)
-		}else{
-			// Turn off/stopping the valve
-			this.log.info("Stopping Zone", valveService.getCharacteristic(Characteristic.Name).value);
-			this.rachioapi.stopDevice (this.platform.token,device.id)
-			irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.Active.INACTIVE)
-			valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
-			let myJsonStop={
-				type: 'ZONE_STATUS',
-				title: valveService.getCharacteristic(Characteristic.Name).value+' Stopped',
-				deviceId: device.id,
-				duration: Math.round((valveService.getCharacteristic(Characteristic.SetDuration).value-(Date.parse(this.platform.endTime[valveService.subtype])-Date.now())/1000)),
-				zoneNumber: valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value,
-				zoneId: valveService.getCharacteristic(Characteristic.SerialNumber).value,
-				zoneName: valveService.getCharacteristic(Characteristic.Name).value,
-				timestamp: new Date().toISOString(),
-				summary: valveService.getCharacteristic(Characteristic.Name).value+' stopped watering at '+ new Date().toLocaleTimeString()+' for '+ valveService.getCharacteristic(Characteristic.SetDuration).value+ ' minutes',
-				zoneRunState: 'STOPPED',
-				duration: Math.round((valveService.getCharacteristic(Characteristic.SetDuration).value-(Date.parse(this.platform.endTime[valveService.subtype])-Date.now())/1000)/60),
-				externalId: this.platform.webhook_key_local,
-				timeForSummary: new Date().toLocaleTimeString(),
-				subType: 'ZONE_STOPPED',
-				endTime: new Date(Date.now()+valveService.getCharacteristic(Characteristic.SetDuration).value*1000).toISOString(),
-				category: 'DEVICE',
-				resourceType: 'DEVICE'
-			}
-			this.log.debug(myJsonStop)
-			this.log.debug('Simulating webhook for %s will update services',myJsonStop.zoneName)
-			this.platform.updateService(irrigationSystemService,valveService,myJsonStop)
-			clearTimeout(this.platform.fakeWebhook)
+				break
+			case Characteristic.Active.INACTIVE:
+				// Turn off/stopping the valve
+				this.log.info("Stopping Zone", valveService.getCharacteristic(Characteristic.Name).value);
+				response=await this.rachioapi.stopDevice (this.platform.token,device.id)
+				if (response.status==204){
+					let myZoneStop={
+						type: 'ZONE_STATUS',
+						title: valveService.getCharacteristic(Characteristic.Name).value+' Stopped',
+						deviceId: device.id,
+						duration: Math.round((valveService.getCharacteristic(Characteristic.SetDuration).value-(Date.parse(this.platform.endTime[valveService.subtype])-Date.now())/1000)),
+						zoneNumber: valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value,
+						zoneId: valveService.getCharacteristic(Characteristic.SerialNumber).value,
+						zoneName: valveService.getCharacteristic(Characteristic.Name).value,
+						timestamp: new Date().toISOString(),
+						summary: valveService.getCharacteristic(Characteristic.Name).value+' stopped watering at '+ new Date().toLocaleTimeString()+' for '+ valveService.getCharacteristic(Characteristic.SetDuration).value+ ' minutes',
+						zoneRunState: 'STOPPED',
+						durationInMinutes: Math.round((valveService.getCharacteristic(Characteristic.SetDuration).value-(Date.parse(this.platform.endTime[valveService.subtype])-Date.now())/1000)/60),
+						externalId: this.platform.webhook_key_local,
+						timeForSummary: new Date().toLocaleTimeString(),
+						subType: 'ZONE_STOPPED',
+						endTime: new Date(Date.now()+valveService.getCharacteristic(Characteristic.SetDuration).value*1000).toISOString(),
+						category: 'DEVICE',
+						resourceType: 'DEVICE'
+					}
+					this.log.debug(myZoneStop)
+					this.log.debug('Simulating webhook for %s will update services',myZoneStop.zoneName)
+					if (this.platform.showWebhookMessages) {this.log.debug('simulated webhook sent from <%s> %s',this.platform.webhook_key_local,myZoneStop)}
+					this.platform.updateService(irrigationSystemService,valveService,myZoneStop)
+					clearTimeout(this.platform.fakeWebhook)
+				}
+				else(
+					this.log.info('Failed to stop valve')
+				)
+				break
 		}
 		callback()
 	},

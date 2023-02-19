@@ -3,14 +3,21 @@
 ## 1.2.20
 Update
 - Bumped dependencies.
-- Changed extra switch defaults from true to false
-- improved error handling
+- Refactored API response handling.
+- Improved response without webhooks.
+- Improved startup routine.
+- Changed extra switch defaults from true to false.
+- Code Cleanup.
+- Improved error logging.
+- Cleaned whitespace.
+- Added option to suppress API responses in debug log.
+- Added option to suppress Webhook messages in debug log.
 
 ## 1.2.19
 Update
 - Bumped dependencies.
 - Inital support for Homebridge v2.0.0
-- emoved dependency on depratacted Homekit characteristic.
+- Removed dependency on depratacted Homekit characteristic.
 - Code Cleanup.
 
 ## 1.2.18
