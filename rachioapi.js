@@ -29,8 +29,8 @@ RachioAPI.prototype={
 			}).catch(err => {
 				this.log.error('Error getting person, Status %s',err.message)
 				this.log.debug(JSON.stringify(err,null,2))
-				if(err.response){this.log.warn( JSON.stringify(err.response.data,null,2))}
-				return
+				if(err.response){this.log.warn(JSON.stringify(err.response.data,null,2))}
+				return err.response
 			})
 			if(response.status==200){
 				if(this.platform.showAPIMessages){this.log.debug('get person info response',JSON.stringify(response.data,null,2))}
@@ -55,8 +55,8 @@ RachioAPI.prototype={
 			}).catch(err => {
 				this.log.error('Error getting device %s', err.message)
 				this.log.debug(JSON.stringify(err,null,2))
-				if(err.response){this.log.warn( JSON.stringify(err.response.data,null,2))}
-				return
+				if(err.response){this.log.warn(JSON.stringify(err.response.data,null,2))}
+				return err.response
 			})
 			if(response.status==200){
 				if(this.platform.showAPIMessages){this.log.debug('get person id response',JSON.stringify(response.data,null,2))}
@@ -81,8 +81,8 @@ RachioAPI.prototype={
 			}).catch(err => {
 				this.log.error('Error getting device state %s', err.message)
 				this.log.debug(JSON.stringify(err,null,2))
-				if(err.response){this.log.warn( JSON.stringify(err.response.data,null,2))}
-				return
+				if(err.response){this.log.warn(JSON.stringify(err.response.data,null,2))}
+				return err.response
 			})
 			if(response.status==200){
 				if(this.platform.showAPIMessages){this.log.debug('get device state response',JSON.stringify(response.data,null,2))}
@@ -107,8 +107,8 @@ RachioAPI.prototype={
 			}).catch(err => {
 				this.log.error('Error getting device details %s', err.message)
 				this.log.debug(JSON.stringify(err,null,2))
-				if(err.response){this.log.warn( JSON.stringify(err.response.data,null,2))}
-				return
+				if(err.response){this.log.warn(JSON.stringify(err.response.data,null,2))}
+				return err.response
 			})
 			if(response.status==200){
 				if(this.platform.showAPIMessages){this.log.debug('get device details response',JSON.stringify(response.data,null,2))}
@@ -134,7 +134,7 @@ RachioAPI.prototype={
 				this.log.error('Error getting device info %s', err.message)
 				this.log.debug(JSON.stringify(err,null,2))
 				if(err.response){this.log.warn( JSON.stringify(err.response.data,null,2))}
-				return
+				return err.response
 			})
 			if(response.status==200){
 				if(this.platform.showAPIMessages){this.log.debug('get device info response',JSON.stringify(response.data,null,2))}
@@ -160,7 +160,7 @@ RachioAPI.prototype={
 				this.log.error('Error getting location list %s', err.message)
 				this.log.debug(JSON.stringify(err,null,2))
 				if(err.response){this.log.warn( JSON.stringify(err.response.data,null,2))}
-				return
+				return err.response
 			})
 			if(response.status==200){
 				if(this.platform.showAPIMessages){this.log.debug('get list locations response',JSON.stringify(response.data,null,2))}
@@ -186,7 +186,7 @@ RachioAPI.prototype={
 				this.log.error('Error getting schedule %s', err.message)
 				this.log.debug(JSON.stringify(err,null,2))
 				if(err.response){this.log.warn( JSON.stringify(err.response.data,null,2))}
-				return
+				return err.response
 			})
 			this.log.debug('status',response.data.status)
 			if(response.status==200){

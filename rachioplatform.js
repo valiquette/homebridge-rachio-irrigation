@@ -312,7 +312,7 @@ class RachioPlatform {
 				this.retryAttempt++
 				this.log.error('Failed to get devices. Retry attempt %s of %s in %s seconds...',this.retryAttempt, this.retryMax, this.retryWait)
 				setTimeout(async()=>{
-					this.getDevices()
+					this.getRachioDevices()
 				},this.retryWait*1000)
 			}
 			else{
@@ -721,7 +721,7 @@ class RachioPlatform {
 							break
 						case 'OFFLINE':
 							this.log('<%s> %s disconnected at %s',jsonBody.externalId,jsonBody.deviceId,jsonBody.timestamp)
-							this.log.warn('%s disconnected at %s! This will show as non-responding in Homekit until the connection is restored.',jsonBody.deviceId,jsonBody.timestamp)
+							this.log.warn('%s disconnected at %s! This will show as non-responding in Homekit until the connection is restored.',jsonBody.deviceId,new Date(jsonBody.timestamp).toString())
 							this.log.debug(jsonBody.summary)
 								irrigationAccessory.services.forEach((service)=>{
 									if (Service.AccessoryInformation.UUID != service.UUID){

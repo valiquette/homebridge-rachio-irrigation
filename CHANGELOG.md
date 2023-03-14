@@ -1,5 +1,11 @@
 # Changes
 
+## 1.2.21
+Update
+- Code Cleanup.
+- Bumped dependencies.
+- Added API errors to log
+
 ## 1.2.20
 Update
 - Bumped dependencies.
