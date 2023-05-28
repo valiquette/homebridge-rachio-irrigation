@@ -204,7 +204,7 @@
 		},
 		{
 			"type": "help",
-			"helpvalue": "<h6><b>Location Support</b></h6><p class='help-block'> If you have more than one location and want to display them in separate Homebridge/HomeKit homes you can retrive only the devices at this street address otherwise leave blank.<br/>The address must match the address configured in the Rachio app, review the log file to see the adresses as configured in the Rachio app.</p>"
+			"helpvalue": "<h6><b>Location Support</b></h6><p class='help-block'> If you have more than one location and want to display them in separate Homebridge/HomeKit homes you can retrive only the devices at this street address otherwise leave blank.<br/>The address must match the address configured in the Rachio app, review the log file to see the adresses as configured in the Rachio app.<br/>If configuring more than one Homebridge instance make sure to use a unique accessory name, the name will be used as the external ID for Webhooks.</p>"
 		},
 		{
 			"type": "flex",
