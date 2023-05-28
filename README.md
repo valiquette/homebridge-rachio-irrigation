@@ -8,7 +8,6 @@
 
 
 ## About
-NOTE: Option 1 is not working correctly with a bug in IOS 15.4 and 15.5. The bug will cause zone switches to be displayed randomly or not at all.
 
 This plugin provides 3 options for use in HomeKit<br>Both option have additional switches as options for Standby mode and a Run All along with any Rachio Schedules
 1.	Irrigation System Accessory with zones that are linked (default in configuration)
@@ -17,17 +16,15 @@ This plugin provides 3 options for use in HomeKit<br>Both option have additional
 
 <br> There are plus and minus to each, so why not have options.
 <br> If you have more than one home on your Rachio account you may filter devices for a home based on the street address for the location you want to display in HomeKit.
+<br> If you are configuring more than one Homebridge instance, you will want to use a unique accessory name.
 <br> Rachio caluclated runtimes based on your zones configuration, these runtimes can be used for the inital runtimes seen in HomeKit.
 
 ### Screenshots
 <p>
  <div align="center">
-  <img width=260 src="images/IMG_3910.PNG"/>
-  <img width=260 src="images/IMG_3909.PNG"/>
-  <img width=260 src="images/IMG_3911.PNG"/>
-  <img width=260 src="images/IMG_3915.PNG"/>
-  <img width=260 src="images/IMG_3912.PNG"/>
-  <img width=260 src="images/IMG_3913.PNG"/>
+  <img width=260 src="images/IMG_0312.PNG"/>
+  <img width=260 src="images/IMG_0313.PNG"/>
+  <img width=260 src="images/IMG_0314.PNG"/>
  </div align="left">
 </p>
 <br>
@@ -95,18 +92,23 @@ If you see log messages like `Webhook received from an unknown external id`, you
 	"default_runtime": 3,
 	"runtime_source": 2,
 	"use_irrigation_display": true,
-	"show_standby": false,
-	"show_runall": false,
-	"show_schedules": false,
-	"external_IP_address": "76.33.22.111",
+	"show_standby": true,
+	"show_runall": true,
+	"show_schedules": true,
+	"external_IP_address": "76.76.73.37",
 	"internal_IP_address": "127.0.0.1",
-	"external_webhook_port": 12453,
-	"internal_webhook_port": 27543,
+	"external_webhook_port": 12454,
+	"internal_webhook_port": 27544,
 	"use_basic_auth": true,
+	"https": false,
+	"key": "/somepath/key.pem",
+	"cert": "/somepath/cert.pem",
 	"user": "username",
 	"password": "password",
 	"delete_webhooks": false,
-	"_bridge": {
+	"showAPIMessages": false,
+	"showWebhookMessages": false,
+"_bridge": {
 		"username": "0E:79:49:DC:71:A9",
 		"port": 46062
 	},
