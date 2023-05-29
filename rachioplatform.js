@@ -13,10 +13,8 @@ let RachioAPI=require('./rachioapi')
 let irrigation=require('./devices/irrigation')
 let switches=require('./devices/switches')
 let deviceState
-let requestServer
 
 class RachioPlatform {
-
 	constructor(log, config, api){
 		this.rachioapi=new RachioAPI(this,log)
 		this.irrigation=new irrigation(this,log)
@@ -161,7 +159,7 @@ class RachioPlatform {
 				this.getRachioDevices()
 			}.bind(this))
 		}
-		}
+	}
 
 	identify(){
 		this.log('Identify the sprinkler!')
@@ -325,7 +323,7 @@ class RachioPlatform {
 	//** REQUIRED - Homebridge will call the "configureAccessory" method once for every cached accessory restored
 	//**
 	configureAccessory(accessory){
-		// Add cached devices to the accessories arrary
+		// Add cached devices to the accessories array
 		this.log.info('Found cached accessory, configuring %s',accessory.displayName)
 		this.accessories[accessory.UUID]=accessory
 	}
@@ -471,7 +469,7 @@ class RachioPlatform {
 
 		if ((this.external_IP_address && this.external_webhook_address && this.internal_webhook_port) || (this.relay_address && this.internal_IP_address && this.internal_webhook_port)){
 		this.log.debug('Will listen for Webhooks matching Webhook ID %s',this.webhook_key)
-		requestServer=server.createServer(options,(request, response)=>{
+		server.createServer(options,(request, response)=>{
 			let authPassed
 			if (this.useBasicAuth){
 				if (request.headers.authorization){
@@ -492,16 +490,15 @@ class RachioPlatform {
 					this.log.warn('Expecting webhook authentication')
 					this.log.debug('Expecting webhook authentication',request)
 					authPassed=false
-					return
 				}
 			}
 			else {
 				authPassed=true
 			}
 			if (request.method === 'GET' && request.url === '/test'){
-				this.log.info('Test received on Rachio listener. Webhooks are configured correctly!')
+				this.log.info('Test received on Rachio listener. Webhooks are configured correctly! Authorization %s',authPassed ? 'passed' : 'failed')
 				response.writeHead(200)
-				response.write( new Date().toTimeString()+' Webhooks are configured correctly!')
+				response.write( new Date().toTimeString()+' Webhooks are configured correctly! Authorization '+authPassed ? 'passed' : 'failed')
 				return response.end()
 			}
 			else if (request.method === 'POST' && request.url === '/' && authPassed){

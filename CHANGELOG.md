@@ -1,5 +1,15 @@
 # Changes
 
+## 1.2.22
+Update
+-  Updated Readme.
+-  Updated config UI text.
+-  Added suppport for node.js v20.
+-  Removed support for node.js v14.
+-  Improved response when testing webhooks.
+-  Refactor portion of code.
+-  Bumped dependencies.
+
 ## 1.2.21
 Update
 - Code Cleanup.
