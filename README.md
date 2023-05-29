@@ -5,11 +5,17 @@
 # homebridge-rachio-irrigation
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 <br>Rachio Irrigation System platform plugin for [Homebridge](https://github.com/nfarina/homebridge).
+<br>Supporting
+- Rachio 1 Contollers.
+- Rachio 2 Contollers.
+- Rachio 3 Contrllers.
+
+Note: Rachio has not published any API support their Smart Hose Timer and us currently unsupported.
 
 
 ## About
 
-This plugin provides 3 options for use in HomeKit<br>Both option have additional switches as options for Standby mode and a Run All along with any Rachio Schedules
+This plugin provides multiple options for use in HomeKit<br>Both option have additional switches as options for Standby mode and a Run All along with any Rachio Schedules
 1.	Irrigation System Accessory with zones that are linked (default in configuration)
 2.	Irrigation System Accessory with separate zones shown as a single tile
 3.	Irrigation System Accessory with separate zones shown as a separate tiles (option in HomeKit)

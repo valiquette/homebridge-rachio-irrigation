@@ -2,12 +2,12 @@
 
 ## 1.2.22
 Update
--  Updated Readme with current IOS screenshots.
--  Updated config text.
+-  Updated Readme.
+-  Updated config UI text.
 -  Added suppport for node.js v20.
 -  Removed support for node.js v14.
 -  Improved response when testing webhooks.
--  Refactor.
+-  Refactor portion of code.
 -  Bumped dependencies.
 
 ## 1.2.21

@@ -13,7 +13,6 @@ let RachioAPI=require('./rachioapi')
 let irrigation=require('./devices/irrigation')
 let switches=require('./devices/switches')
 let deviceState
-let requestServer
 
 class RachioPlatform {
 	constructor(log, config, api){
@@ -470,7 +469,7 @@ class RachioPlatform {
 
 		if ((this.external_IP_address && this.external_webhook_address && this.internal_webhook_port) || (this.relay_address && this.internal_IP_address && this.internal_webhook_port)){
 		this.log.debug('Will listen for Webhooks matching Webhook ID %s',this.webhook_key)
-		requestServer=server.createServer(options,(request, response)=>{
+		server.createServer(options,(request, response)=>{
 			let authPassed
 			if (this.useBasicAuth){
 				if (request.headers.authorization){
