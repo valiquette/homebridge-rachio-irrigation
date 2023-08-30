@@ -50,7 +50,6 @@ class RachioPlatform {
 		this.locationAddress=config.location_address
 		this.locationMatch=true
 		this.accessories=[]
-		this.realExternalIP
 		this.foundLocations
 		this.useHttps=config.https ? config.https : false
 		this.key=config.key
@@ -77,7 +76,7 @@ class RachioPlatform {
 				//Get info to configure webhooks
 				await this.getWebhookInfo()
 				//Configure listerner for webhook messages
-				this.configureListener()
+				await this.configureListener()
 				//Get devices
 				this.getRachioDevices()
 			}.bind(this))
@@ -89,6 +88,7 @@ class RachioPlatform {
 	}
 
 	setWebhookURL(){
+
 		let destination=this.useHttps ? 'https://' : 'http://'
 		let port=this.external_webhook_port ? ':'+this.external_webhook_port : ''
 
@@ -98,94 +98,93 @@ class RachioPlatform {
 		else {
 			this.external_webhook_address=destination+this.external_IP_address+port
 		}
-		if(!this.ipv4 && !this.ipv6 && !this.fqdn){
-			this.external_webhook_address=null
+		if(!this.external_webhook_address){
 			this.log.warn(`Cannot validate webhook destination address, will not set Webhooks. Please check webhook config settings for proper format and does not include any prefx like http://`)
 		}
 	}
 
 	async getWebhookInfo(){
+		let ipv4
+		let ipv6
+		let fqdn
+		let ipv4format= /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+		let ipv6format= /(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))/;
+		let fqdnformat= /(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{0,62}[a-zA-Z0-9]\.)+[a-zA-Z]{2,63}$)/;
 		if(this.relay_address){
 			this.useBasicAuth=false
 			this.external_webhook_address=this.relay_address
 		}
 		//check external IP address
 		if (this.external_IP_address){
-			this.ipv4format= /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-			this.ipv6format= /(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))/;
-			this.fqdnformat= /(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{0,62}[a-zA-Z0-9]\.)+[a-zA-Z]{2,63}$)/;
-
-			this.ipv4=checkIPaddress(this.external_IP_address,this.ipv4format)
-			this.ipv6=checkIPaddress(this.external_IP_address,this.ipv6format)
-			this.fqdn=checkIPaddress(this.external_IP_address,this.fqdnformat)
+			ipv4=this.checkIPaddress(this.external_IP_address,ipv4format)
+			ipv6=this.checkIPaddress(this.external_IP_address,ipv6format)
+			fqdn=this.checkIPaddress(this.external_IP_address,fqdnformat)
 		}
 		else {
 			this.log.warn(`No external IP or domain name configured, will not configure webhooks. Reference Readme for instructions.`)
 		}
 
-		function checkIPaddress(inputText,ipformat){
-			try {
-				if (inputText.match(ipformat))
-					{return true}
-				else
-					{return false}
-			}
-			catch(err){
-				log.warn(`Error validating IP address ${err}`)
-				return
-			}
-		}
 		if (this.relay_address){
-			this.log.warn(`Using Webhook Relay @ ${this.relay_address}`)
 			this.external_IP_address=this.relay_address
 		}
 		else{
-			if (this.ipv4){
+			if (ipv4){
 				axios({
 					method: 'get',
 					url: 'https://ip4only.me/api/',
 					responseType: 'text'
 				}).then(response=> {
 					let addressV4=response.data.split(',')
-					this.realExternalIP=addressV4[1]
-					if (this.ipv4 && this.external_IP_address && this.realExternalIP != this.external_IP_address){
-						this.log.warn(`Configured external IPv4 address of ${this.external_IP_address} does not match this server's detected external IP of ${this.realExternalIP} please check webhook config settings.`)
+					let realExternalIP=addressV4[1]
+					if (ipv4 && this.external_IP_address && realExternalIP != this.external_IP_address){
+						this.log.warn(`Configured external IPv4 address of ${this.external_IP_address} does not match this server's detected external IP of ${realExternalIP} please check webhook config settings.`)
 						if (this.auto_correct_IP){
-							this.log.warn(`The external IPv4 of this server's detected IP address of ${this.realExternalIP} will be used based on config, please update webhook config settings.`)
-							this.external_IP_address=this.realExternalIP
-							this.setWebhookURL()
+							this.log.warn(`The external IPv4 of this server's detected IP address of ${realExternalIP} will be used based on config, please update webhook config settings.`)
+							this.external_IP_address=realExternalIP
 						}
 					}
 				this.log.debug(`using IPv4 webhook external address ${this.external_IP_address}`)
 				}).catch(err=>{this.log.error('Failed to get current external IP', err.cause)})
+				this.setWebhookURL()
 			}
-			else if (this.ipv6){
+			else if (ipv6){
 				axios({
 					method: 'get',
 					url: 'https://ip6only.me/api/',
 					responseType: 'text'
 				}).then(response=> {
 					let addressV6=response.data.split(',')
-					this.realExternalIP=addressV6[1]
-					if (this.ipv6 && this.external_IP_address && this.realExternalIP != this.external_IP_address){
-						this.log.warn(`Configured external IPv6 address of ${this.external_IP_address} does not match this server's detected external IP of ${this.realExternalIP} please check webhook config settings.`)
+					let realExternalIP=addressV6[1]
+					if (ipv6 && this.external_IP_address && realExternalIP != this.external_IP_address){
+						this.log.warn(`Configured external IPv6 address of ${this.external_IP_address} does not match this server's detected external IP of ${realExternalIP} please check webhook config settings.`)
 						if (this.auto_correct_IP){
-							this.log.warn(`The external IPv6 of this server's detected IP address of ${this.realExternalIP} will be used based on config, please update webhook config settings.`)
-							this.external_IP_address=this.realExternalIP
-							this.setWebhookURL()
+							this.log.warn(`The external IPv6 of this server's detected IP address of ${realExternalIP} will be used based on config, please update webhook config settings.`)
+							this.external_IP_address=realExternalIP
 						}
 					}
 				this.log.debug(`using IPv6 webhook external address ${this.external_IP_address}`)
 				}).catch(err=>{this.log.error('Failed to get current external IP', err.cause)})
+				this.setWebhookURL()
 			}
-			else if (this.fqdn){
+			else if (fqdn){
 				this.log.debug(`using FQDN for webhook external destination ${this.external_IP_address}`)
 				this.setWebhookURL()
 			}
 			else {
-				this.external_webhook_address=null
 				this.log.warn(`Cannot validate webhook destination address, will not set Webhooks. Please check webhook config settings for proper format and does not include any prefx like http://`)
 			}
+		}
+	}
+
+	checkIPaddress(inputText,ipformat){
+		try {
+			if (inputText.match(ipformat))
+				{return true}
+			else
+				{return false}
+		}
+		catch(err){
+			log.warn(`Error validating IP address ${err}`)
 		}
 	}
 
@@ -491,104 +490,105 @@ class RachioPlatform {
 				cert: fs.readFileSync(this.cert)
 			}
 		}
+		//this.log.warn(this.external_IP_address,this.external_webhook_address,this.internal_webhook_port)
 		if ((this.external_IP_address && this.external_webhook_address && this.internal_webhook_port) || (this.relay_address && this.internal_IP_address && this.internal_webhook_port)){
-		this.log.debug('Will listen for Webhooks matching Webhook ID %s',this.webhook_key)
-		server.createServer(options,(request, response)=>{
-			let authPassed
-			if (this.useBasicAuth){
-				if (request.headers.authorization){
-					let b64encoded=(Buffer.from(this.user+":"+this.password,'utf8')).toString('base64')
-					this.log.debug('webhook request authorization header=%s',request.headers.authorization)
-					this.log.debug('webhook expected authorization header=%s',"Basic "+b64encoded)
-					if (request.headers.authorization == "Basic "+b64encoded){
-						this.log.debug("Webhook authentication passed")
-						authPassed=true
+			this.log.debug('Will listen for Webhooks matching Webhook ID %s',this.webhook_key)
+			server.createServer(options,(request, response)=>{
+				let authPassed
+				if (this.useBasicAuth){
+					if (request.headers.authorization){
+						let b64encoded=(Buffer.from(this.user+":"+this.password,'utf8')).toString('base64')
+						this.log.debug('webhook request authorization header=%s',request.headers.authorization)
+						this.log.debug('webhook expected authorization header=%s',"Basic "+b64encoded)
+						if (request.headers.authorization == "Basic "+b64encoded){
+							this.log.debug("Webhook authentication passed")
+							authPassed=true
+						}
+						else {
+							this.log.warn('Webhook authentication failed')
+							this.log.debug("Webhook authentication failed",request.headers.authorization)
+							authPassed=false
+						}
 					}
 					else {
-						this.log.warn('Webhook authentication failed')
-						this.log.debug("Webhook authentication failed",request.headers.authorization)
+						this.log.warn('Expecting webhook authentication')
+						this.log.debug('Expecting webhook authentication',request)
 						authPassed=false
 					}
 				}
 				else {
-					this.log.warn('Expecting webhook authentication')
-					this.log.debug('Expecting webhook authentication',request)
-					authPassed=false
+					authPassed=true
 				}
-			}
-			else {
-				authPassed=true
-			}
-			if (request.method === 'GET' && request.url === '/test'){
-				this.log.info('Test received on Rachio listener. Webhooks are configured correctly! Authorization %s',authPassed ? 'passed' : 'failed')
-				response.writeHead(200)
-				response.write( new Date().toTimeString()+' Webhooks are configured correctly! Authorization '+authPassed ? 'passed' : 'failed')
-				return response.end()
-			}
-			else if (request.method === 'POST' && request.url === '/' && authPassed){
-				let body=[]
-				request.on('data', (chunk)=>{
-					body.push(chunk)
-				}).on('end', ()=>{
-					try {
-						body=Buffer.concat(body).toString().trim()
-						let jsonBody=JSON.parse(body)
-						if (this.showWebhookMessages) {this.log.debug('webhook request received from <%s> %s',jsonBody.externalId,jsonBody)}
-						if (jsonBody.externalId === this.webhook_key){
-							let irrigationAccessory=this.accessories[jsonBody.deviceId]
-							let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
-							let service
-							if (jsonBody.zoneId){
-								service=irrigationAccessory.getServiceById(Service.Valve,jsonBody.zoneId)
-								this.log.debug('Webhook match found for %s will update zone service',service.getCharacteristic(Characteristic.Name).value)
-								this.eventMsg(irrigationSystemService,service,jsonBody)
-							}
-							else if (jsonBody.scheduleId){
-								service=irrigationAccessory.getServiceById(Service.Switch,jsonBody.scheduleId)
-								if (this.showSchedules){
-									this.log.debug('Webhook match found for %s will update schedule service',service.getCharacteristic(Characteristic.Name).value)
+				if (request.method === 'GET' && request.url === '/test'){
+					this.log.info('Test received on Rachio listener. Webhooks are configured correctly! Authorization %s',authPassed ? 'passed' : 'failed')
+					response.writeHead(200)
+					response.write( new Date().toTimeString()+' Webhooks are configured correctly! Authorization '+authPassed ? 'passed' : 'failed')
+					return response.end()
+				}
+				else if (request.method === 'POST' && request.url === '/' && authPassed){
+					let body=[]
+					request.on('data', (chunk)=>{
+						body.push(chunk)
+					}).on('end', ()=>{
+						try {
+							body=Buffer.concat(body).toString().trim()
+							let jsonBody=JSON.parse(body)
+							if (this.showWebhookMessages) {this.log.debug('webhook request received from <%s> %s',jsonBody.externalId,jsonBody)}
+							if (jsonBody.externalId === this.webhook_key){
+								let irrigationAccessory=this.accessories[jsonBody.deviceId]
+								let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
+								let service
+								if (jsonBody.zoneId){
+									service=irrigationAccessory.getServiceById(Service.Valve,jsonBody.zoneId)
+									this.log.debug('Webhook match found for %s will update zone service',service.getCharacteristic(Characteristic.Name).value)
 									this.eventMsg(irrigationSystemService,service,jsonBody)
 								}
-								else {
-									this.log.debug('Skipping Webhook for %s service, optional schedule switch is not configured',jsonBody.scheduleName)
+								else if (jsonBody.scheduleId){
+									service=irrigationAccessory.getServiceById(Service.Switch,jsonBody.scheduleId)
+									if (this.showSchedules){
+										this.log.debug('Webhook match found for %s will update schedule service',service.getCharacteristic(Characteristic.Name).value)
+										this.eventMsg(irrigationSystemService,service,jsonBody)
+									}
+									else {
+										this.log.debug('Skipping Webhook for %s service, optional schedule switch is not configured',jsonBody.scheduleName)
+									}
 								}
+								else if (jsonBody.deviceId && jsonBody.category!='SCHEDULE'){
+									service=irrigationAccessory.getServiceById(Service.IrrigationSystem)
+									if (this.showStandby){
+										this.log.debug('Webhook match found for %s will update irrigation service',service.getCharacteristic(Characteristic.Name).value)
+										this.eventMsg(irrigationSystemService,service,jsonBody)
+									}
+									else {
+										this.log.debug('Skipping Webhook for %s service, optional standby switch is not configured',jsonBody.deviceName)
+									}
+								}
+							response.writeHead(204)
+							return response.end()
 							}
-							else if (jsonBody.deviceId && jsonBody.category!='SCHEDULE'){
-								service=irrigationAccessory.getServiceById(Service.IrrigationSystem)
-								if (this.showStandby){
-									this.log.debug('Webhook match found for %s will update irrigation service',service.getCharacteristic(Characteristic.Name).value)
-									this.eventMsg(irrigationSystemService,service,jsonBody)
-								}
-								else {
-									this.log.debug('Skipping Webhook for %s service, optional standby switch is not configured',jsonBody.deviceName)
-								}
+							else {
+							this.log.warn('Webhook received from an unknown external id %s',jsonBody.externalId)
+							response.writeHead(404)
+							return response.end()
 							}
-						response.writeHead(204)
-						return response.end()
 						}
-						else {
-						this.log.warn('Webhook received from an unknown external id %s',jsonBody.externalId)
-						response.writeHead(404)
-						return response.end()
+						catch(err){
+							this.log.error('Error parsing webhook request ' + err)
+							response.writeHead(404)
+							return response.end()
 						}
-					}
-					catch(err){
-						this.log.error('Error parsing webhook request ' + err)
-						response.writeHead(404)
-						return response.end()
-					}
-				})
-			}
-		}).listen(this.internal_webhook_port, function (){
-			this.log.info('This server is listening on port %s.',this.internal_webhook_port)
-			if (this.useBasicAuth){this.log.info('Using HTTP basic authentication for Webhooks')}
-			this.log.info('Make sure your router has port fowarding turned on for port %s to this server`s IP address and this port %s, unless you are using a relay service.',this.external_webhook_port,this.internal_webhook_port)
-		}.bind(this))
-	}
-	else {
-		this.log.warn('Webhook support is disabled. This plugin will not sync Homekit to realtime events from other sources without Webhooks support.')
-	}
-	return
+					})
+				}
+			}).listen(this.internal_webhook_port, function (){
+				this.log.info('This server is listening on port %s.',this.internal_webhook_port)
+				if (this.useBasicAuth){this.log.info('Using HTTP basic authentication for Webhooks')}
+				this.log.info('Make sure your router has port fowarding turned on for port %s to this server`s IP address and this port %s, unless you are using a relay service.',this.external_webhook_port,this.internal_webhook_port)
+			}.bind(this))
+		}
+		else {
+			this.log.warn('Webhook support is disabled. This plugin will not sync Homekit to realtime events from other sources without Webhooks support.')
+		}
+		return
 	}
 
 	localMessage(listener){
