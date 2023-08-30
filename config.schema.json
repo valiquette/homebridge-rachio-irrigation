@@ -86,7 +86,7 @@
 			},
 			"external_IP_address": {
 				"title": "External IP Address",
-				"description": "External IP address or Domain for this server being used to receive webhook messages.<br/>To find this quick click <a target='blank' href='https://www.myexternalip.com'>here</a>.",
+				"description": "External IP address or Domain for this server,<br/>to be used to receive webhook messages.<br/>To find this quick click <a target='blank' href='https://www.myexternalip.com'>here</a>.",
 				"type": "string",
 				"required": false,
 				"placeholder": "xxx.xxx.xxx.xxx"
@@ -105,6 +105,13 @@
 				"type": "string",
 				"required": false,
 				"placeholder": "https://somethinglongandrandom.hooks.webhookrelay.com"
+			},
+				"auto_correct_IP": {
+				"title": "Auto correct IP",
+				"description": "Try and correct IP address changes.",
+				"type": "boolean",
+				"required": false,
+				"default": false
 			},
 			"external_webhook_port": {
 				"title": "External Webhook Port",
@@ -254,7 +261,8 @@
 					"type": "flex",
 					"flex-flow": "row wrap",
 					"items": [
-					"external_IP_address"
+					"external_IP_address",
+					"auto_correct_IP"
 					]
 				},
 				{

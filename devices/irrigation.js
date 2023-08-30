@@ -7,7 +7,7 @@ class irrigation {
 		this.platform = platform
 		this.rachioapi = new RachioAPI(this, log)
 	}
-	
+
 	createIrrigationAccessory(device, deviceState) {
 		this.log.debug('Create Irrigation service %s', device.id, device.name)
 		// Create new Irrigation System Service
@@ -203,7 +203,7 @@ class irrigation {
 					if (isNaN(timeRemaining)) {
 						timeRemaining = 0
 					}
-					valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(timeRemaining)
+					//valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(timeRemaining)
 					callback(null, timeRemaining)
 					break
 				default:
@@ -266,11 +266,11 @@ class irrigation {
 					}
 					this.log.debug('Simulating webhook for %s will update services', myZoneStart.zoneName)
 					if (this.platform.showWebhookMessages) { this.log.debug('simulated webhook sent from <%s> %s', this.platform.webhook_key_local, myZoneStart)}
-					this.platform.updateService(irrigationSystemService, valveService, myZoneStart)
+					this.eventMsg(irrigationSystemService,valveService,myZoneStart)
 					this.platform.fakeWebhook = setTimeout(() => {
 						this.log.debug('Simulating webhook for %s will update services', myZoneStop.zoneName)
 						if (this.platform.showWebhookMessages) { this.log.debug('simulated webhook sent from <%s> %s', this.platform.webhook_key_local, myZoneStop)}
-						this.platform.updateService(irrigationSystemService, valveService, myZoneStop)
+						this.eventMsg(irrigationSystemService,valveService,myZoneStop)
 					}, runTime * 1000)
 				}
 				else {
@@ -303,7 +303,7 @@ class irrigation {
 					}
 					this.log.debug('Simulating webhook for %s will update services', myZoneStop.zoneName)
 					if (this.platform.showWebhookMessages) { this.log.debug('simulated webhook sent from <%s> %s', this.platform.webhook_key_local, myZoneStop)}
-					this.platform.updateService(irrigationSystemService, valveService, myZoneStop)
+					this.eventMsg(irrigationSystemService,valveService,myZoneStop)
 					clearTimeout(this.platform.fakeWebhook)
 				}
 				else
@@ -320,6 +320,12 @@ class irrigation {
 		valveService.getCharacteristic(Characteristic.SetDuration).updateValue(value)
 		this.log.info("Set %s duration for %s mins", valveService.getCharacteristic(Characteristic.Name).value, value / 60)
 		callback()
+	}
+
+	localMessage(listener){
+		this.eventMsg=(irrigationSystemService,service,myJson)=>{
+			listener(irrigationSystemService,service,myJson)
+		}
 	}
 }
 

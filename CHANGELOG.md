@@ -1,5 +1,12 @@
 # Changes
 
+## 1.2.23
+Update
+-  Added config option to automatically use detected valid IP.
+-  Refactored startup code/
+-  Bumped dependencies.
+-  Fix a bug displaying remaing time after a screen refresh.
+
 ## 1.2.22
 Update
 -  Updated Readme.
