@@ -4,11 +4,11 @@
 	"description": "Rachio Irrigation System platform plugin for [Homebridge](https://github.com/nfarina/homebridge).",
 	"main": "index.js",
 	"dependencies": {
-		"axios": "^1.4.0"
+		"axios": "^1.5.0"
 	},
 	"engines": {
 		"homebridge": "^1.6.1 || ^2.0.0-beta",
-		"node": "^16.20.1 || ^18.17.0 || ^20.5.0"
+		"node": "^16.20.1 || ^18.17.1 || ^20.6.1"
 	},
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
