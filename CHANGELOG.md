@@ -2,8 +2,8 @@
 
 ## 1.2.23
 Update
--  Added config option to automatically use detected valid IP.
--  Refactored startup code/
+-  Added config option to automatically use detected valid IP for Webhooks.
+-  Refactored startup code.
 -  Bumped dependencies.
 -  Fix a bug displaying remaing time after a screen refresh.
 
