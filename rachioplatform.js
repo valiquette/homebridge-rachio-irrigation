@@ -10,21 +10,24 @@ let http=require('http')
 let https=require('https')
 let fs=require('fs')
 let RachioAPI=require('./rachioapi')
+let RachioUpdate=require('./rachioupdate')
 let irrigation=require('./devices/irrigation')
 let switches=require('./devices/switches')
 let deviceState
 
 class RachioPlatform {
 	constructor(log, config, api){
-		this.rachioapi=new RachioAPI(this,log)
-		this.irrigation=new irrigation(this,log)
-		this.switches=new switches(this,log)
+		this.rachioapi=new RachioAPI(this, log)
+		this.rachio=new RachioUpdate(this, log, config)
+		this.irrigation=new irrigation(this, log)
+		this.switches=new switches(this, log)
 		this.log=log
 		this.config=config
 		this.token=config.api_key
-		this.retryWait=config.retryWait || 60 //sec
-		this.retryMax=config.retryMax || 3 //attempts
+		this.retryWait=config.retryWait ? config.retryWait : 60 //sec
+		this.retryMax=config.retryMax ? config.retryMax : 3 //attempts
 		this.retryAttempt=0
+		this.auto_correct_IP=config.auto_correct_IP ? config.auto_correct_IP : false
 		this.external_IP_address=config.external_IP_address
 		this.external_webhook_port=config.external_webhook_port
 		this.internal_IP_address=config.internal_IP_address
@@ -47,13 +50,44 @@ class RachioPlatform {
 		this.locationAddress=config.location_address
 		this.locationMatch=true
 		this.accessories=[]
-		this.realExternalIP
 		this.foundLocations
-		this.useHttps=config.https || false
+		this.useHttps=config.https ? config.https : false
 		this.key=config.key
 		this.cert=config.cert
 		this.showAPIMessages=config.showAPIMessages ? config.showAPIMessages : false
 		this.showWebhookMessages=config.showWebhookMessages ? config.showWebhookMessages : false
+
+		if (this.useBasicAuth && (!this.user || !this.password)){
+			this.log.warn(`HTTP Basic Athentication cannot be used for webhooks without a valid user and password.`)
+		}
+
+		if (!this.token){
+			this.log.error(`API KEY is required in order to communicate with the Rachio API, please see https://rachio.readme.io/docs/authentication for instructions.`)
+		}
+		else {
+			this.log(`Starting Rachio Platform with homebridge API ${api.version}`)
+		}
+		//**
+		//** Platforms should wait until the "didFinishLaunching" event has fired before registering any new accessories.
+		//**
+		if (api){
+			this.api=api
+			this.api.on("didFinishLaunching", async function (){
+				//Get info to configure webhooks
+				await this.getWebhookInfo()
+				//Configure listerner for webhook messages
+				await this.configureListener()
+				//Get devices
+				this.getRachioDevices()
+			}.bind(this))
+		}
+	}
+
+	identify(){
+		this.log('Identify the sprinkler!')
+	}
+
+	setWebhookURL(){
 
 		let destination=this.useHttps ? 'https://' : 'http://'
 		let port=this.external_webhook_port ? ':'+this.external_webhook_port : ''
@@ -64,105 +98,94 @@ class RachioPlatform {
 		else {
 			this.external_webhook_address=destination+this.external_IP_address+port
 		}
-
-		if (this.useBasicAuth && (!this.user || !this.password)){
-			this.log.warn("HTTP Basic Athentication cannot be used for webhooks without a valid user and password")
+		if(!this.external_webhook_address){
+			this.log.warn(`Cannot validate webhook destination address, will not set Webhooks. Please check webhook config settings for proper format and does not include any prefx like http://`)
 		}
+	}
 
-		if (!this.token){
-			this.log.error('API KEY is required in order to communicate with the Rachio API, please see https://rachio.readme.io/docs/authentication for instructions')
-		}
-		else {
-			this.log('Starting Rachio Platform with homebridge API', api.version)
-		}
-
+	async getWebhookInfo(){
+		let ipv4
+		let ipv6
+		let fqdn
+		let ipv4format= /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+		let ipv6format= /(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))/;
+		let fqdnformat= /(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{0,62}[a-zA-Z0-9]\.)+[a-zA-Z]{2,63}$)/;
 		if(this.relay_address){
 			this.useBasicAuth=false
 			this.external_webhook_address=this.relay_address
 		}
 		//check external IP address
 		if (this.external_IP_address){
-			this.ipv4format= /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-			this.ipv6format= /(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))/;
-			this.fqdnformat= /(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{0,62}[a-zA-Z0-9]\.)+[a-zA-Z]{2,63}$)/;
-
-			this.ipv4=CheckIPaddress(this.external_IP_address,this.ipv4format)
-			this.ipv6=CheckIPaddress(this.external_IP_address,this.ipv6format)
-			this.fqdn=CheckIPaddress(this.external_IP_address,this.fqdnformat)
+			ipv4=this.checkIPaddress(this.external_IP_address,ipv4format)
+			ipv6=this.checkIPaddress(this.external_IP_address,ipv6format)
+			fqdn=this.checkIPaddress(this.external_IP_address,fqdnformat)
 		}
 		else {
-			this.log.warn('No external IP or domain name configured, will not configure webhooks. Reference Readme for instructions')
+			this.log.warn(`No external IP or domain name configured, will not configure webhooks. Reference Readme for instructions.`)
 		}
 
-		function CheckIPaddress(inputText,ipformat){
-			try {
-				if (inputText.match(ipformat))
-					{return true}
-				else
-					{return false}
-			}
-			catch(err){
-				log.warn('Error validating IP address ' + err)
-				return
-			}
-		}
-
-		if(this.relay_address){
-			this.log.warn('Using Webhook Relay @ %s',this.relay_address)
+		if (this.relay_address){
 			this.external_IP_address=this.relay_address
 		}
 		else{
-			if (this.ipv4){
+			if (ipv4){
 				axios({
 					method: 'get',
 					url: 'https://ip4only.me/api/',
 					responseType: 'text'
 				}).then(response=> {
 					let addressV4=response.data.split(',')
-					this.realExternalIP=addressV4[1]
-					if (this.ipv4 && this.external_IP_address && this.realExternalIP != this.external_IP_address){
-						this.log.warn('Configured external IPv4 address of %s does not match this servers detected external IP of %s please check webhook config settings.',this.external_IP_address,this.realExternalIP)
-				}
+					let realExternalIP=addressV4[1]
+					if (ipv4 && this.external_IP_address && realExternalIP != this.external_IP_address){
+						this.log.warn(`Configured external IPv4 address of ${this.external_IP_address} does not match this server's detected external IP of ${realExternalIP} please check webhook config settings.`)
+						if (this.auto_correct_IP){
+							this.log.warn(`The external IPv4 of this server's detected IP address of ${realExternalIP} will be used based on config, please update webhook config settings.`)
+							this.external_IP_address=realExternalIP
+						}
+					}
+				this.log.debug(`using IPv4 webhook external address ${this.external_IP_address}`)
 				}).catch(err=>{this.log.error('Failed to get current external IP', err.cause)})
-				this.log.debug('using IPv4 webhook external address')
+				this.setWebhookURL()
 			}
-			else if (this.ipv6){
+			else if (ipv6){
 				axios({
 					method: 'get',
 					url: 'https://ip6only.me/api/',
 					responseType: 'text'
 				}).then(response=> {
 					let addressV6=response.data.split(',')
-					this.realExternalIP=addressV6[1]
-					if (this.ipv4 && this.external_IP_address && this.realExternalIP != this.external_IP_address){
-						this.log.warn('Configured external IPv6 address of %s does not match this servers detected external IP of %s please check webhook config settings.',this.external_IP_address,this.realExternalIP)
-				}
+					let realExternalIP=addressV6[1]
+					if (ipv6 && this.external_IP_address && realExternalIP != this.external_IP_address){
+						this.log.warn(`Configured external IPv6 address of ${this.external_IP_address} does not match this server's detected external IP of ${realExternalIP} please check webhook config settings.`)
+						if (this.auto_correct_IP){
+							this.log.warn(`The external IPv6 of this server's detected IP address of ${realExternalIP} will be used based on config, please update webhook config settings.`)
+							this.external_IP_address=realExternalIP
+						}
+					}
+				this.log.debug(`using IPv6 webhook external address ${this.external_IP_address}`)
 				}).catch(err=>{this.log.error('Failed to get current external IP', err.cause)})
-				this.log.debug('using IPv6 webhook external address')
+				this.setWebhookURL()
 			}
-			else if (this.fqdn){
-				this.log.debug('using FQDN for webhook external destination')
+			else if (fqdn){
+				this.log.debug(`using FQDN for webhook external destination ${this.external_IP_address}`)
+				this.setWebhookURL()
 			}
 			else {
-				this.external_webhook_address=null
-				this.log.warn('Cannot validate webhook destination address, will not set Webhooks. Please check webhook config settings for proper format and does not include any prefx like http://.')
+				this.log.warn(`Cannot validate webhook destination address, will not set Webhooks. Please check webhook config settings for proper format and does not include any prefx like http://`)
 			}
-		}
-
-		//**
-		//** Platforms should wait until the "didFinishLaunching" event has fired before registering any new accessories.
-		//**
-		if (api){
-			this.api=api
-			this.api.on("didFinishLaunching", function (){
-				//Get devices
-				this.getRachioDevices()
-			}.bind(this))
 		}
 	}
 
-	identify(){
-		this.log('Identify the sprinkler!')
+	checkIPaddress(inputText,ipformat){
+		try {
+			if (inputText.match(ipformat))
+				{return true}
+			else
+				{return false}
+		}
+		catch(err){
+			log.warn(`Error validating IP address ${err}`)
+		}
 	}
 
 	async getRachioDevices(){
@@ -186,9 +209,6 @@ class RachioPlatform {
 					this.log.info('Found Location: device id=%s ',device)
 				})
 			})
-
-			// configure listerner for webhook messages
-			this.configureListener()
 
 			personInfo.devices.filter((newDevice)=>{
 				this.foundLocations.forEach((location)=>{
@@ -221,8 +241,8 @@ class RachioPlatform {
 					this.rachioapi.configureWebhooks(this.token,this.external_webhook_address,this.delete_webhooks,newDevice.id,this.webhook_key)
 				}
 				//remove cached accessory
-				this.log.debug('Removed cached device')
 				if (this.accessories[uuid]){
+					this.log.debug('Removed cached device')
 					this.api.unregisterPlatformAccessories(PluginName, PlatformName, [this.accessories[uuid]])
 					delete this.accessories[uuid]
 				}
@@ -359,7 +379,7 @@ class RachioPlatform {
 			let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
 			let service=irrigationAccessory.getServiceById(Service.IrrigationSystem)
 			this.log.debug('Updating device status')
-			this.updateService(irrigationSystemService,service,myJson)
+			this.eventMsg(irrigationSystemService,service,myJson)
 		}
 	}
 
@@ -399,7 +419,7 @@ class RachioPlatform {
 			let irrigationAccessory=this.accessories[myJson.deviceId]
 			let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
 			this.log.debug('Updating standby switch state')
-			this.updateService(irrigationSystemService,irrigationSystemService,myJson)
+			this.eventMsg(irrigationSystemService,irrigationSystemService,myJson)
 		}
 	}
 
@@ -429,7 +449,7 @@ class RachioPlatform {
 			let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
 			let service=irrigationAccessory.getServiceById(Service.Valve,myJson.zoneId)
 			this.log.debug('Zone running match found for zone-%s on start will update services',myJson.zoneNumber)
-			this.updateService(irrigationSystemService,service,myJson)
+			this.eventMsg(irrigationSystemService,service,myJson)
 		}
 		if (response.status=='PROCESSING' && this.showSchedules && response.scheduleId != undefined){
 			this.log.debug('Found schedule %s running',response.scheduleId)
@@ -453,11 +473,15 @@ class RachioPlatform {
 			let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
 			let service=irrigationAccessory.getServiceById(Service.Switch,myJson.scheduleId)
 			this.log.debug('Schedule running match found for schedule %s on start will update services',myJson.scheduleName)
-			this.updateService(irrigationSystemService,service,myJson)
+			this.eventMsg(irrigationSystemService,service,myJson)
 		}
 	}
 
 	configureListener(){
+		//set local listener
+		this.localMessage(this.rachio.updateService.bind(this))
+		this.irrigation.localMessage(this.rachio.updateService.bind(this))
+		//set network listener
 		let server=(this.useHttps) ? https : http
 		let options={}
 		if (server==https){
@@ -466,328 +490,111 @@ class RachioPlatform {
 				cert: fs.readFileSync(this.cert)
 			}
 		}
-
+		//this.log.warn(this.external_IP_address,this.external_webhook_address,this.internal_webhook_port)
 		if ((this.external_IP_address && this.external_webhook_address && this.internal_webhook_port) || (this.relay_address && this.internal_IP_address && this.internal_webhook_port)){
-		this.log.debug('Will listen for Webhooks matching Webhook ID %s',this.webhook_key)
-		server.createServer(options,(request, response)=>{
-			let authPassed
-			if (this.useBasicAuth){
-				if (request.headers.authorization){
-					let b64encoded=(Buffer.from(this.user+":"+this.password,'utf8')).toString('base64')
-					this.log.debug('webhook request authorization header=%s',request.headers.authorization)
-					this.log.debug('webhook expected authorization header=%s',"Basic "+b64encoded)
-					if (request.headers.authorization == "Basic "+b64encoded){
-						this.log.debug("Webhook authentication passed")
-						authPassed=true
+			this.log.debug('Will listen for Webhooks matching Webhook ID %s',this.webhook_key)
+			server.createServer(options,(request, response)=>{
+				let authPassed
+				if (this.useBasicAuth){
+					if (request.headers.authorization){
+						let b64encoded=(Buffer.from(this.user+":"+this.password,'utf8')).toString('base64')
+						this.log.debug('webhook request authorization header=%s',request.headers.authorization)
+						this.log.debug('webhook expected authorization header=%s',"Basic "+b64encoded)
+						if (request.headers.authorization == "Basic "+b64encoded){
+							this.log.debug("Webhook authentication passed")
+							authPassed=true
+						}
+						else {
+							this.log.warn('Webhook authentication failed')
+							this.log.debug("Webhook authentication failed",request.headers.authorization)
+							authPassed=false
+						}
 					}
 					else {
-						this.log.warn('Webhook authentication failed')
-						this.log.debug("Webhook authentication failed",request.headers.authorization)
+						this.log.warn('Expecting webhook authentication')
+						this.log.debug('Expecting webhook authentication',request)
 						authPassed=false
 					}
 				}
 				else {
-					this.log.warn('Expecting webhook authentication')
-					this.log.debug('Expecting webhook authentication',request)
-					authPassed=false
+					authPassed=true
 				}
-			}
-			else {
-				authPassed=true
-			}
-			if (request.method === 'GET' && request.url === '/test'){
-				this.log.info('Test received on Rachio listener. Webhooks are configured correctly! Authorization %s',authPassed ? 'passed' : 'failed')
-				response.writeHead(200)
-				response.write( new Date().toTimeString()+' Webhooks are configured correctly! Authorization '+authPassed ? 'passed' : 'failed')
-				return response.end()
-			}
-			else if (request.method === 'POST' && request.url === '/' && authPassed){
-				let body=[]
-				request.on('data', (chunk)=>{
-					body.push(chunk)
-				}).on('end', ()=>{
-					try {
-						body=Buffer.concat(body).toString().trim()
-						let jsonBody=JSON.parse(body)
-						if (this.showWebhookMessages) {this.log.debug('webhook request received from <%s> %s',jsonBody.externalId,jsonBody)}
-						if (jsonBody.externalId === this.webhook_key){
-							let irrigationAccessory=this.accessories[jsonBody.deviceId]
-							let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
-							let service
-							if (jsonBody.zoneId){
-								service=irrigationAccessory.getServiceById(Service.Valve,jsonBody.zoneId)
-								this.log.debug('Webhook match found for %s will update zone service',service.getCharacteristic(Characteristic.Name).value)
-								this.updateService(irrigationSystemService,service,jsonBody)
-							}
-							else if (jsonBody.scheduleId){
-								service=irrigationAccessory.getServiceById(Service.Switch,jsonBody.scheduleId)
-								if (this.showSchedules){
-									this.log.debug('Webhook match found for %s will update schedule service',service.getCharacteristic(Characteristic.Name).value)
-									this.updateService(irrigationSystemService,service,jsonBody)
-								}
-								else {
-									this.log.debug('Skipping Webhook for %s service, optional schedule switch is not configured',jsonBody.scheduleName)
-								}
-							}
-							else if (jsonBody.deviceId && jsonBody.category!='SCHEDULE'){
-								service=irrigationAccessory.getServiceById(Service.IrrigationSystem)
-								if (this.showStandby){
-									this.log.debug('Webhook match found for %s will update irrigation service',service.getCharacteristic(Characteristic.Name).value)
-									this.updateService(irrigationSystemService,service,jsonBody)
-								}
-								else {
-									this.log.debug('Skipping Webhook for %s service, optional standby switch is not configured',jsonBody.deviceName)
-								}
-							}
-						response.writeHead(204)
-						return response.end()
-						}
-						else {
-						this.log.warn('Webhook received from an unknown external id %s',jsonBody.externalId)
-						response.writeHead(404)
-						return response.end()
-						}
-					}
-					catch(err){
-						this.log.error('Error parsing webhook request ' + err)
-						response.writeHead(404)
-						return response.end()
-					}
-				})
-			}
-		}).listen(this.internal_webhook_port, function (){
-			this.log.info('This server is listening on port %s.',this.internal_webhook_port)
-			if (this.useBasicAuth){this.log.info('Using HTTP basic authentication for Webhooks')}
-			this.log.info('Make sure your router has port fowarding turned on for port %s to this server`s IP address and this port %s, unless you are using a relay service.',this.external_webhook_port,this.internal_webhook_port)
-		}.bind(this))
-	}
-	else {
-		this.log.warn('Webhook support is disabled. This plugin will not sync Homekit to realtime events from other sources without Webhooks support.')
-	}
-	return
-	}
-
-	async updateService(irrigationSystemService,activeService,jsonBody){
-		/***********************************************************
-					 Possiible responses from webhooks
-		Type : DEVICE_STATUS
-			Subtype:
-				OFFLINE
-				ONLINE
-				OFFLINE_NOTIFICATION
-				COLD_REBOOT
-				SLEEP_MODE_ON
-				SLEEP_MODE_OFF
-				BROWNOUT_VALVE
-				RAIN_SENSOR_DETECTION_ON
-				RAIN_SENSOR_DETECTION_OFF
-				RAIN_DELAY_ON
-				RAIN_DELAY_OFF
-		Type : SCHEDULE_STATUS
-			Subtype:
-				SCHEDULE_STARTED
-				SCHEDULE_STOPPED
-				SCHEDULE_COMPLETED
-				WEATHER_INTELLIGENCE_NO_SKIP
-				WEATHER_INTELLIGENCE_SKIP
-				WEATHER_INTELLIGENCE_CLIMATE_SKIP
-				WEATHER_INTELLIGENCE_FREEZE
-		Type : ZONE_STATUS
-			Subtype:
-				ZONE_STARTED
-				ZONE_STOPPED
-				ZONE_COMPLETED
-				ZONE_PAUSED
-				ZONE_CYCLING
-				ZONE_CYCLING_COMPLETED
-		Type : DEVICE_DELTA
-			Subtype : DEVICE_DELTA
-		Type : ZONE_DELTA
-			Subtype : ZONE_DELTA
-		Type : SCHEDULE_DELTA
-			Subtype : SCHEDULE_DELTA
-		************************************************************/
-		try {
-			switch(jsonBody.type){
-				case "ZONE_STATUS":
-				this.log.debug('Zone Status Update')
-					/*****************************
-							 Possible states
-					Active	InUse	  HomeKit Shows
-					False	  False	  Off
-					True  	False	  Idle
-					True	  True	  Running
-					False	  True	  Stopping
-					******************************/
-					switch(jsonBody.subType){
-						case "ZONE_STARTED":
-							this.log('<%s> %s, started for duration %s minutes.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
-							this.log.debug(jsonBody.summary)
-							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
-							activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
-							activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
-							activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(jsonBody.duration)
-							this.endTime[activeService.subtype]=jsonBody.endTime
-							break
-						case "ZONE_STOPPED":
-							if(jsonBody.duration<60){
-								this.log('<%s> %s, stopped after %s seconds.',jsonBody.externalId,jsonBody.title,jsonBody.duration)
-							}
-							else{
-								this.log('<%s> %s, stopped after %s minutes.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
-							}
-							this.log.debug(jsonBody.summary)
-							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-							activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
-							activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-							activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(jsonBody.duration)
-							this.endTime[activeService.subtype]=jsonBody.endTime
-							break
-						case "ZONE_PAUSED":
-							clearTimeout(this.fakeWebhook)
-							let pauseDuration=Math.round(((Date.parse(jsonBody.endTime)-Date.now())-(Date.parse(this.endTime[activeService.subtype])-Date.now()))/1000)
-							let pauseDurationInMinutes=Math.round(pauseDuration/60)
-							this.log('<%s> %s, paused for duration %s minutes.',jsonBody.externalId,jsonBody.title,pauseDurationInMinutes)
-							this.log.debug(jsonBody.summary)
-							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
-							activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
-							activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-							activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(pauseDuration)
-							this.endTime[activeService.subtype]=jsonBody.endTime
-							break
-						case "ZONE_CYCLING":
-							clearTimeout(this.fakeWebhook)
-							this.log('<%s> %s, cycling for duration %s minutes.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
-							this.log.debug(jsonBody.summary)
-							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
-							activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
-							activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-							activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(jsonBody.duration)
-							this.endTime[activeService.subtype]=jsonBody.endTime
-							break
-						case "ZONE_COMPLETED":
-							this.log('<%s> %s, completed after %s minutes.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
-							this.log.debug(jsonBody.summary)
-							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-							activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
-							activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-							break
-						case "ZONE_CYCLING_COMPLETED":
-							this.log('<%s> %s, cycling completed after %s minutes.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
-							this.log.debug(jsonBody.summary)
-							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-							activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
-							activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-							break
-					}
-					break
-				case "DEVICE_STATUS":
-					this.log.debug('Device Status Update')
-					let irrigationAccessory=this.accessories[jsonBody.deviceId]
-					let switchService=irrigationAccessory.getServiceById(Service.Switch,UUIDGen.generate(jsonBody.deviceName+' Standby'))
-					switch(jsonBody.subType){
-						case 'ONLINE':
-							this.log('<%s> %s connected at %s',jsonBody.externalId,jsonBody.deviceId,new Date(jsonBody.timestamp).toString())
-							this.log.debug(jsonBody.summary)
-								irrigationAccessory.services.forEach((service)=>{
-									if (Service.AccessoryInformation.UUID != service.UUID){
-										service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
-									}
-									if (Service.Valve.UUID == service.UUID){
-										service.getCharacteristic(Characteristic.Active).getValue()
-									}
-									if (Service.Switch.UUID == service.UUID){
-										service.getCharacteristic(Characteristic.On).getValue()
-									}
-							})
-							break
-						case 'COLD_REBOOT':
-							this.log('<%s> Device,%s connected at %s from a %s',jsonBody.externalId,jsonBody.deviceName,new Date(jsonBody.timestamp).toString(),jsonBody.title)
-							this.log.debug(jsonBody.summary)
-							irrigationAccessory.services.forEach((service)=>{
-								if (Service.AccessoryInformation.UUID != service.UUID){
-									service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
-								}
-								if (Service.Valve.UUID == service.UUID){
-									service.getCharacteristic(Characteristic.Active).getValue()
-								}
-								if (Service.Switch.UUID == service.UUID){
-									service.getCharacteristic(Characteristic.On).getValue()
-								}
-						})
-							break
-						case 'OFFLINE':
-							this.log('<%s> %s disconnected at %s',jsonBody.externalId,jsonBody.deviceId,jsonBody.timestamp)
-							this.log.warn('%s disconnected at %s! This will show as non-responding in Homekit until the connection is restored.',jsonBody.deviceId,new Date(jsonBody.timestamp).toString())
-							this.log.debug(jsonBody.summary)
-								irrigationAccessory.services.forEach((service)=>{
-									if (Service.AccessoryInformation.UUID != service.UUID){
-										service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
-									}
-									if (Service.Valve.UUID == service.UUID){
-										service.getCharacteristic(Characteristic.Active).getValue()
-									}
-									if (Service.Switch.UUID == service.UUID){
-										service.getCharacteristic(Characteristic.On).getValue()
-									}
-							})
-							break
-						case "SLEEP_MODE_ON": //ProgramMode 0
-							this.log('<%s> %s %s %s',jsonBody.externalId,jsonBody.title,jsonBody.deviceName,jsonBody.summary)
-							irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED)
-							if (this.showStandby){switchService.getCharacteristic(Characteristic.On).updateValue(true)}
-							break
-						case "SLEEP_MODE_OFF": //ProgramMode 2
-							this.log('<%s> %s %s %s',jsonBody.externalId,jsonBody.title,jsonBody.deviceName,jsonBody.summary)
-							irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.PROGRAM_SCHEDULED_MANUAL_MODE_)
-							if (this.showStandby){switchService.getCharacteristic(Characteristic.On).updateValue(false)}
-							break
-						default: //ProgramMode 1
-						this.log('<%s> %s ??? mode',jsonBody.externalId,jsonBody.deviceId)
-							irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.PROGRAM_SCHEDULED)
-							if (this.showStandby){switchService.getCharacteristic(Characteristic.On).updateValue(false)}
-						break
-						}
-					break
-				case "SCHEDULE_STATUS":
-					if(!activeService){return} //quick run
-					this.log.debug('Schedule Status Update')
-					switch(jsonBody.subType){
-						case "SCHEDULE_STARTED":
-							this.log.info('<%s> %s %s',jsonBody.externalId,jsonBody.title,jsonBody.summary)
-							if (Service.IrrigationSystem.UUID != activeService.UUID){
-								activeService.getCharacteristic(Characteristic.On).updateValue(true)
-							}
-							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
-							break
-						case "SCHEDULE_STOPPED":
-							this.log.info('<%s> %s %s',jsonBody.externalId,jsonBody.title,jsonBody.summary)
-							if (Service.IrrigationSystem.UUID != activeService.UUID){
-								activeService.getCharacteristic(Characteristic.On).updateValue(false)
-							}
-							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-							break
-						case "SCHEDULE_COMPLETED":
-							this.log.info('<%s> %s %s',jsonBody.externalId,jsonBody.title,jsonBody.summary)
-							if (Service.IrrigationSystem.UUID != activeService.UUID){
-								activeService.getCharacteristic(Characteristic.On).updateValue(false)
-							}
-							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-							//need stop quick run?
-							if(this.showRunall){
+				if (request.method === 'GET' && request.url === '/test'){
+					this.log.info('Test received on Rachio listener. Webhooks are configured correctly! Authorization %s',authPassed ? 'passed' : 'failed')
+					response.writeHead(200)
+					response.write( new Date().toTimeString()+' Webhooks are configured correctly! Authorization '+authPassed ? 'passed' : 'failed')
+					return response.end()
+				}
+				else if (request.method === 'POST' && request.url === '/' && authPassed){
+					let body=[]
+					request.on('data', (chunk)=>{
+						body.push(chunk)
+					}).on('end', ()=>{
+						try {
+							body=Buffer.concat(body).toString().trim()
+							let jsonBody=JSON.parse(body)
+							if (this.showWebhookMessages) {this.log.debug('webhook request received from <%s> %s',jsonBody.externalId,jsonBody)}
+							if (jsonBody.externalId === this.webhook_key){
 								let irrigationAccessory=this.accessories[jsonBody.deviceId]
-								let switchService=irrigationAccessory.getServiceById(Service.Switch,UUIDGen.generate(jsonBody.deviceName+' Quick Run-All'))
-								switchService.getCharacteristic(Characteristic.On).updateValue(false)
+								let irrigationSystemService=irrigationAccessory.getService(Service.IrrigationSystem)
+								let service
+								if (jsonBody.zoneId){
+									service=irrigationAccessory.getServiceById(Service.Valve,jsonBody.zoneId)
+									this.log.debug('Webhook match found for %s will update zone service',service.getCharacteristic(Characteristic.Name).value)
+									this.eventMsg(irrigationSystemService,service,jsonBody)
+								}
+								else if (jsonBody.scheduleId){
+									service=irrigationAccessory.getServiceById(Service.Switch,jsonBody.scheduleId)
+									if (this.showSchedules){
+										this.log.debug('Webhook match found for %s will update schedule service',service.getCharacteristic(Characteristic.Name).value)
+										this.eventMsg(irrigationSystemService,service,jsonBody)
+									}
+									else {
+										this.log.debug('Skipping Webhook for %s service, optional schedule switch is not configured',jsonBody.scheduleName)
+									}
+								}
+								else if (jsonBody.deviceId && jsonBody.category!='SCHEDULE'){
+									service=irrigationAccessory.getServiceById(Service.IrrigationSystem)
+									if (this.showStandby){
+										this.log.debug('Webhook match found for %s will update irrigation service',service.getCharacteristic(Characteristic.Name).value)
+										this.eventMsg(irrigationSystemService,service,jsonBody)
+									}
+									else {
+										this.log.debug('Skipping Webhook for %s service, optional standby switch is not configured',jsonBody.deviceName)
+									}
+								}
+							response.writeHead(204)
+							return response.end()
 							}
-							break
-					}
-					break
-			}
-			return
-		} catch(err){
-			this.log.error('Error updating service',err)
+							else {
+							this.log.warn('Webhook received from an unknown external id %s',jsonBody.externalId)
+							response.writeHead(404)
+							return response.end()
+							}
+						}
+						catch(err){
+							this.log.error('Error parsing webhook request ' + err)
+							response.writeHead(404)
+							return response.end()
+						}
+					})
+				}
+			}).listen(this.internal_webhook_port, function (){
+				this.log.info('This server is listening on port %s.',this.internal_webhook_port)
+				if (this.useBasicAuth){this.log.info('Using HTTP basic authentication for Webhooks')}
+				this.log.info('Make sure your router has port fowarding turned on for port %s to this server`s IP address and this port %s, unless you are using a relay service.',this.external_webhook_port,this.internal_webhook_port)
+			}.bind(this))
 		}
-    }
-  }
+		else {
+			this.log.warn('Webhook support is disabled. This plugin will not sync Homekit to realtime events from other sources without Webhooks support.')
+		}
+		return
+	}
 
+	localMessage(listener){
+		this.eventMsg=(irrigationSystemService,service,myJson)=>{
+			listener(irrigationSystemService,service,myJson)
+		}
+	}
+  }
 module.exports=RachioPlatform

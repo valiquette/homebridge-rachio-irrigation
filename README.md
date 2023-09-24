@@ -10,7 +10,7 @@
 - Rachio 2 Contollers.
 - Rachio 3 Contrllers.
 
-Note: Rachio has not published any API support their Smart Hose Timer and us currently unsupported.
+Note: Rachio has not published API support their Smart Hose Timer and they are currently unsupported. They have announced some support coming in fall of 2023.
 
 
 ## About
