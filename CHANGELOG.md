@@ -1,6 +1,6 @@
 # Changes
 
-## 1.2.23
+## 1.2.24
 Update
 -  Added config option to automatically use detected valid IP for Webhooks.
 -  Refactored startup code.
