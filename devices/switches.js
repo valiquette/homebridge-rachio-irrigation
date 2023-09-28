@@ -15,16 +15,15 @@ class switches {
 		switchService.addCharacteristic(Characteristic.SerialNumber)
 		switchService
 			.setCharacteristic(Characteristic.On, false)
-			.setCharacteristic(Characteristic.Name, schedule)
+			.setCharacteristic(Characteristic.Name, schedule.name)
 			.setCharacteristic(Characteristic.SerialNumber, schedule.id)
 			.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
 		return switchService
 	}
 
-	createSwitchService(device, switchName) {
+	createSwitchService(switchName, uuid) {
 		// Create Valve Service
 		this.log.debug('adding new switch')
-		let uuid = UUIDGen.generate(switchName)
 		let switchService = new Service.Switch(switchName, uuid)
 		switchService.addCharacteristic(Characteristic.ConfiguredName)
 		switchService

@@ -8,13 +8,19 @@ class irrigation {
 		this.rachioapi = new RachioAPI(this, log)
 	}
 
-	createIrrigationAccessory(device, deviceState) {
-		this.log.debug('Create Irrigation service %s', device.id, device.name)
-		// Create new Irrigation System Service
-		let newPlatformAccessory = new PlatformAccessory(device.name, device.id)
-		newPlatformAccessory.addService(Service.IrrigationSystem, device.name)
-		let irrigationSystemService = newPlatformAccessory.getService(Service.IrrigationSystem)
+	createIrrigationAccessory(device, deviceState, platformAccessory) {
+		this.log.debug('Create Irrigation device %s', device.id, device.name)
+		if(!platformAccessory){
+			// Create new Irrigation System Service
+			platformAccessory = new PlatformAccessory(device.name, device.id)
+			platformAccessory.addService(Service.IrrigationSystem, device.name)
+		}
+		else{
+			// Update Irrigation System Service
+			this.log.debug('Update Irrigation device %s %s', device.id, device.name)
+		}
 		// Check if the device is connected
+		let irrigationSystemService = platformAccessory.getService(Service.IrrigationSystem)
 		if (device.status == 'ONLINE') {
 			irrigationSystemService.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
 		}
@@ -22,7 +28,7 @@ class irrigation {
 			irrigationSystemService.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.GENERAL_FAULT)
 		}
 		// Create AccessoryInformation Service
-		newPlatformAccessory.getService(Service.AccessoryInformation)
+		platformAccessory.getService(Service.AccessoryInformation)
 			.setCharacteristic(Characteristic.Name, device.name)
 			.setCharacteristic(Characteristic.Manufacturer, 'Rachio')
 			.setCharacteristic(Characteristic.SerialNumber, device.serialNumber)
@@ -31,7 +37,7 @@ class irrigation {
 			.setCharacteristic(Characteristic.FirmwareRevision, deviceState.state.firmwareVersion)
 			.setCharacteristic(Characteristic.HardwareRevision, 'Rev-2')
 			.setCharacteristic(Characteristic.SoftwareRevision, packageJson.version)
-		return newPlatformAccessory
+		return platformAccessory
 	}
 
 	configureIrrigationService(device, irrigationSystemService) {
