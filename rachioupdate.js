@@ -123,16 +123,32 @@ class Rachio {
 					}
 					break
 				case "DEVICE_STATUS":
-					this.log.debug('Device Status Update')
+					this.log.debug('Device status update')
 					let irrigationAccessory=this.accessories[jsonBody.deviceId]
 					let switchService=irrigationAccessory.getServiceById(Service.Switch,UUIDGen.generate(jsonBody.deviceName+' Standby'))
 					switch(jsonBody.subType){
 						case 'ONLINE':
 							this.log('<%s> %s connected at %s',jsonBody.externalId,jsonBody.deviceId,new Date(jsonBody.timestamp).toString())
-							this.log.debug(jsonBody.summary)
+							this.log.debug('Device %s', jsonBody.subType.toLowerCase())
 								irrigationAccessory.services.forEach((service)=>{
 									if (Service.AccessoryInformation.UUID != service.UUID){
 										service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
+									}
+									if (Service.Valve.UUID == service.UUID){
+										service.getCharacteristic(Characteristic.Active).getValue()
+									}
+									if (Service.Switch.UUID == service.UUID){
+										service.getCharacteristic(Characteristic.On).getValue()
+									}
+							})
+							break
+						case 'OFFLINE':
+							this.log('<%s> %s disconnected at %s',jsonBody.externalId,jsonBody.deviceId,jsonBody.timestamp)
+							this.log.warn('%s disconnected at %s! This will show as non-responding in Homekit until the connection is restored.',jsonBody.deviceId,new Date(jsonBody.timestamp).toString())
+							this.log.debug('Device %s', jsonBody.subType.toLowerCase())
+								irrigationAccessory.services.forEach((service)=>{
+									if (Service.AccessoryInformation.UUID != service.UUID){
+										service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
 									}
 									if (Service.Valve.UUID == service.UUID){
 										service.getCharacteristic(Characteristic.Active).getValue()
@@ -157,22 +173,6 @@ class Rachio {
 								}
 						})
 							break
-						case 'OFFLINE':
-							this.log('<%s> %s disconnected at %s',jsonBody.externalId,jsonBody.deviceId,jsonBody.timestamp)
-							this.log.warn('%s disconnected at %s! This will show as non-responding in Homekit until the connection is restored.',jsonBody.deviceId,new Date(jsonBody.timestamp).toString())
-							this.log.debug(jsonBody.summary)
-								irrigationAccessory.services.forEach((service)=>{
-									if (Service.AccessoryInformation.UUID != service.UUID){
-										service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
-									}
-									if (Service.Valve.UUID == service.UUID){
-										service.getCharacteristic(Characteristic.Active).getValue()
-									}
-									if (Service.Switch.UUID == service.UUID){
-										service.getCharacteristic(Characteristic.On).getValue()
-									}
-							})
-							break
 						case "SLEEP_MODE_ON": //ProgramMode 0
 							this.log('<%s> %s %s %s',jsonBody.externalId,jsonBody.title,jsonBody.deviceName,jsonBody.summary)
 							irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED)
@@ -191,8 +191,7 @@ class Rachio {
 						}
 					break
 				case "SCHEDULE_STATUS":
-					if(!activeService){return} //quick run
-					this.log.debug('Schedule Status Update')
+					this.log.debug('Schedule status update')
 					switch(jsonBody.subType){
 						case "SCHEDULE_STARTED":
 							this.log.info('<%s> %s %s',jsonBody.externalId,jsonBody.title,jsonBody.summary)
@@ -213,13 +212,12 @@ class Rachio {
 							if (Service.IrrigationSystem.UUID != activeService.UUID){
 								activeService.getCharacteristic(Characteristic.On).updateValue(false)
 							}
-							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-							//need stop quick run?
-							if(this.showRunall){
+							else if(this.showRunall){
 								let irrigationAccessory=this.accessories[jsonBody.deviceId]
 								let switchService=irrigationAccessory.getServiceById(Service.Switch,UUIDGen.generate(jsonBody.deviceName+' Quick Run-All'))
 								switchService.getCharacteristic(Characteristic.On).updateValue(false)
 							}
+							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 							break
 					}
 					break

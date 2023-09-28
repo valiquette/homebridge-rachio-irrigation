@@ -1,5 +1,11 @@
 # Changes
 
+## 1.2.25
+Update
+-  Refactored code to support cached accessory to prevent accessory from moving to default room in Homekit.
+-  Fixed error with shecdule naming.
+-  Fixed Run All switch status update.
+
 ## 1.2.24
 Update
 -  Added config option to automatically use detected valid IP for Webhooks.

@@ -168,7 +168,7 @@ class RachioAPI {
 
 	async currentSchedule(token, device) {
 		try {
-			this.log.debug('Checking current schedule', device)
+			this.log.debug('Getting current schedule', device)
 			let response = await axios({
 				method: 'get',
 				baseURL: api_endpoint,
@@ -185,7 +185,7 @@ class RachioAPI {
 				if (err.response) { this.log.warn(JSON.stringify(err.response.data, null, 2))}
 				return err.response
 			})
-			this.log.debug('status', response.data.status)
+			this.log.debug('status', response.data.status || 'No active schedule')
 			if (response.status == 200) {
 				if (this.platform.showAPIMessages) { this.log.debug('get current schedule response', JSON.stringify(response.data, null, 2))}
 				return response
@@ -337,7 +337,7 @@ class RachioAPI {
 			return response
 		} catch (err) { this.log.error('Error Starting Multiple Zones \n%s', err)}
 	}
-	
+
 	async configureWebhooks(token, external_webhook_address, delete_webhooks, device_Id, webhook_key) {
 		try {
 			this.log.info('Configuring Rachio webhooks for controller ID %s', device_Id)
