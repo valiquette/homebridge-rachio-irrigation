@@ -5,6 +5,7 @@ Update
 -  Refactored code to support cached accessory to prevent accessory from moving to default room in Homekit.
 -  Fixed error with schedule naming.
 -  Fixed Run All switch status update.
+-  Change API used to discover external IP
 -  Bumped dependencies.
 
 ## 1.2.24
