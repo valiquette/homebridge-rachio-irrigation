@@ -131,11 +131,10 @@ class RachioPlatform {
 			if (ipv4){
 				axios({
 					method: 'get',
-					url: 'https://ip4only.me/api/',
-					responseType: 'text'
+					url: 'https://api4.ipify.org?format=json',
+					responseType: 'json'
 				}).then(response=> {
-					let addressV4=response.data.split(',')
-					let realExternalIP=addressV4[1]
+					let realExternalIP=response.data.ip
 					if (ipv4 && this.external_IP_address && realExternalIP != this.external_IP_address){
 						this.log.warn(`Configured external IPv4 address of ${this.external_IP_address} does not match this server's detected external IP of ${realExternalIP} please check webhook config settings.`)
 						if (this.auto_correct_IP){
@@ -150,11 +149,10 @@ class RachioPlatform {
 			else if (ipv6){
 				axios({
 					method: 'get',
-					url: 'https://ip6only.me/api/',
-					responseType: 'text'
+					url: 'https://api6.ipify.org?format=json',
+					responseType: 'json'
 				}).then(response=> {
-					let addressV6=response.data.split(',')
-					let realExternalIP=addressV6[1]
+					let realExternalIP=response.data.ip
 					if (ipv6 && this.external_IP_address && realExternalIP != this.external_IP_address){
 						this.log.warn(`Configured external IPv6 address of ${this.external_IP_address} does not match this server's detected external IP of ${realExternalIP} please check webhook config settings.`)
 						if (this.auto_correct_IP){
