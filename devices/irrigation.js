@@ -221,6 +221,11 @@ class irrigation {
 	}
 
 	async setValveValue(device, valveService, value, callback) {
+		if(value==valveService.getCharacteristic(Characteristic.Active).value){ //IOS 17 bug fix for duplicate calls
+			this.log.debug("supressed duplicate call from IOS for %s, current value%s, new value %s", valveService.getCharacteristic(Characteristic.Name).value, value, valveService.getCharacteristic(Characteristic.Active).value)
+			callback()
+			return
+		}
 		let irrigationAccessory = this.platform.accessories[device.id]
 		let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
 		// Set homekit state and prepare message for Rachio API
