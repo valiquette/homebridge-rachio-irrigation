@@ -9,8 +9,15 @@
 - Rachio 1 Contollers.
 - Rachio 2 Contollers.
 - Rachio 3 Contrllers.
+- Rachio Smart Hose Timers.
 
-Note: Rachio has not published API support their Smart Hose Timer and they are currently unsupported. They have announced some support coming in fall of 2023.
+## Notes on the Smart Hose Timer
+The Smart Hose Timer is currently not suppoerted by Webhooks or websocket. Updates will rely on polling.<br>
+The plugin will only poll when there is a request from Homebridge or Homekit to get an update.
+API activity can be viewed in the debug log and there are configurations to tweak this.
+Battery support is limited to good and bad which traslated to 100% and 10%.
+The bridge is worthless to expose, but my plan is to use that as the device for an irrigation system where the hose timer are the zones.
+Hoping Rachio improves the new API
 
 
 ## About
@@ -114,6 +121,12 @@ If you see log messages like `Webhook received from an unknown external id`, you
 	"delete_webhooks": false,
 	"showAPIMessages": false,
 	"showWebhookMessages": false,
+	"valveType": 0,
+	"showBridge": false,
+	"showControllers": true,
+	"showValves": true,
+	"liveRefreshTimeout": 2,
+	"liveRefreshRate": 20,
 "_bridge": {
 		"username": "0E:79:49:DC:71:A9",
 		"port": 46062

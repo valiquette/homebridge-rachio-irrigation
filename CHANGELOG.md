@@ -1,5 +1,14 @@
 # Changes
 
+## 1.3.0-beta.0
+Smart Hose timer
+-  Using Rachio API V2.
+-  Add support for Smart Hose Timers.
+-  Battery support limited to good and bad.
+-  Fixed date format for API limit reset info.
+-  Added configurations to load controllers and or valves separately.
+-  Bumped dependencies.
+
 ## 1.2.26
 Bug Fix
 -  Fixed issue introduced with IOS 17 where multiple set commands are sent from the IOS app if zone is started by sliding vs tap. This create a start stop loop.

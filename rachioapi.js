@@ -1,4 +1,5 @@
 //// Public API info https://rachio.readme.io/v1.0/docs
+//// Public API info https://rachio.readme.io/v2.0/docs
 'use strict'
 let axios = require('axios')
 let api_endpoint='https://api.rach.io/1/public'
@@ -42,7 +43,7 @@ class RachioAPI {
 			let response = await axios({
 				method: 'get',
 				baseURL: api_endpoint,
-				url: '/person/' + personId,
+				url: `/person/${personId}`,
 				headers: {
 					'Authorization': `Bearer ${token}`,
 					'Content-Type': 'application/json',
@@ -68,7 +69,7 @@ class RachioAPI {
 			let response = await axios({
 				method: 'get',
 				baseURL: alt_api_endpoint,
-				url: '/device/getDeviceState/' + device,
+				url: `/device/getDeviceState/${device}`,
 				headers: {
 					'Authorization': `Bearer ${token}`,
 					'Content-Type': 'application/json',
@@ -94,7 +95,7 @@ class RachioAPI {
 			let response = await axios({
 				method: 'get',
 				baseURL: alt_api_endpoint,
-				url: '/device/getDeviceDetails/' + device,
+				url: `/device/getDeviceDetails/${device}`,
 				headers: {
 					'Authorization': `Bearer ${token}`,
 					'Content-Type': 'application/json',
@@ -120,7 +121,7 @@ class RachioAPI {
 			let response = await axios({
 				method: 'get',
 				baseURL: api_endpoint,
-				url: '/device/' + device,
+				url: `/device/${device}`,
 				headers: {
 					'Authorization': `Bearer ${token}`,
 					'Content-Type': 'application/json',
@@ -172,7 +173,7 @@ class RachioAPI {
 			let response = await axios({
 				method: 'get',
 				baseURL: api_endpoint,
-				url: '/device/' + device + '/current_schedule',
+				url: `/device/${device}/current_schedule`,
 				headers: {
 					'Authorization': `Bearer ${token}`,
 					'Content-Type': 'application/json',
@@ -199,7 +200,7 @@ class RachioAPI {
 			let response = await axios({
 				method: 'put',
 				baseURL: api_endpoint,
-				url: '/device/' + state,
+				url: `/device/${state}`,
 				headers: {
 					'Authorization': `Bearer ${token}`,
 					'Content-Type': 'application/json',
@@ -336,6 +337,214 @@ class RachioAPI {
 			this.log.debug('start multiple response', response.status)
 			return response
 		} catch (err) { this.log.error('Error Starting Multiple Zones \n%s', err)}
+	}
+
+	async listBaseStations(token, userid) {
+		try {
+			this.log.debug('Getting Base Stations List')
+			let response = await axios({
+				method: 'get',
+				baseURL: alt_api_endpoint,
+				url: `/valve/listBaseStations/${userid}`,
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
+				},
+				responseType: 'json'
+			}).catch(err => {
+				this.log.error('Error getting base stations list %s', err.message)
+				this.log.debug(JSON.stringify(err, null, 2))
+				if (err.response) { this.log.warn(JSON.stringify(err.response.data, null, 2))}
+				return err.response
+			})
+			if (response.status == 200) {
+				if (this.platform.showAPIMessages) { this.log.debug('get base stations list response', JSON.stringify(response.data, null, 2))}
+				return response.data
+			}
+		} catch (err) { this.log.error('Error getting base stations list \n%s', err)}
+	}
+
+	async getBaseStation(token, baseStationId) {
+		try {
+			this.log.debug('Getting Base Station')
+			let response = await axios({
+				method: 'get',
+				baseURL: alt_api_endpoint,
+				url: `/valve/getBaseStation/${baseStationId}`,
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
+				},
+				responseType: 'json'
+			}).catch(err => {
+				this.log.error('Error getting base station %s', err.message)
+				this.log.debug(JSON.stringify(err, null, 2))
+				if (err.response) { this.log.warn(JSON.stringify(err.response.data, null, 2))}
+				return err.response
+			})
+			if (response.status == 200) {
+				if (this.platform.showAPIMessages) { this.log.debug('get base station response', JSON.stringify(response.data, null, 2))}
+				return response.data
+			}
+		} catch (err) { this.log.error('Error getting base station \n%s', err)}
+	}
+
+	async listValves(token, baseStationId) {
+		try {
+			this.log.debug('Getting valves List')
+			let response = await axios({
+				method: 'get',
+				baseURL: alt_api_endpoint,
+				url: `/valve/listValves/${baseStationId}`,
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
+				},
+				responseType: 'json'
+			}).catch(err => {
+				this.log.error('Error getting valves list %s', err.message)
+				this.log.debug(JSON.stringify(err, null, 2))
+				if (err.response) { this.log.warn(JSON.stringify(err.response.data, null, 2))}
+				return err.response
+			})
+			if (response.status == 200) {
+				if (this.platform.showAPIMessages) { this.log.debug('get valves list response', JSON.stringify(response.data, null, 2))}
+				return response.data
+			}
+		} catch (err) { this.log.error('Error getting valves list \n%s', err)}
+	}
+
+	async getValve(token, valveId) {
+		try {
+			this.log.debug('Getting Valve')
+			let response = await axios({
+				method: 'get',
+				baseURL: alt_api_endpoint,
+				url: `/valve/getValve/${valveId}`,
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
+				},
+				responseType: 'json'
+			}).catch(err => {
+				this.log.error('Error getting valve %s', err.message)
+				this.log.debug(JSON.stringify(err, null, 2))
+				if (err.response) { this.log.warn(JSON.stringify(err.response.data, null, 2))}
+				return err.response
+			})
+			if (response.status == 200) {
+				if (this.platform.showAPIMessages) { this.log.debug('get valve response', JSON.stringify(response.data, null, 2))}
+				this.log.debug('%s API calls remaining',response.headers['x-ratelimit-remaining'])
+				return response.data
+			}
+		} catch (err) { this.log.error('Error getting valve \n%s', err)}
+	}
+
+	async startWatering(token, valveId, runtime) {
+		try {
+			this.log.debug('Start Watering', valveId)
+			let response = await axios({
+				method: 'put',
+				baseURL: alt_api_endpoint,
+				url: '/valve/startWatering',
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
+				},
+				data: {
+					valveId: valveId,
+					durationSeconds: runtime
+				},
+				responseType: 'json'
+			}).catch(err => {
+				this.log.error('Error sending start watering %s', err.message)
+				this.log.warn(JSON.stringify(err.response.data, null, 2))
+				this.log.debug(JSON.stringify(err, null, 2))
+			})
+			this.log.debug('start watering response', response.status)
+			return response
+		} catch (err) { this.log.error('Error starting watering \n%s', err)}
+	}
+
+	async stopWatering(token, valveId) {
+		try {
+			this.log.debug('Stop Watering', valveId)
+			let response = await axios({
+				method: 'put',
+				baseURL: alt_api_endpoint,
+				url: '/valve/stopWatering',
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
+				},
+				data: {
+					valveId: valveId
+				},
+				responseType: 'json'
+			}).catch(err => {
+				this.log.error('Error sending stop watering %s', err.message)
+				this.log.warn(JSON.stringify(err.response.data, null, 2))
+				this.log.debug(JSON.stringify(err, null, 2))
+			})
+			this.log.debug('stop watering response', response.status)
+			return response
+		} catch (err) { this.log.error('Error stopping watering \n%s', err)}
+	}
+
+	async setDefaultRuntime(token, valveId, defaultRuntime) {
+		try {
+			this.log.debug('Set Default Runtime', valveId)
+			let response = await axios({
+				method: 'put',
+				baseURL: alt_api_endpoint,
+				url: '/valve/setDefaultRuntime',
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
+				},
+				data: {
+					id: valveId,
+					defaultRuntimeSeconds: defaultRuntime
+				},
+				responseType: 'json'
+			}).catch(err => {
+				this.log.error('Error setting default runtime %s', err.message)
+				this.log.warn(JSON.stringify(err.response.data, null, 2))
+				this.log.debug(JSON.stringify(err, null, 2))
+			})
+			this.log.debug('set default runtime response', response.status)
+			return response
+		} catch (err) { this.log.error('Error setting default runtime \n%s', err)}
+	}
+
+	async listPrograms(token, valveId) {
+		try {
+			this.log.debug('Set Default Runtime', valveId)
+			let response = await axios({
+				method: 'get',
+				baseURL: alt_api_endpoint,
+				url: `program/listPrograms/${valveId}`,
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
+				},
+				responseType: 'json'
+			}).catch(err => {
+				this.log.error('Error setting default runtime %s', err.message)
+				this.log.warn(JSON.stringify(err.response.data, null, 2))
+				this.log.debug(JSON.stringify(err, null, 2))
+			})
+			this.log.debug('set default runtime response', response.status)
+			return response
+		} catch (err) { this.log.error('Error setting default runtime \n%s', err)}
 	}
 
 	async configureWebhooks(token, external_webhook_address, delete_webhooks, device_Id, webhook_key) {
