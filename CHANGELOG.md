@@ -1,5 +1,11 @@
 # Changes
 
+## 1.3.1
+Smart Hose timer
+-  Using Rachio API V2.
+-  Add support for Smart Hose Timers.
+-  Bumped dependencies.
+
 ## 1.3.0-beta.0
 Smart Hose timer
 -  Using Rachio API V2.
