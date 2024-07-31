@@ -1,5 +1,16 @@
 # Changes
 
+## 1.3.3-beta.0
+beta
+-  support for homebridge 2.0
+-  removed invalid charaters from valve accessory naming
+-  removed deprecated getValue()
+
+## 1.3.2
+Update
+-  Bumped dependencies.
+-  node.js v22 support.
+
 ## 1.3.1
 Smart Hose timer
 -  Using Rachio API V2.

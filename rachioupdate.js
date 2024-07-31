@@ -135,10 +135,10 @@ class Rachio {
 										service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
 									}
 									if (Service.Valve.UUID == service.UUID){
-										service.getCharacteristic(Characteristic.Active).getValue()
+										service.getCharacteristic(Characteristic.Active).value
 									}
 									if (Service.Switch.UUID == service.UUID){
-										service.getCharacteristic(Characteristic.On).getValue()
+										service.getCharacteristic(Characteristic.On).value
 									}
 							})
 							break
@@ -151,10 +151,10 @@ class Rachio {
 										service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
 									}
 									if (Service.Valve.UUID == service.UUID){
-										service.getCharacteristic(Characteristic.Active).getValue()
+										service.getCharacteristic(Characteristic.Active).value
 									}
 									if (Service.Switch.UUID == service.UUID){
-										service.getCharacteristic(Characteristic.On).getValue()
+										service.getCharacteristic(Characteristic.On).value
 									}
 							})
 							break
@@ -166,10 +166,10 @@ class Rachio {
 									service.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
 								}
 								if (Service.Valve.UUID == service.UUID){
-									service.getCharacteristic(Characteristic.Active).getValue()
+									service.getCharacteristic(Characteristic.Active).value
 								}
 								if (Service.Switch.UUID == service.UUID){
-									service.getCharacteristic(Characteristic.On).getValue()
+									service.getCharacteristic(Characteristic.On).value
 								}
 						})
 							break

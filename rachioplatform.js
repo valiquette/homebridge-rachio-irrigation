@@ -67,7 +67,6 @@ class RachioPlatform {
 		this.showBridge=config.showBridge ? config.showBridge : false
 		this.showControllers=config.showControllers ? config.showControllers : false
 		this.showValves=config.showValves ? config.showValves : false
-		this.showAsValve=config.showAsValve ? config.showAsValve : true
 		this.valveType=config.valveType ? config.valveType : 0
 		this.lastInterval
 		this.timeStamp=new Date()
@@ -541,71 +540,69 @@ class RachioPlatform {
 							//this.log.debug(JSON.stringify(valve, null, 2))//temp
 							let uuid=valve.id
 							valve.zone=index+1
+							this.log.debug('Creating and configuring new valve')
 
-							if(this.showAsValve){
-								this.log.debug('Creating and configuring new valve')
-
-								if(this.accessories[uuid]){
-									// Check if accessory changed
-									if(this.accessories[uuid].getService(Service.AccessoryInformation).getCharacteristic(Characteristic.ProductData).value != 'Valve'){
-										this.log.warn('Changing from Irrigation to Valve, check room assignments in Homekit')
-										this.api.unregisterPlatformAccessories(PluginName, PlatformName, [this.accessories[uuid]])
-										delete this.accessories[uuid]
-									}
-								}
-
-								//adding devices that met filter criteria
-								this.log.info('Found Smart Hose Timer %s connected: %s',valve.name,valve.state.reportedState.connected)
-								// Create and configure Irrigation Service
-								this.log.debug('Creating and configuring new valve')
-								let valveAccessory=this.valve.createValveAccessory(baseStation, valve, this.accessories[uuid])
-								let valveService=valveAccessory.getService(Service.Valve)
-								this.valve.updateValveService(baseStation, valve, valveService)
-								this.valve.configureValveService(valve, valveAccessory.getService(Service.Valve))
-
-								// Create and configure Battery Service
-								if(valve.state.reportedState.batteryStatus!=null){
-									this.log.info('Adding Battery status for %s', valve.name)
-									let batteryStatus=valveAccessory.getService(Service.Battery)
-									if(batteryStatus){ //update
-										let percent
-										if(valve.state.reportedState.batteryStatus=="GOOD"){
-											percent=100
-										}
-										else{
-											percent=10
-										}
-										batteryStatus
-											.setCharacteristic(Characteristic.ChargingState, Characteristic.ChargingState.NOT_CHARGEABLE)
-											.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
-											.setCharacteristic(Characteristic.BatteryLevel, percent)
-									}
-									else{ //add new
-										batteryStatus=this.battery.createBatteryService(valve, uuid)
-										this.battery.configureBatteryService(batteryStatus)
-										valveAccessory.addService(batteryStatus)
-										this.api.updatePlatformAccessories([valveAccessory])
-									}
-									batteryStatus=valveAccessory.getService(Service.Battery)
-									valveAccessory.getService(Service.Valve).addLinkedService(batteryStatus)
-								}
-								else{ //remove
-									this.log.debug('%s has no battery found, skipping add battery service', valve.name)
-									let batteryStatus=valveAccessory.getService(Service.Battery)
-									if(batteryStatus){
-										valveAccessory.removeService(batteryStatus)
-										this.api.updatePlatformAccessories([valveAccessory])
-									}
-								}
-
-								// Register platform accessory
-								if(!this.accessories[uuid]){
-									this.log.debug('Registering platform accessory')
-									this.log.info('Adding new accessory %s', valveAccessory.displayName)
-									this.accessories[uuid]=valveAccessory
-									this.api.registerPlatformAccessories(PluginName, PlatformName, [valveAccessory])
+							if(this.accessories[uuid]){
+								// Check if accessory changed
+								if(this.accessories[uuid].getService(Service.AccessoryInformation).getCharacteristic(Characteristic.ProductData).value != 'Valve'){
+									this.log.warn('Changing from Irrigation to Valve, check room assignments in Homekit')
+									this.api.unregisterPlatformAccessories(PluginName, PlatformName, [this.accessories[uuid]])
+									delete this.accessories[uuid]
 								}
 							}
+
+							//adding devices that met filter criteria
+							this.log.info('Found Smart Hose Timer %s connected: %s',valve.name,valve.state.reportedState.connected)
+							// Create and configure Irrigation Service
+							this.log.debug('Creating and configuring new valve')
+							let valveAccessory=this.valve.createValveAccessory(baseStation, valve, this.accessories[uuid])
+							let valveService=valveAccessory.getService(Service.Valve)
+							this.valve.updateValveService(baseStation, valve, valveService)
+							this.valve.configureValveService(valve, valveAccessory.getService(Service.Valve))
+
+							// Create and configure Battery Service
+							if(valve.state.reportedState.batteryStatus!=null){
+								this.log.info('Adding Battery status for %s', valve.name)
+								let batteryStatus=valveAccessory.getService(Service.Battery)
+								if(batteryStatus){ //update
+									let percent
+									if(valve.state.reportedState.batteryStatus=="GOOD"){
+										percent=100
+									}
+									else{
+										percent=10
+									}
+									batteryStatus
+										.setCharacteristic(Characteristic.ChargingState, Characteristic.ChargingState.NOT_CHARGEABLE)
+										.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
+										.setCharacteristic(Characteristic.BatteryLevel, percent)
+								}
+								else{ //add new
+									batteryStatus=this.battery.createBatteryService(valve, uuid)
+									this.battery.configureBatteryService(batteryStatus)
+									valveAccessory.addService(batteryStatus)
+									this.api.updatePlatformAccessories([valveAccessory])
+								}
+								batteryStatus=valveAccessory.getService(Service.Battery)
+								valveAccessory.getService(Service.Valve).addLinkedService(batteryStatus)
+							}
+							else{ //remove
+								this.log.debug('%s has no battery found, skipping add battery service', valve.name)
+								let batteryStatus=valveAccessory.getService(Service.Battery)
+								if(batteryStatus){
+									valveAccessory.removeService(batteryStatus)
+									this.api.updatePlatformAccessories([valveAccessory])
+								}
+							}
+
+							// Register platform accessory
+							if(!this.accessories[uuid]){
+								this.log.debug('Registering platform accessory')
+								this.log.info('Adding new accessory %s', valveAccessory.displayName)
+								this.accessories[uuid]=valveAccessory
+								this.api.registerPlatformAccessories(PluginName, PlatformName, [valveAccessory])
+							}
+
 							//find any running zone and set its state
 							let programs=await this.rachioapi.listPrograms (this.token, valve.id).catch(err=>{this.log.error('Failed to get current programs', err)})
 							this.log.debug('Check current programs')
