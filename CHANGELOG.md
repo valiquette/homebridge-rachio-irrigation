@@ -1,8 +1,12 @@
 # Changes
 
+## 1.3.4
+Update
+-  support for homebridge 2.0
+
 ## 1.3.3-beta.0
 beta
--  support for homebridge 2.0
+-  initial support for homebridge 2.0
 -  removed invalid charaters from valve accessory naming
 -  removed deprecated getValue()
 
