@@ -1,5 +1,11 @@
 # Changes
 
+## 1.3.5
+Bug fixes
+-  updated logging
+-  added timer battery updates to polling
+-  fixed hose timer defaut run time
+
 ## 1.3.4
 Update
 -  support for homebridge 2.0

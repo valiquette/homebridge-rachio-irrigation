@@ -12,7 +12,7 @@
 - Rachio Smart Hose Timers.
 
 ## Notes on the Smart Hose Timer
-The Smart Hose Timer is currently not suppoerted by Webhooks or websocket. Updates will rely on polling.<br>
+The Smart Hose Timer is currently not suppoerted by Webhooks or WebSocket. Updates will rely on polling.<br>
 The plugin will only poll when there is a request from Homebridge or Homekit to get an update.
 API activity can be viewed in the debug log and there are configurations to tweak this.
 Battery support is limited to good and bad which traslated to 100% and 10%.

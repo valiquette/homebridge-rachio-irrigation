@@ -14,9 +14,8 @@ class valve {
 			// Create new Valve System Service
 			this.log.debug('Create valve accessory %s %s', valve.id, base.address.locality)
 			platformAccessory = new PlatformAccessory(base.address.locality, valve.id)
-			//valveService = platformAccessory.addService(Service.Valve, valve.id) // changed warning message for "-" in name
-			valveService = platformAccessory.addService(Service.Valve, valve.id.replace(/-/g,''))
-			//valveService = new Service.Valve(zone.name, zone.station)
+			//valveService = platformAccessory.addService(Service.Valve, valve.id, valve.id) // changed warning message for "-" in name
+			valveService = platformAccessory.addService(Service.Valve, valve.id.replace(/-/g,''), valve.id)
 			valveService.addCharacteristic(Characteristic.SerialNumber) //Use Serial Number to store the zone id
 			valveService.addCharacteristic(Characteristic.Model)
 			valveService.addCharacteristic(Characteristic.ConfiguredName)
@@ -57,7 +56,8 @@ class valve {
 			.setCharacteristic(Characteristic.Active, Characteristic.Active.ACTIVE)
 			.setCharacteristic(Characteristic.InUse, Characteristic.InUse.NOT_IN_USE)
 			.setCharacteristic(Characteristic.StatusFault, !valve.state.reportedState.connected)
-			.setCharacteristic(Characteristic.RemainingDuration, valve.state.desiredState.defaultRuntimeSeconds)
+			.setCharacteristic(Characteristic.Duration, valve.state.desiredState.defaultRuntimeSeconds)
+			.setCharacteristic(Characteristic.RemainingDuration, 0)
 		valveService
 			.getCharacteristic(Characteristic.Active)
 			.on('get', this.getDeviceValue.bind(this, valveService, "DeviceActive"))
@@ -80,13 +80,16 @@ class valve {
 					break
 				case 1:
 					if (device.state.defaultRunTimeSeconds > 0) {
-						defaultRuntime = device.state.desiredState.defaultRunTimeSeconds
+						defaultRuntime = device.state.desiredState.defaultRuntimeSeconds
 					}
 					break
 				case 2:
 					if (zone.flow_data.cycle_run_time_sec > 0) {
-						defaultRuntime = device.state.desiredState.defaultRunTimeSeconds
+						defaultRuntime = device.state.desiredState.defaultRuntimeSeconds
 					}
+					break
+				default:
+					defaultRuntime = this.platform.defaultRuntime
 					break
 			}
 		} catch (err) {
@@ -244,9 +247,11 @@ class valve {
 			//json start stuff
 			let myJsonStart = {
 				source: "local",
+				action: "start"
 			 }
 			let myJsonStop = {
 				source: "local",
+				action: "stop"
 			 }
 			//this.log.debug('Simulating websocket event for %s', myJsonStart.device_id)
 			if(this.platform.showIncomingMessages){
@@ -257,7 +262,7 @@ class valve {
 				//this.log.debug('Simulating websocket event for %s', myJsonStop.device_id)
 				valveService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
 				valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-				valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(0)
+				//valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(0)
 				this.platform.endTime[valveService.getCharacteristic(Characteristic.SerialNumber).value]= new Date(Date.now()).toISOString()
 				if(this.platform.showIncomingMessages){
 					this.log.debug('simulated message',myJsonStop)
@@ -275,7 +280,7 @@ class valve {
 			if(status.status==200){
 				valveService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
 				valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-				valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(0)
+				//valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(0)
 				this.platform.endTime[valveService.getCharacteristic(Characteristic.SerialNumber).value]= new Date(Date.now()).toISOString()
 			}
 			else{
@@ -288,7 +293,8 @@ class valve {
 			//json stop stuff
 			let myJsonStop = {
 				source: "local",
-			}
+				action: "stop"
+			 }
 			//this.log.debug('Simulating websocket event for %s', myJsonStop.device_id)
 			if(this.platform.showIncomingMessages){
 				this.log.debug('simulated message',myJsonStop)

@@ -62,13 +62,12 @@ class RachioPlatform {
 		this.cert=config.cert
 		this.showAPIMessages=config.showAPIMessages ? config.showAPIMessages : false
 		this.showWebhookMessages=config.showWebhookMessages ? config.showWebhookMessages : false
-		this.lowBattery=config.lowBattery ? config.lowBattery : 20
 
 		this.showBridge=config.showBridge ? config.showBridge : false
 		this.showControllers=config.showControllers ? config.showControllers : false
 		this.showValves=config.showValves ? config.showValves : false
 		this.valveType=config.valveType ? config.valveType : 0
-		this.lastInterval
+		this.lastInterval=[]
 		this.timeStamp=new Date()
 		this.liveTimeout=config.liveRefreshTimeout ? config.liveRefreshTimeout : 2 //min
 		this.liveRefresh=config.liveRefreshRate ? config.liveRefreshRate : 20 //sec
@@ -92,7 +91,7 @@ class RachioPlatform {
 			this.api.on("didFinishLaunching", async function (){
 				if(this.showValves){
 					//Get valves
-					this.log.warn('Setting up Wifi hub devices')
+					this.log.info('Setting up Wifi hub devices')
 					await this.getRachioValves()
 				}
 				if(this.showControllers){
@@ -101,7 +100,7 @@ class RachioPlatform {
 					//Configure listerner for webhook messages
 					await this.configureListener()
 					//Get controllers
-					this.log.warn('Setting up Controller devices')
+					this.log.info('Setting up Controller devices')
 					await this.getRachioDevices()
 				}
 			}.bind(this))
@@ -502,6 +501,9 @@ class RachioPlatform {
 					}
 				}).forEach(async(baseStation)=>{
 					let uuid=baseStation.id
+					if(baseStation.reportedState.firmwareUpgradeAvailable){
+						this.log.warn("Hub firmware upgrade available")
+					}
 					if(!this.showBridge){
 						this.log.info('Skipping WiFi Hub %s based on config', baseStation.address.locality)
 						if(this.accessories[uuid]){
@@ -541,7 +543,6 @@ class RachioPlatform {
 							let uuid=valve.id
 							valve.zone=index+1
 							this.log.debug('Creating and configuring new valve')
-
 							if(this.accessories[uuid]){
 								// Check if accessory changed
 								if(this.accessories[uuid].getService(Service.AccessoryInformation).getCharacteristic(Characteristic.ProductData).value != 'Valve'){
@@ -553,6 +554,12 @@ class RachioPlatform {
 
 							//adding devices that met filter criteria
 							this.log.info('Found Smart Hose Timer %s connected: %s',valve.name,valve.state.reportedState.connected)
+							if(valve.state.reportedState.firmwareUpgradeAvailable){
+								this.log.warn("Valve %s firmware upgrade available", valve.name)
+							}
+							if(valve.state.reportedState.firmwareUpgradeInProgress){
+								this.log.warn("Valve %s firmware upgrade in progress %s", valve.name, valve.state.reportedState.firmwareVersion)
+							}
 							// Create and configure Irrigation Service
 							this.log.debug('Creating and configuring new valve')
 							let valveAccessory=this.valve.createValveAccessory(baseStation, valve, this.accessories[uuid])
@@ -564,18 +571,17 @@ class RachioPlatform {
 							if(valve.state.reportedState.batteryStatus!=null){
 								this.log.info('Adding Battery status for %s', valve.name)
 								let batteryStatus=valveAccessory.getService(Service.Battery)
+								//batteryStatus.getCharacteristic(Characteristic.SerialNumber).updateValue(valve.id) // should be temp
 								if(batteryStatus){ //update
-									let percent
-									if(valve.state.reportedState.batteryStatus=="GOOD"){
-										percent=100
+									this.battery.configureBatteryService(batteryStatus)
+									switch(valve.state.reportedState.batteryStatus){
+										case 'GOOD':
+											batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).updateValue(Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
+											break
+										case 'LOW':
+											batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).updateValue( Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+											break
 									}
-									else{
-										percent=10
-									}
-									batteryStatus
-										.setCharacteristic(Characteristic.ChargingState, Characteristic.ChargingState.NOT_CHARGEABLE)
-										.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
-										.setCharacteristic(Characteristic.BatteryLevel, percent)
 								}
 								else{ //add new
 									batteryStatus=this.battery.createBatteryService(valve, uuid)
@@ -779,7 +785,6 @@ class RachioPlatform {
 				cert: fs.readFileSync(this.cert)
 			}
 		}
-		//this.log.warn(this.external_IP_address,this.external_webhook_address,this.internal_webhook_port)
 		if ((this.external_IP_address && this.external_webhook_address && this.internal_webhook_port) || (this.relay_address && this.internal_IP_address && this.internal_webhook_port)){
 			this.log.debug('Will listen for Webhooks matching Webhook ID %s',this.webhook_key)
 			server.createServer(options,(request, response)=>{
@@ -889,32 +894,38 @@ class RachioPlatform {
 
 	async startLiveUpdate(valveService){
 		//check for duplicate call
-		let delta=new Date()-this.timeStamp
-		if(delta>500){ //calls within 1/2 sec will be skipped as duplicate
-			this.timeStamp=new Date()
+		let delta=[]
+		let interval=[]
+		let time=[]
+		let serial=valveService.getCharacteristic(Characteristic.SerialNumber).value
+		time[serial]=this.timeStamp
+		delta[serial]=new Date()-time[serial]
+		if(delta[serial]>500){ //calls within 1/2 sec will be skipped as duplicate
+			time[serial]=new Date()
 		}
 		else{
-			this.log.debug('Skipped new live update due to duplicate call, timestamp delta %s ms', delta )
+			this.log.debug('Skipped new live update due to duplicate call, timestamp delta %s ms', delta[serial] )
 			return
 		}
-		clearInterval(this.lastInterval)
-		//this.liveUpdate=true
+		clearInterval(this.lastInterval[serial])
 		let startTime = new Date().getTime() //live refresh start time
 		if(!this.liveUpdate){
 			this.log.debug('Live update started')
 		}
 		this.liveUpdate=true
-			let interval = setInterval(async()=>{
+			interval[serial] = setInterval(async()=>{
 				if(new Date().getTime() - startTime > this.liveTimeout*60*1000+500){
-					clearInterval(interval)
+					clearInterval(interval[serial])
 					this.liveUpdate=false
 					this.log.debug('Live update stopped')
 					return
 				}
-				let update = await this.rachioapi.getValve(this.token, valveService.getCharacteristic(Characteristic.SerialNumber).value).catch(err=>{this.log.error('Failed to get valve list', err)})
+				this.log.debug("updating serial#",serial)
+				let update = await this.rachioapi.getValve(this.token, serial).catch(err=>{this.log.error('Failed to get valve list', err)})
+				let valveAccessory=this.accessories[valveService.subtype]
+				let batteryStatus=valveAccessory.getServiceById(Service.Battery, valveService.subtype)
 				let timeRemaining=0
 				let duration=update.valve.state.desiredState.defaultRuntimeSeconds
-
 				if(update.valve.state.reportedState.lastWateringAction){
 					let start=update.valve.state.reportedState.lastWateringAction.start
 					duration=update.valve.state.reportedState.lastWateringAction.durationSeconds
@@ -925,17 +936,27 @@ class RachioPlatform {
 					valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 					valveService.getCharacteristic(Characteristic.SetDuration).updateValue(duration)
 					valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(timeRemaining)
-					this.endTime[valveService.getCharacteristic(Characteristic.SerialNumber).value]=endTime
+					this.endTime[serial]=endTime
 				}
 				else{
 					valveService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
 					valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-					valveService.getCharacteristic(Characteristic.SetDuration).updateValue(duration)
-					valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(0)
-					this.endTime[valveService.getCharacteristic(Characteristic.SerialNumber).value]=0
+					//valveService.getCharacteristic(Characteristic.SetDuration).updateValue(duration)
+					//valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(0)
+					this.endTime[serial]=0
 				}
+
+				switch(update.valve.state.reportedState.batteryStatus){
+					case 'GOOD':
+						batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).updateValue(Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
+						break
+					case 'LOW':
+						batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).updateValue( Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+						break
+				}
+
 			}, this.liveRefresh*1000)
-		this.lastInterval=interval
+		this.lastInterval[serial]=interval[serial]
 	}
 
 	localMessage(listener){

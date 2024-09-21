@@ -11,17 +11,18 @@ class battery {
 		let batteryStatus
 		this.log.debug("create battery service for %s", device.name)
 		batteryStatus = new Service.Battery(device.name, device.id)
-		let percent
-		if(device.state.reportedState.batteryStatus=="GOOD"){
-			percent=100
+
+		switch(device.state.reportedState.batteryStatus){
+			case 'GOOD':
+				batteryStatus
+					.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
+				break
+			case 'LOW':
+				batteryStatus
+					.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+				break
 		}
-		else{
-			percent=10
-		}
-		batteryStatus
-			.setCharacteristic(Characteristic.ChargingState, Characteristic.ChargingState.NOT_CHARGEABLE)
-			.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
-			.setCharacteristic(Characteristic.BatteryLevel, percent)
+
 		return batteryStatus
 	}
 
@@ -34,12 +35,9 @@ class battery {
 
 	getStatusLowBattery(batteryStatus, callback) {
 		let name = batteryStatus.getCharacteristic(Characteristic.Name).value
-		let batteryValue = batteryStatus.getCharacteristic(Characteristic.BatteryLevel).value
 		let currentValue = batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).value
-		if (batteryValue <= this.platform.lowBattery) {
-			this.log.warn('%s Battery Status Low %s% Remaining', name, batteryValue)
-			batteryStatus.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
-			currentValue = Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
+		if (batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).value ==Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW) {
+			this.log.warn('%s Valve Battery Status Low', name)
 		}
 		callback(null, currentValue)
 	}
