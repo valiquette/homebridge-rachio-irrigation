@@ -1,5 +1,9 @@
 # Changes
 
+## 1.3.6
+Bug fixes
+-  added error handling for invalid accesory cache to prevent plugin crash
+
 ## 1.3.5
 Bug fixes
 -  updated logging

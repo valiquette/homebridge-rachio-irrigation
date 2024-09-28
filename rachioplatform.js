@@ -913,13 +913,14 @@ class RachioPlatform {
 			this.log.debug('Live update started')
 		}
 		this.liveUpdate=true
-			interval[serial] = setInterval(async()=>{
-				if(new Date().getTime() - startTime > this.liveTimeout*60*1000+500){
-					clearInterval(interval[serial])
-					this.liveUpdate=false
-					this.log.debug('Live update stopped')
-					return
-				}
+		interval[serial] = setInterval(async()=>{
+			if(new Date().getTime() - startTime > this.liveTimeout*60*1000+500){
+				clearInterval(interval[serial])
+				this.liveUpdate=false
+				this.log.debug('Live update stopped')
+				return
+			}
+			try {
 				this.log.debug("updating serial#",serial)
 				let update = await this.rachioapi.getValve(this.token, serial).catch(err=>{this.log.error('Failed to get valve list', err)})
 				let valveAccessory=this.accessories[valveService.subtype]
@@ -954,8 +955,11 @@ class RachioPlatform {
 						batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).updateValue( Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
 						break
 				}
+			} catch (err) {
+				this.log.error('error trying to update valve status, try removing cached valve accessories', err)
+			}
 
-			}, this.liveRefresh*1000)
+		}, this.liveRefresh*1000)
 		this.lastInterval[serial]=interval[serial]
 	}
 
