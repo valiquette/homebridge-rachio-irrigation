@@ -50,7 +50,7 @@ class Rachio {
 		************************************************************/
 		try {
 			switch(jsonBody.type){
-				case "ZONE_STATUS":
+				case 'ZONE_STATUS':
 				this.log.debug('Zone Status Update')
 					/*****************************
 							 Possible states
@@ -61,7 +61,7 @@ class Rachio {
 					False	  True	  Stopping
 					******************************/
 					switch(jsonBody.subType){
-						case "ZONE_STARTED":
+						case 'ZONE_STARTED':
 							this.log('<%s> %s, started for duration %s minutes.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
 							this.log.debug(jsonBody.summary)
 							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
@@ -70,7 +70,7 @@ class Rachio {
 							activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(jsonBody.duration)
 							this.endTime[activeService.subtype]=jsonBody.endTime
 							break
-						case "ZONE_STOPPED":
+						case 'ZONE_STOPPED':
 							if(jsonBody.duration<60){
 								this.log('<%s> %s, stopped after %s seconds.',jsonBody.externalId,jsonBody.title,jsonBody.duration)
 							}
@@ -84,7 +84,7 @@ class Rachio {
 							activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(jsonBody.duration)
 							this.endTime[activeService.subtype]=jsonBody.endTime
 							break
-						case "ZONE_PAUSED":
+						case 'ZONE_PAUSED':
 							clearTimeout(this.fakeWebhook)
 							let pauseDuration=Math.round(((Date.parse(jsonBody.endTime)-Date.now())-(Date.parse(this.endTime[activeService.subtype])-Date.now()))/1000)
 							let pauseDurationInMinutes=Math.round(pauseDuration/60)
@@ -96,7 +96,7 @@ class Rachio {
 							activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(pauseDuration)
 							this.endTime[activeService.subtype]=jsonBody.endTime
 							break
-						case "ZONE_CYCLING":
+						case 'ZONE_CYCLING':
 							clearTimeout(this.fakeWebhook)
 							this.log('<%s> %s, cycling for duration %s minutes.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
 							this.log.debug(jsonBody.summary)
@@ -106,14 +106,14 @@ class Rachio {
 							activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(jsonBody.duration)
 							this.endTime[activeService.subtype]=jsonBody.endTime
 							break
-						case "ZONE_COMPLETED":
+						case 'ZONE_COMPLETED':
 							this.log('<%s> %s, completed after %s minutes.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
 							this.log.debug(jsonBody.summary)
 							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 							activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
 							activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 							break
-						case "ZONE_CYCLING_COMPLETED":
+						case 'ZONE_CYCLING_COMPLETED':
 							this.log('<%s> %s, cycling completed after %s minutes.',jsonBody.externalId,jsonBody.title,jsonBody.durationInMinutes)
 							this.log.debug(jsonBody.summary)
 							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
@@ -122,7 +122,7 @@ class Rachio {
 							break
 					}
 					break
-				case "DEVICE_STATUS":
+				case 'DEVICE_STATUS':
 					this.log.debug('Device status update')
 					let irrigationAccessory=this.accessories[jsonBody.deviceId]
 					let switchService=irrigationAccessory.getServiceById(Service.Switch,UUIDGen.generate(jsonBody.deviceName+' Standby'))
@@ -173,12 +173,12 @@ class Rachio {
 								}
 						})
 							break
-						case "SLEEP_MODE_ON": //ProgramMode 0
+						case 'SLEEP_MODE_ON': //ProgramMode 0
 							this.log('<%s> %s %s %s',jsonBody.externalId,jsonBody.title,jsonBody.deviceName,jsonBody.summary)
 							irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED)
 							if (this.showStandby){switchService.getCharacteristic(Characteristic.On).updateValue(true)}
 							break
-						case "SLEEP_MODE_OFF": //ProgramMode 2
+						case 'SLEEP_MODE_OFF': //ProgramMode 2
 							this.log('<%s> %s %s %s',jsonBody.externalId,jsonBody.title,jsonBody.deviceName,jsonBody.summary)
 							irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).updateValue(Characteristic.ProgramMode.PROGRAM_SCHEDULED_MANUAL_MODE_)
 							if (this.showStandby){switchService.getCharacteristic(Characteristic.On).updateValue(false)}
@@ -190,24 +190,24 @@ class Rachio {
 						break
 						}
 					break
-				case "SCHEDULE_STATUS":
+				case 'SCHEDULE_STATUS':
 					this.log.debug('Schedule status update')
 					switch(jsonBody.subType){
-						case "SCHEDULE_STARTED":
+						case 'SCHEDULE_STARTED':
 							this.log.info('<%s> %s %s',jsonBody.externalId,jsonBody.title,jsonBody.summary)
 							if (Service.IrrigationSystem.UUID != activeService.UUID){
 								activeService.getCharacteristic(Characteristic.On).updateValue(true)
 							}
 							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 							break
-						case "SCHEDULE_STOPPED":
+						case 'SCHEDULE_STOPPED':
 							this.log.info('<%s> %s %s',jsonBody.externalId,jsonBody.title,jsonBody.summary)
 							if (Service.IrrigationSystem.UUID != activeService.UUID){
 								activeService.getCharacteristic(Characteristic.On).updateValue(false)
 							}
 							irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 							break
-						case "SCHEDULE_COMPLETED":
+						case 'SCHEDULE_COMPLETED':
 							this.log.info('<%s> %s %s',jsonBody.externalId,jsonBody.title,jsonBody.summary)
 							if (Service.IrrigationSystem.UUID != activeService.UUID){
 								activeService.getCharacteristic(Characteristic.On).updateValue(false)
