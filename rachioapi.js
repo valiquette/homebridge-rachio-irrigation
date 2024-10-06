@@ -439,7 +439,7 @@ class RachioAPI {
 			if (response.status == 200) {
 				if (this.platform.showAPIMessages) { this.log.debug('get valve response', JSON.stringify(response.data, null, 2))}
 				this.log.debug('%s API calls remaining',response.headers['x-ratelimit-remaining'])
-				return response.data
+				return response
 			}
 		} catch (err) { this.log.error('Error getting valve \n%s', err)}
 	}

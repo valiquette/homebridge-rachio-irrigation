@@ -165,6 +165,7 @@ class valve {
 					callback('error')
 				}
 				else {
+					this.platform.startLiveUpdate(valveService)
 					callback(null, valveService.getCharacteristic(Characteristic.Active).value)
 				}
 				break
@@ -188,11 +189,11 @@ class valve {
 		switch (characteristicName) {
 			case 'ValveActive':
 				//this.log.debug('%s=%s %s', valveService.getCharacteristic(Characteristic.Name).value, characteristicName, valveService.getCharacteristic(Characteristic.Active).value)
-				this.platform.startLiveUpdate(valveService)
 				if (valveService.getCharacteristic(Characteristic.StatusFault).value == Characteristic.StatusFault.GENERAL_FAULT) {
 					callback('error')
 				}
 				else {
+					this.platform.startLiveUpdate(valveService)
 					callback(null, valveService.getCharacteristic(Characteristic.Active).value)
 				}
 				break

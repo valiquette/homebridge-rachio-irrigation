@@ -1,5 +1,11 @@
 # Changes
 
+## 1.3.7
+Bug fixes
+-  added error handling if API limit is exceeded
+-  improved live update process where it will make fewer calls
+-  code cleanup
+
 ## 1.3.6
 Bug fixes
 -  added error handling for invalid accesory cache to prevent plugin crash

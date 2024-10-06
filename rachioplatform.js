@@ -68,7 +68,7 @@ class RachioPlatform {
 		this.showValves=config.showValves ? config.showValves : false
 		this.valveType=config.valveType ? config.valveType : 0
 		this.lastInterval=[]
-		this.timeStamp=new Date()
+		this.timeStamp=[]
 		this.liveTimeout=config.liveRefreshTimeout ? config.liveRefreshTimeout : 2 //min
 		this.liveRefresh=config.liveRefreshRate ? config.liveRefreshRate : 20 //sec
 
@@ -492,17 +492,17 @@ class RachioPlatform {
 			if(list.baseStations.length>0){
 				list.baseStations.filter((baseStation)=>{
 					if(!this.locationAddress || baseStation.address.lineOne==this.locationAddress){
-						this.log("Found WiFi Hub %s at the configured location: %s", baseStation.serialNumber, baseStation.address.lineOne)
+						this.log('Found WiFi Hub %s at the configured location: %s', baseStation.serialNumber, baseStation.address.lineOne)
 						return true
 					}
 					else{
-						this.log("Skipping WiFi Hub %s st %s, not found at the configured location: %s", baseStation.serialNumber, baseStation.address.lineOne, this.locationAddress )
+						this.log('Skipping WiFi Hub %s st %s, not found at the configured location: %s', baseStation.serialNumber, baseStation.address.lineOne, this.locationAddress )
 						return false
 					}
 				}).forEach(async(baseStation)=>{
 					let uuid=baseStation.id
 					if(baseStation.reportedState.firmwareUpgradeAvailable){
-						this.log.warn("Hub firmware upgrade available")
+						this.log.warn('Hub firmware upgrade available')
 					}
 					if(!this.showBridge){
 						this.log.info('Skipping WiFi Hub %s based on config', baseStation.address.locality)
@@ -541,6 +541,7 @@ class RachioPlatform {
 						valveList.valves.forEach(async(valve, index)=>{
 							//this.log.debug(JSON.stringify(valve, null, 2))//temp
 							let uuid=valve.id
+							this.timeStamp[uuid]= new Date()
 							valve.zone=index+1
 							this.log.debug('Creating and configuring new valve')
 							if(this.accessories[uuid]){
@@ -555,10 +556,10 @@ class RachioPlatform {
 							//adding devices that met filter criteria
 							this.log.info('Found Smart Hose Timer %s connected: %s',valve.name,valve.state.reportedState.connected)
 							if(valve.state.reportedState.firmwareUpgradeAvailable){
-								this.log.warn("Valve %s firmware upgrade available", valve.name)
+								this.log.warn('Valve %s firmware upgrade available', valve.name)
 							}
 							if(valve.state.reportedState.firmwareUpgradeInProgress){
-								this.log.warn("Valve %s firmware upgrade in progress %s", valve.name, valve.state.reportedState.firmwareVersion)
+								this.log.warn('Valve %s firmware upgrade in progress %s', valve.name, valve.state.reportedState.firmwareVersion)
 							}
 							// Create and configure Irrigation Service
 							this.log.debug('Creating and configuring new valve')
@@ -635,7 +636,7 @@ class RachioPlatform {
 	}
 
 	//**
-	//** REQUIRED - Homebridge will call the "configureAccessory" method once for every cached accessory restored
+	//** REQUIRED - Homebridge will call the 'configureAccessory' method once for every cached accessory restored
 	//**
 	configureAccessory(accessory){
 		// Add cached devices to the accessories array
@@ -795,12 +796,12 @@ class RachioPlatform {
 						this.log.debug('webhook request authorization header=%s',request.headers.authorization)
 						this.log.debug('webhook expected authorization header=%s',"Basic "+b64encoded)
 						if (request.headers.authorization == "Basic "+b64encoded){
-							this.log.debug("Webhook authentication passed")
+							this.log.debug('Webhook authentication passed')
 							authPassed=true
 						}
 						else {
 							this.log.warn('Webhook authentication failed')
-							this.log.debug("Webhook authentication failed",request.headers.authorization)
+							this.log.debug('Webhook authentication failed',request.headers.authorization)
 							authPassed=false
 						}
 					}
@@ -896,12 +897,10 @@ class RachioPlatform {
 		//check for duplicate call
 		let delta=[]
 		let interval=[]
-		let time=[]
 		let serial=valveService.getCharacteristic(Characteristic.SerialNumber).value
-		time[serial]=this.timeStamp
-		delta[serial]=new Date()-time[serial]
-		if(delta[serial]>500){ //calls within 1/2 sec will be skipped as duplicate
-			time[serial]=new Date()
+		delta[serial]=new Date()-this.timeStamp[serial]
+		if(delta[serial]>500 || delta[serial] == 0){ //calls within 1/2 sec will be skipped as duplicate
+			this.timeStamp[serial]=new Date()
 		}
 		else{
 			this.log.debug('Skipped new live update due to duplicate call, timestamp delta %s ms', delta[serial] )
@@ -913,6 +912,7 @@ class RachioPlatform {
 			this.log.debug('Live update started')
 		}
 		this.liveUpdate=true
+		this.getUpdate(valveService, interval) //fist call
 		interval[serial] = setInterval(async()=>{
 			if(new Date().getTime() - startTime > this.liveTimeout*60*1000+500){
 				clearInterval(interval[serial])
@@ -920,9 +920,28 @@ class RachioPlatform {
 				this.log.debug('Live update stopped')
 				return
 			}
-			try {
-				this.log.debug("updating serial#",serial)
-				let update = await this.rachioapi.getValve(this.token, serial).catch(err=>{this.log.error('Failed to get valve list', err)})
+			this.getUpdate(valveService, interval) //remaing calls.
+			clearInterval(interval[serial])
+		}, this.liveRefresh*1000)
+		this.lastInterval[serial]=interval[serial]
+	}
+
+	async getUpdate(valveService, interval){
+		let pause = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
+		let serial=valveService.getCharacteristic(Characteristic.SerialNumber).value
+		try {
+			this.log.debug('updating serial#', serial)
+			let response = await this.rachioapi.getValve(this.token, serial).catch(err=>{this.log.error('Failed to get valve', err)})
+
+			if(response.status == 429) {
+				this.log.warn('exceeded API rate limiting for the day, backing off');
+				clearInterval(interval[serial])
+				await pause(15*60*1000);
+				return
+			}
+
+			if(response.status == 200){
+				let update=response.data
 				let valveAccessory=this.accessories[valveService.subtype]
 				let batteryStatus=valveAccessory.getServiceById(Service.Battery, valveService.subtype)
 				let timeRemaining=0
@@ -955,12 +974,11 @@ class RachioPlatform {
 						batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).updateValue( Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
 						break
 				}
-			} catch (err) {
-				this.log.error('error trying to update valve status, try removing cached valve accessories', err)
 			}
-
-		}, this.liveRefresh*1000)
-		this.lastInterval[serial]=interval[serial]
+			return
+		} catch (err) {
+			this.log.error('error trying to update valve status', err)
+		}
 	}
 
 	localMessage(listener){
