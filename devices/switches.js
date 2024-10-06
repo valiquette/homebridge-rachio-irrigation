@@ -9,7 +9,7 @@ class switches {
 
 	createScheduleSwitchService(schedule) {
 		// Create Valve Service
-		this.log.debug("Created service for %s with id %s", schedule.name, schedule.id)
+		this.log.debug('Created service for %s with id %s', schedule.name, schedule.id)
 		let switchService = new Service.Switch(schedule.name, schedule.id)
 		switchService.addCharacteristic(Characteristic.ConfiguredName)
 		switchService.addCharacteristic(Characteristic.SerialNumber)
@@ -35,7 +35,7 @@ class switches {
 
 	configureSwitchService(device, switchService) {
 		// Configure Valve Service
-		this.log.info("Configured switch for %s", switchService.getCharacteristic(Characteristic.Name).value)
+		this.log.info('Configured switch for %s', switchService.getCharacteristic(Characteristic.Name).value)
 		switchService
 			.getCharacteristic(Characteristic.On)
 			.on('get', this.getSwitchValue.bind(this, switchService))

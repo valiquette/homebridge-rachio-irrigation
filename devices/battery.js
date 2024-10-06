@@ -9,7 +9,7 @@ class battery {
 
 	createBatteryService(device) {
 		let batteryStatus
-		this.log.debug("create battery service for %s", device.name)
+		this.log.debug('create battery service for %s', device.name)
 		batteryStatus = new Service.Battery(device.name, device.id)
 
 		switch(device.state.reportedState.batteryStatus){
@@ -27,7 +27,7 @@ class battery {
 	}
 
 	configureBatteryService(batteryStatus) {
-		this.log.debug("configured battery service for %s", batteryStatus.getCharacteristic(Characteristic.Name).value)
+		this.log.debug('configured battery service for %s', batteryStatus.getCharacteristic(Characteristic.Name).value)
 		batteryStatus
 			.getCharacteristic(Characteristic.StatusLowBattery)
 			.on('get', this.getStatusLowBattery.bind(this, batteryStatus))

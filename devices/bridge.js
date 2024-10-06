@@ -19,9 +19,9 @@ class bridge {
 
 		platformAccessory.getService(Service.AccessoryInformation)
 			.setCharacteristic(Characteristic.Name, device.address.locality)
-			.setCharacteristic(Characteristic.Manufacturer, "Rachio")
+			.setCharacteristic(Characteristic.Manufacturer, 'Rachio')
 			.setCharacteristic(Characteristic.SerialNumber, device.serialNumber)
-			.setCharacteristic(Characteristic.Model, "HUB101")
+			.setCharacteristic(Characteristic.Model, 'HUB101')
 			.setCharacteristic(Characteristic.Identify, true)
 			.setCharacteristic(Characteristic.FirmwareRevision, device.reportedState.wifiBridgeFirmwareVersion)
 			//.setCharacteristic(Characteristic.HardwareRevision, device.hardware_version)
@@ -30,7 +30,7 @@ class bridge {
 	}
 
 	createBridgeService(device) {
-		this.log.debug("create bridge service for %s", device.name)
+		this.log.debug('create bridge service for %s', device.name)
 		let bridgeService = new Service.Tunnel(device.address.locality, device.id)
 		bridgeService
 			//.setCharacteristic(Characteristic.AccessoryIdentifier, network.network_key)
@@ -41,7 +41,7 @@ class bridge {
 	}
 
 	configureBridgeService(bridgeService) {
-		this.log.debug("configured bridge for %s", bridgeService.getCharacteristic(Characteristic.Name).value)
+		this.log.debug('configured bridge for %s', bridgeService.getCharacteristic(Characteristic.Name).value)
 		bridgeService
 			.getCharacteristic(Characteristic.TunneledAccessoryConnected)
 	}
