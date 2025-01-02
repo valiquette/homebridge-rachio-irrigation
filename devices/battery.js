@@ -1,4 +1,4 @@
-let RachioAPI=require('../rachioapi')
+let RachioAPI = require('../rachioapi')
 
 class battery {
 	constructor(platform, log) {

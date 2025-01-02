@@ -1,5 +1,5 @@
-let packageJson=require('../package.json')
-let RachioAPI=require('../rachioapi')
+let packageJson = require('../package.json')
+let RachioAPI = require('../rachioapi')
 
 class irrigation {
 	constructor(platform, log) {
@@ -221,7 +221,7 @@ class irrigation {
 	}
 
 	async setValveValue(device, valveService, value, callback) {
-		if(value==valveService.getCharacteristic(Characteristic.Active).value){ //IOS 17 bug fix for duplicate calls
+		if(value == valveService.getCharacteristic(Characteristic.Active).value){ //IOS 17 bug fix for duplicate calls
 			this.log.debug('supressed duplicate call from IOS for %s, current value %s, new value %s', valveService.getCharacteristic(Characteristic.Name).value, value, valveService.getCharacteristic(Characteristic.Active).value)
 			callback()
 			return
@@ -277,11 +277,11 @@ class irrigation {
 					}
 					this.log.debug('Simulating webhook for %s will update services', myZoneStart.zoneName)
 					if (this.platform.showWebhookMessages) { this.log.debug('simulated webhook sent from <%s> %s', this.platform.webhook_key_local, myZoneStart)}
-					this.eventMsg(irrigationSystemService,valveService,myZoneStart)
+					this.eventMsg(irrigationSystemService, valveService, myZoneStart)
 					this.platform.fakeWebhook = setTimeout(() => {
 						this.log.debug('Simulating webhook for %s will update services', myZoneStop.zoneName)
 						if (this.platform.showWebhookMessages) { this.log.debug('simulated webhook sent from <%s> %s', this.platform.webhook_key_local, myZoneStop)}
-						this.eventMsg(irrigationSystemService,valveService,myZoneStop)
+						this.eventMsg(irrigationSystemService, valveService, myZoneStop)
 					}, runTime * 1000)
 				}
 				else {
@@ -314,7 +314,7 @@ class irrigation {
 					}
 					this.log.debug('Simulating webhook for %s will update services', myZoneStop.zoneName)
 					if (this.platform.showWebhookMessages) { this.log.debug('simulated webhook sent from <%s> %s', this.platform.webhook_key_local, myZoneStop)}
-					this.eventMsg(irrigationSystemService,valveService,myZoneStop)
+					this.eventMsg(irrigationSystemService, valveService, myZoneStop)
 					clearTimeout(this.platform.fakeWebhook)
 				}
 				else
@@ -334,8 +334,8 @@ class irrigation {
 	}
 
 	localMessage(listener){
-		this.eventMsg=(irrigationSystemService,service,myJson)=>{
-			listener(irrigationSystemService,service,myJson)
+		this.eventMsg = (irrigationSystemService, service, myJson)=>{
+			listener(irrigationSystemService, service, myJson)
 		}
 	}
 }

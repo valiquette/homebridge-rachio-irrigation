@@ -1,4 +1,4 @@
-let RachioAPI=require('../rachioapi')
+let RachioAPI = require('../rachioapi')
 
 class switches {
 	constructor(platform, log) {
@@ -16,6 +16,7 @@ class switches {
 		switchService
 			.setCharacteristic(Characteristic.On, false)
 			.setCharacteristic(Characteristic.Name, schedule.name)
+			.setCharacteristic(Characteristic.ConfiguredName, schedule.name)
 			.setCharacteristic(Characteristic.SerialNumber, schedule.id)
 			.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
 		return switchService
@@ -29,6 +30,7 @@ class switches {
 		switchService
 			.setCharacteristic(Characteristic.On, false)
 			.setCharacteristic(Characteristic.Name, switchName)
+			.setCharacteristic(Characteristic.ConfiguredName, switchName)
 			.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
 		return switchService
 	}

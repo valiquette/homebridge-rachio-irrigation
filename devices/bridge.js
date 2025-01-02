@@ -1,5 +1,5 @@
-let packageJson=require('../package.json')
-let RachioAPI=require('../rachioapi')
+let packageJson = require('../package.json')
+let RachioAPI = require('../rachioapi')
 
 class bridge {
 	constructor(platform, log) {
@@ -30,20 +30,18 @@ class bridge {
 	}
 
 	createBridgeService(device) {
-		this.log.debug('create bridge service for %s', device.name)
-		let bridgeService = new Service.Tunnel(device.address.locality, device.id)
+		let bridgeService
+		this.log.debug('create bridge service for %s', device.address.locality)
+		bridgeService = new Service.WiFiTransport(device.address.locality, device.id)
 		bridgeService
-			//.setCharacteristic(Characteristic.AccessoryIdentifier, network.network_key)
-			.setCharacteristic(Characteristic.TunneledAccessoryAdvertising, true)
-			.setCharacteristic(Characteristic.TunneledAccessoryConnected, true)
-			//.setCharacteristic(Characteristic.TunneledAccessoryStateNumber, Object.keys(network.devices).length)
+			.setCharacteristic(Characteristic.CurrentTransport, device.reportedState.connected)
 		return bridgeService
 	}
 
 	configureBridgeService(bridgeService) {
 		this.log.debug('configured bridge for %s', bridgeService.getCharacteristic(Characteristic.Name).value)
 		bridgeService
-			.getCharacteristic(Characteristic.TunneledAccessoryConnected)
+			.getCharacteristic(Characteristic.CurrentTransport)
 	}
 }
 module.exports = bridge

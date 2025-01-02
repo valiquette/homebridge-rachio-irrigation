@@ -1,5 +1,5 @@
-let packageJson=require('../package.json')
-let RachioAPI=require('../rachioapi')
+let packageJson = require('../package.json')
+let RachioAPI = require('../rachioapi')
 
 class valve {
 	constructor(platform, log) {
@@ -31,7 +31,7 @@ class valve {
 			.setCharacteristic(Characteristic.Name, base.address.locality)
 			.setCharacteristic(Characteristic.Manufacturer, 'Rachio')
 			.setCharacteristic(Characteristic.SerialNumber, base.serialNumber)
-			.setCharacteristic(Characteristic.Model, 'Smart Hose Timer')
+			.setCharacteristic(Characteristic.Model, 'SHVK001')
 			.setCharacteristic(Characteristic.Identify, true)
 			.setCharacteristic(Characteristic.FirmwareRevision, valve.state.reportedState.firmwareVersion)
 			.setCharacteristic(Characteristic.HardwareRevision, base.macAddress)
@@ -107,9 +107,9 @@ class valve {
 			.setCharacteristic(Characteristic.Model, 'SHV101')
 		if(valve.state.reportedState.lastWateringAction){
 			//this.log.debug(valve.state.reportedState.lastWateringAction)
-			let start=valve.state.reportedState.lastWateringAction.start
-			let duration=valve.state.reportedState.lastWateringAction.durationSeconds
-			let endTime =new Date(start).getTime()+(duration*1000)
+			let start = valve.state.reportedState.lastWateringAction.start
+			let duration = valve.state.reportedState.lastWateringAction.durationSeconds
+			let endTime = new Date(start).getTime()+(duration*1000)
 			let remaining = Math.max(Math.round((endTime - Date.now())/1000), 0)
 			this.platform.endTime[valveService.getCharacteristic(Characteristic.SerialNumber).value]=endTime
 			valveService
@@ -233,7 +233,7 @@ class valve {
 			valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 			let status = await this.rachioapi.startWatering(this.platform.token, device.id, runTime)
 			this.log.debug(status.statusText)
-			if(status.status==200){
+			if(status.status == 200){
 				valveService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
 				valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 				valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(runTime)
@@ -278,7 +278,7 @@ class valve {
 			valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 			let status = await this.rachioapi.stopWatering(this.platform.token, device.id)
 			this.log.debug(status.statusText)
-			if(status.status==200){
+			if(status.status == 200){
 				valveService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
 				valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 				//valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(0)
@@ -314,7 +314,7 @@ class valve {
 	}
 
 	localMessage(listener){
-		this.eventMsg=(msg)=>{
+		this.eventMsg = (msg) =>{
 			listener(msg)
 		}
 	}

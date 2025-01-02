@@ -1,5 +1,14 @@
 # Changes
 
+## 1.3.8
+Bug fixes
+-  added logging to reflect use case where no devices are configured
+-  added cache removal of accessories that are configured to not be displayed
+-  updated text in config schema
+-  fixed crash condition with wi-fi hub
+-  fixed bug with homekit schedule naming issue #65
+-  code cleanup
+
 ## 1.3.7
 Bug fixes
 -  added error handling if API limit is exceeded

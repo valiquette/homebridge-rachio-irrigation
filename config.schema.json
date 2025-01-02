@@ -191,7 +191,7 @@
 				"description": "Do you want to log Webhook messages?"
 			},
 			"valveType": {
-				"title": "Display Valves as",
+				"title": "Display Timers as",
 				"type": "integer",
 				"required": true,
 				"default": 0,
@@ -222,13 +222,13 @@
 				"default": false
 			},
 			"showControllers": {
-				"title": "Expose Controllers in HomeKit",
+				"title": "Expose Smart Sprinkler Controllers in HomeKit",
 				"type": "boolean",
 				"required": true,
 				"default": true
 			},
 			"showValves": {
-				"title": "Expose Valves in HomeKit",
+				"title": "Expose Smart Hose Timers in HomeKit",
 				"type": "boolean",
 				"required": true,
 				"default": true
@@ -314,7 +314,7 @@
 		},
 		{
 			"type": "fieldset",
-			"title": "Smart Hose Valve",
+			"title": "Smart Hose Timer",
 			"description": "Expand to adjust polling timers",
 			"expandable": true,
 			"flex-flow": "row wrap",

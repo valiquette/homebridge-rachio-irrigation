@@ -2,8 +2,8 @@
 //// Public API info https://rachio.readme.io/v2.0/docs
 'use strict'
 let axios = require('axios')
-let api_endpoint='https://api.rach.io/1/public'
-let alt_api_endpoint='https://cloud-rest.rach.io'
+let api_endpoint = 'https://api.rach.io/1/public'
+let alt_api_endpoint = 'https://cloud-rest.rach.io'
 
 class RachioAPI {
 	constructor(platform, log) {
