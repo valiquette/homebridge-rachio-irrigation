@@ -1,7 +1,7 @@
 const RachioPlatform = require('./rachioplatform')
 const packageJson = require('./package')
 
-module.exports = (homebridge) => {
+module.exports = homebridge => {
 	PlatformAccessory = homebridge.platformAccessory
 	Service = homebridge.hap.Service
 	Characteristic = homebridge.hap.Characteristic
@@ -10,4 +10,4 @@ module.exports = (homebridge) => {
 	PluginVersion = packageJson.version
 	PlatformName = 'rachio'
 	homebridge.registerPlatform(PluginName, PlatformName, RachioPlatform, true)
-	}
+}

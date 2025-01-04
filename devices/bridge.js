@@ -9,15 +9,15 @@ class bridge {
 	}
 
 	createBridgeAccessory(device, platformAccessory) {
-		if(!platformAccessory){
+		if (!platformAccessory) {
 			this.log.debug('Create Bridge Accessory %s %s', device.id, device.address.locality)
 			platformAccessory = new PlatformAccessory(device.address.locality, device.id)
-		}
-		else{
+		} else {
 			this.log.debug('Update Bridge Accessory %s %s', device.id, device.address.locality)
 		}
 
-		platformAccessory.getService(Service.AccessoryInformation)
+		platformAccessory
+			.getService(Service.AccessoryInformation)
 			.setCharacteristic(Characteristic.Name, device.address.locality)
 			.setCharacteristic(Characteristic.Manufacturer, 'Rachio')
 			.setCharacteristic(Characteristic.SerialNumber, device.serialNumber)
@@ -33,15 +33,13 @@ class bridge {
 		let bridgeService
 		this.log.debug('create bridge service for %s', device.address.locality)
 		bridgeService = new Service.WiFiTransport(device.address.locality, device.id)
-		bridgeService
-			.setCharacteristic(Characteristic.CurrentTransport, device.reportedState.connected)
+		bridgeService.setCharacteristic(Characteristic.CurrentTransport, device.reportedState.connected)
 		return bridgeService
 	}
 
 	configureBridgeService(bridgeService) {
 		this.log.debug('configured bridge for %s', bridgeService.getCharacteristic(Characteristic.Name).value)
-		bridgeService
-			.getCharacteristic(Characteristic.CurrentTransport)
+		bridgeService.getCharacteristic(Characteristic.CurrentTransport)
 	}
 }
 module.exports = bridge
