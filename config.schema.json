@@ -189,6 +189,67 @@
 				"required": false,
 				"default": false,
 				"description": "Do you want to log Webhook messages?"
+			},
+			"valveType": {
+				"title": "Display Timers as",
+				"type": "integer",
+				"required": true,
+				"default": 0,
+				"description": "Select valve type to display",
+				"oneOf": [
+					{
+						"title": "Generic",
+						"enum": [0]
+					},
+					{
+						"title": "Irrigation",
+						"enum": [1]
+					},
+					{
+						"title": "Shower",
+						"enum": [2]
+					},
+					{
+						"title": "Faucet",
+						"enum": [3]
+					}
+				]
+			},
+			"showBridge": {
+				"title": "Expose WiFi Hub in HomeKit",
+				"type": "boolean",
+				"required": true,
+				"default": false
+			},
+			"showControllers": {
+				"title": "Expose Smart Sprinkler Controllers in HomeKit",
+				"type": "boolean",
+				"required": true,
+				"default": true
+			},
+			"showValves": {
+				"title": "Expose Smart Hose Timers in HomeKit",
+				"type": "boolean",
+				"required": true,
+				"default": true
+			},
+			"liveRefreshTimeout": {
+				"title": "Active Polling Timeout",
+				"description": "Active polling duration in minutes. Default 2",
+				"type": "integer",
+				"minimum": 1,
+				"maximum": 5,
+				"required": true,
+				"default": 2
+			},
+			"liveRefreshRate": {
+				"title": "Polling Refresh Rate",
+				"description": "Polling time in seconds to refresh data during an active session. Default 20",
+				"type": "integer",
+				"minimum": 5,
+				"maximum": 60,
+				"required": true,
+				"default": 20
 			}
 		}
 	},
@@ -236,18 +297,33 @@
 			"type": "flex",
 			"flex-flow": "row wrap",
 			"items": [
+				"showControllers",
 				"use_irrigation_display"
 			]
 		},
 		{
 			"type": "fieldset",
-			"title": "Additional Switches",
+			"title": "Additional Controller Switches",
 			"description": "Expand to expose additonal switches",
 			"expandable": true,
 			"items": [
 				"show_standby",
 				"show_schedules",
 				"show_runall"
+			]
+		},
+		{
+			"type": "fieldset",
+			"title": "Smart Hose Timer",
+			"description": "Expand to adjust polling timers",
+			"expandable": true,
+			"flex-flow": "row wrap",
+			"items": [
+				"showBridge",
+				"showValves",
+				"valveType",
+				"liveRefreshTimeout",
+				"liveRefreshRate"
 			]
 		},
 		{

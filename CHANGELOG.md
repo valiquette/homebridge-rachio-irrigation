@@ -1,11 +1,70 @@
 # Changes
 
+## 1.3.8
+Bug fixes
+-  added logging to reflect use case where no devices are configured
+-  added cache removal of accessories that are configured to not be displayed
+-  updated text in config schema
+-  fixed crash condition with wi-fi hub
+-  fixed bug with homekit schedule naming issue #65
+-  code cleanup
+
+## 1.3.7
+Bug fixes
+-  added error handling if API limit is exceeded
+-  improved live update process where it will make fewer calls
+-  code cleanup
+
+## 1.3.6
+Bug fixes
+-  added error handling for invalid accesory cache to prevent plugin crash
+
+## 1.3.5
+Bug fixes
+-  updated logging
+-  added timer battery updates to polling
+-  fixed hose timer defaut run time
+
+## 1.3.4
+Update
+-  support for homebridge 2.0
+
+## 1.3.3-beta.0
+beta
+-  initial support for homebridge 2.0
+-  removed invalid charaters from valve accessory naming
+-  removed deprecated getValue()
+
+## 1.3.2
+Update
+-  Bumped dependencies.
+-  node.js v22 support.
+
+## 1.3.1
+Smart Hose timer
+-  Using Rachio API V2.
+-  Add support for Smart Hose Timers.
+-  Bumped dependencies.
+
+## 1.3.0-beta.0
+Smart Hose timer
+-  Using Rachio API V2.
+-  Add support for Smart Hose Timers.
+-  Battery support limited to good and bad.
+-  Fixed date format for API limit reset info.
+-  Added configurations to load controllers and or valves separately.
+-  Bumped dependencies.
+
+## 1.2.26
+Bug Fix
+-  Fixed issue introduced with IOS 17 where multiple set commands are sent from the IOS app if zone is started by sliding vs tap. This create a start stop loop.
+
 ## 1.2.25
 Update
 -  Refactored code to support cached accessory to prevent accessory from moving to default room in Homekit.
 -  Fixed error with schedule naming.
 -  Fixed Run All switch status update.
--  Change API used ot discover external IP
+-  Change API used to discover external IP
 -  Bumped dependencies.
 
 ## 1.2.24
