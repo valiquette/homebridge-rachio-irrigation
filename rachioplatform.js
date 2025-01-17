@@ -6,11 +6,9 @@ Zone Cyclying message may be out of sequence
 
 'use strict'
 let axios = require('axios')
-let http = require('http')
-let https = require('https')
-let fs = require('fs')
 let RachioAPI = require('./rachioapi')
 let RachioUpdate = require('./rachioupdate')
+let listener = require('./listener')
 let irrigation = require('./devices/irrigation')
 let switches = require('./devices/switches')
 let valve = require('./devices/valve')
@@ -22,9 +20,10 @@ class RachioPlatform {
 	constructor(log, config, api) {
 		this.rachioapi = new RachioAPI(this, log)
 		this.rachio = new RachioUpdate(this, log, config)
-		this.irrigation = new irrigation(this, log)
+		this.listener = new listener(this, log, config)
+		this.irrigation = new irrigation(this, log, config)
 		this.switches = new switches(this, log)
-		this.valve = new valve(this, log)
+		this.valve = new valve(this, log, config)
 		this.battery = new battery(this, log)
 		this.bridge = new bridge(this, log)
 		this.log = log
@@ -41,8 +40,8 @@ class RachioPlatform {
 		this.internal_webhook_port = config.internal_webhook_port
 		this.relay_address = config.relay_address
 		this.webhook_key = 'homebridge-' + config.name
-		this.webhook_key_local = 'simulated-webhook'
-		this.fakeWebhook
+		this.webhook_key_local = 'local-webhook'
+		this.localWebhook
 		this.endTime = []
 		this.delete_webhooks = config.delete_webhooks
 		this.useBasicAuth = config.use_basic_auth
@@ -57,21 +56,17 @@ class RachioPlatform {
 		this.locationAddress = config.location_address
 		this.locationMatch = true
 		this.accessories = []
+		this.zoneList = []
 		this.foundLocations
 		this.useHttps = config.https ? config.https : false
 		this.key = config.key
 		this.cert = config.cert
 		this.showAPIMessages = config.showAPIMessages ? config.showAPIMessages : false
 		this.showWebhookMessages = config.showWebhookMessages ? config.showWebhookMessages : false
-
 		this.showBridge = config.showBridge ? config.showBridge : false
 		this.showControllers = config.showControllers ? config.showControllers : false
 		this.showValves = config.showValves ? config.showValves : false
 		this.valveType = config.valveType ? config.valveType : 0
-		this.lastInterval = []
-		this.timeStamp = []
-		this.liveTimeout = config.liveRefreshTimeout ? config.liveRefreshTimeout : 2 //min
-		this.liveRefresh = config.liveRefreshRate ? config.liveRefreshRate : 20 //sec
 
 		if (this.useBasicAuth && (!this.user || !this.password)) {
 			this.log.warn(`HTTP Basic Athentication cannot be used for webhooks without a valid user and password.`)
@@ -91,19 +86,35 @@ class RachioPlatform {
 				async function () {
 					//Removed any unwanted devices
 					await this.checkDisplay()
-					if (this.showValves) {
-						//Get valves
-						this.log.info('Setting up Wifi hub devices')
-						await this.getRachioValves()
-					}
-					if (this.showControllers) {
+					if (this.showControllers || this.showValves) {
 						//Get info to configure webhooks
 						await this.getWebhookInfo()
 						//Configure listerner for webhook messages
-						await this.configureListener()
+						await this.listener.configureListener()
+					}
+					if (this.showControllers) {
 						//Get controllers
 						this.log.info('Setting up Controller devices')
-						await this.getRachioDevices()
+						let x = await this.getRachioDevices()
+						setTimeout(() => {
+							if (x) {
+								this.log.success('Rachio Platform finished loading Smart Sprinkler Controller')
+							} else {
+								this.log.warn('No Smart Sprinkler Controllers found')
+							}
+						}, 1000)
+					}
+					if (this.showValves) {
+						//Get valves
+						this.log.info('Setting up Wifi hub devices')
+						let x = await this.getRachioValves()
+						setTimeout(() => {
+							if (x) {
+								this.log.success('Rachio Platform finished loading Smart Hose Timers')
+							} else {
+								this.log.warn('No Smart Hose Timers found')
+							}
+						}, 1000)
 					}
 				}.bind(this)
 			)
@@ -141,20 +152,6 @@ class RachioPlatform {
 		}
 	}
 
-	setWebhookURL() {
-		let destination = this.useHttps ? 'https://' : 'http://'
-		let port = this.external_webhook_port ? ':' + this.external_webhook_port : ''
-
-		if (this.useBasicAuth && this.user && this.password) {
-			this.external_webhook_address = destination + this.user + ':' + this.password + '@' + this.external_IP_address + port
-		} else {
-			this.external_webhook_address = destination + this.external_IP_address + port
-		}
-		if (!this.external_webhook_address) {
-			this.log.warn(`Cannot validate webhook destination address, will not set Webhooks. Please check webhook config settings for proper format and does not include any prefx like http://`)
-		}
-	}
-
 	async getWebhookInfo() {
 		let ipv4
 		let ipv6
@@ -166,6 +163,7 @@ class RachioPlatform {
 		if (this.relay_address) {
 			this.useBasicAuth = false
 			this.external_webhook_address = this.relay_address
+			this.external_webhook_addressv2 = this.relay_address
 		}
 		//check external IP address
 		if (this.external_IP_address) {
@@ -220,6 +218,7 @@ class RachioPlatform {
 					.catch(err => {
 						this.log.error('Failed to get current external IP', err.cause)
 					})
+				this.external_IP_address = '[' + this.external_IP_address + ']'
 				this.setWebhookURL()
 			} else if (fqdn) {
 				this.log.debug(`using FQDN for webhook external destination ${this.external_IP_address}`)
@@ -239,6 +238,21 @@ class RachioPlatform {
 			}
 		} catch (err) {
 			log.warn(`Error validating IP address ${err}`)
+		}
+	}
+
+	setWebhookURL() {
+		let destination = this.useHttps ? 'https://' : 'http://'
+		let port = this.external_webhook_port ? ':' + this.external_webhook_port : ''
+
+		if (this.useBasicAuth && this.user && this.password) {
+			this.external_webhook_address = destination + this.user + ':' + this.password + '@' + this.external_IP_address + port
+			this.external_webhook_addressv2 = destination + this.external_IP_address + port
+		} else {
+			this.external_webhook_address = destination + this.external_IP_address + port
+		}
+		if (!this.external_webhook_address) {
+			this.log.warn(`Cannot validate webhook destination address, will not set Webhooks. Please check webhook config settings for proper format and does not include any prefx like http://`)
 		}
 	}
 
@@ -305,7 +319,8 @@ class RachioPlatform {
 						}
 						this.log('Retrieved device state %s for %s with a %s state, running', deviceState.state.state, newDevice.name, deviceState.state.desiredState, deviceState.state.firmwareVersion)
 						if (this.external_webhook_address) {
-							this.rachioapi.configureWebhooks(this.token, this.external_webhook_address, this.delete_webhooks, newDevice.id, this.webhook_key)
+							this.rachioapi.configureWebhooks(this.token, this.external_webhook_address, this.delete_webhooks, newDevice.id, newDevice.name, this.webhook_key, 'irrigation_controller_id')
+							this.rachioapi.configureWebhooksv2(this.token, this.external_webhook_addressv2, this.delete_webhooks, newDevice.id, newDevice.name, this.webhook_key, 'irrigation_controller_id')
 						}
 
 						// Create and configure Irrigation Service
@@ -322,25 +337,20 @@ class RachioPlatform {
 								this.log.info('Skipping disabled zone %s', zone.name)
 							} else {
 								this.log.debug('adding zone %s', zone.name)
+								this.zoneList.push({
+									deviceId: newDevice.id,
+									zone: zone.zoneNumber,
+									zoneId: zone.id
+								})
 								let valveService = irrigationAccessory.getServiceById(Service.Valve, zone.id)
 								if (valveService) {
-									valveService
-										.setCharacteristic(Characteristic.Active, Characteristic.Active.INACTIVE)
-										.setCharacteristic(Characteristic.InUse, Characteristic.InUse.NOT_IN_USE)
-										.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
-										.setCharacteristic(Characteristic.Name, zone.name)
-										.setCharacteristic(Characteristic.ConfiguredName, zone.name)
-										.setCharacteristic(Characteristic.Model, zone.customNozzle.name)
-									if (zone.enabled) {
-										valveService.setCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED)
-									} else {
-										valveService.setCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.NOT_CONFIGURED)
-									}
+									this.irrigation.updateValveService(newDevice, zone, valveService)
 									this.irrigation.configureValveService(newDevice, valveService)
 									this.api.updatePlatformAccessories([irrigationAccessory])
 								} else {
 									//add new
 									valveService = this.irrigation.createValveService(zone)
+									this.irrigation.updateValveService(newDevice, valveService)
 									this.irrigation.configureValveService(newDevice, valveService)
 									irrigationAccessory.addService(valveService)
 									this.api.updatePlatformAccessories([irrigationAccessory])
@@ -483,16 +493,16 @@ class RachioPlatform {
 							this.api.registerPlatformAccessories(PluginName, PlatformName, [irrigationAccessory])
 						}
 
-						//match state to Rachio state
-						this.setOnlineStatus(newDevice)
-						this.setDeviceStatus(newDevice)
-
 						//find any running zone and set its state
 						let schedule = await this.rachioapi.currentSchedule(this.token, newDevice.id).catch(err => {
 							this.log.error('Failed to get current schedule', err)
 						})
 						this.log.debug('Check current schedule')
+						//match state to Rachio state
+						this.setOnlineStatus(newDevice)
+						this.setDeviceStatus(newDevice)
 						this.setValveStatus(schedule.data)
+
 						//remove [UTC] for valid date regex= /\[...]/
 						this.log.info(
 							'API rate limiting; call limit of %s remaining out of %s until reset at %s',
@@ -501,11 +511,9 @@ class RachioPlatform {
 							new Date(schedule.headers['x-ratelimit-reset'].replace(/\[...]/, '')).toString()
 						)
 					})
-				setTimeout(() => {
-					this.log.info('Rachio Platform finished loading Smart Sprinkler Controller')
-				}, 1000)
+				return true
 			} else {
-				this.log.warn('No Smart Sprinkler Controllers found')
+				return false
 			}
 		} catch (err) {
 			if (this.retryAttempt < this.retryMax) {
@@ -589,7 +597,6 @@ class RachioPlatform {
 							valveList.valves.forEach(async (valve, index) => {
 								//this.log.debug(JSON.stringify(valve, null, 2))//temp
 								let uuid = valve.id
-								this.timeStamp[uuid] = new Date()
 								valve.zone = index + 1
 								this.log.debug('Creating and configuring new valve')
 								if (this.accessories[uuid]) {
@@ -609,6 +616,10 @@ class RachioPlatform {
 								if (valve.state.reportedState.firmwareUpgradeInProgress) {
 									this.log.warn('Valve %s firmware upgrade in progress %s', valve.name, valve.state.reportedState.firmwareVersion)
 								}
+								if (this.external_webhook_address) {
+									this.rachioapi.configureWebhooksv2(this.token, this.external_webhook_addressv2, this.delete_webhooks, valve.id, valve.name, this.webhook_key, 'valve_id')
+								}
+
 								// Create and configure Irrigation Service
 								this.log.debug('Creating and configuring new valve')
 								let valveAccessory = this.valve.createValveAccessory(baseStation, valve, this.accessories[uuid])
@@ -675,11 +686,9 @@ class RachioPlatform {
 							})
 						}
 					})
-				setTimeout(() => {
-					this.log.info('Rachio Platform finished loading Smart Hose Timers')
-				}, 1000)
+				return true
 			} else {
-				this.log.warn('No Smart Hose Timers found')
+				return false
 			}
 		} catch (err) {
 			if (this.retryAttempt < this.retryMax) {
@@ -736,7 +745,7 @@ class RachioPlatform {
 			let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
 			let service = irrigationAccessory.getServiceById(Service.IrrigationSystem)
 			this.log.debug('Updating device status')
-			this.eventMsg(irrigationSystemService, service, myJson)
+			this.listener.eventMsg(irrigationSystemService, service, myJson)
 		}
 	}
 
@@ -778,7 +787,7 @@ class RachioPlatform {
 			let irrigationAccessory = this.accessories[myJson.deviceId]
 			let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
 			this.log.debug('Updating standby switch state')
-			this.eventMsg(irrigationSystemService, irrigationSystemService, myJson)
+			this.listener.eventMsg(irrigationSystemService, irrigationSystemService, myJson)
 		}
 	}
 
@@ -810,7 +819,7 @@ class RachioPlatform {
 			let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
 			let service = irrigationAccessory.getServiceById(Service.Valve, myJson.zoneId)
 			this.log.debug('Zone running match found for zone-%s on start will update services', myJson.zoneNumber)
-			this.eventMsg(irrigationSystemService, service, myJson)
+			this.listener.eventMsg(irrigationSystemService, service, myJson)
 		}
 		if (response.status == 'PROCESSING' && this.showSchedules && response.scheduleId != undefined) {
 			this.log.debug('Found schedule %s running', response.scheduleId)
@@ -836,221 +845,7 @@ class RachioPlatform {
 			let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
 			let service = irrigationAccessory.getServiceById(Service.Switch, myJson.scheduleId)
 			this.log.debug('Schedule running match found for schedule %s on start will update services', myJson.scheduleName)
-			this.eventMsg(irrigationSystemService, service, myJson)
-		}
-	}
-
-	configureListener() {
-		//set local listener
-		this.localMessage(this.rachio.updateService.bind(this))
-		this.irrigation.localMessage(this.rachio.updateService.bind(this))
-		//set network listener
-		let server = this.useHttps ? https : http
-		let options = {}
-		if (server == https) {
-			options = {
-				key: fs.readFileSync(this.key),
-				cert: fs.readFileSync(this.cert)
-			}
-		}
-		if ((this.external_IP_address && this.external_webhook_address && this.internal_webhook_port) || (this.relay_address && this.internal_IP_address && this.internal_webhook_port)) {
-			this.log.debug('Will listen for Webhooks matching Webhook ID %s', this.webhook_key)
-			server
-				.createServer(options, (request, response) => {
-					let authPassed
-					if (this.useBasicAuth) {
-						if (request.headers.authorization) {
-							let b64encoded = Buffer.from(this.user + ':' + this.password, 'utf8').toString('base64')
-							this.log.debug('webhook request authorization header=%s', request.headers.authorization)
-							this.log.debug('webhook expected authorization header=%s', 'Basic ' + b64encoded)
-							if (request.headers.authorization == 'Basic ' + b64encoded) {
-								this.log.debug('Webhook authentication passed')
-								authPassed = true
-							} else {
-								this.log.warn('Webhook authentication failed')
-								this.log.debug('Webhook authentication failed', request.headers.authorization)
-								authPassed = false
-							}
-						} else {
-							this.log.warn('Expecting webhook authentication')
-							this.log.debug('Expecting webhook authentication', request)
-							authPassed = false
-						}
-					} else {
-						authPassed = true
-					}
-					if (request.method === 'GET' && request.url === '/test') {
-						this.log.info('Test received on Rachio listener. Webhooks are configured correctly! Authorization %s', authPassed ? 'passed' : 'failed')
-						response.writeHead(200)
-						response.write(new Date().toTimeString() + ' Webhooks are configured correctly! Authorization ' + authPassed ? 'passed' : 'failed')
-						return response.end()
-					} else if (request.method === 'POST' && request.url === '/' && authPassed) {
-						let body = []
-						request
-							.on('data', chunk => {
-								body.push(chunk)
-							})
-							.on('end', () => {
-								try {
-									body = Buffer.concat(body).toString().trim()
-									let jsonBody = JSON.parse(body)
-									if (this.showWebhookMessages) {
-										this.log.debug('webhook request received from <%s> %s', jsonBody.externalId, jsonBody)
-									}
-									if (jsonBody.externalId === this.webhook_key) {
-										let irrigationAccessory = this.accessories[jsonBody.deviceId]
-										let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
-										let service
-										if (jsonBody.zoneId) {
-											service = irrigationAccessory.getServiceById(Service.Valve, jsonBody.zoneId)
-											this.log.debug('Webhook match found for %s will update zone service', service.getCharacteristic(Characteristic.Name).value)
-											this.eventMsg(irrigationSystemService, service, jsonBody)
-										} else if (jsonBody.scheduleId) {
-											service = irrigationAccessory.getServiceById(Service.Switch, jsonBody.scheduleId)
-											if (this.showSchedules) {
-												this.log.debug('Webhook match found for %s will update schedule service', service.getCharacteristic(Characteristic.Name).value)
-												this.eventMsg(irrigationSystemService, service, jsonBody)
-											} else {
-												this.log.debug('Skipping Webhook for %s service, optional schedule switch is not configured', jsonBody.scheduleName)
-											}
-										} else if (jsonBody.deviceId && jsonBody.subType.includes('SLEEP')) {
-											service = irrigationAccessory.getService(Service.IrrigationSystem)
-											if (this.showStandby) {
-												this.log.debug('Webhook match found for %s will update irrigation service', service.getCharacteristic(Characteristic.Name).value)
-												this.eventMsg(irrigationSystemService, service, jsonBody)
-											} else {
-												this.log.debug('Skipping Webhook for %s service, optional standby switch is not configured', jsonBody.deviceName)
-											}
-										} else if (jsonBody.scheduleName == 'Quick Run') {
-											if (this.showRunAll && jsonBody.eventType == 'SCHEDULE_COMPLETED_EVENT') {
-												this.log.info(jsonBody.description)
-												service = irrigationAccessory.getService(Service.IrrigationSystem)
-												this.eventMsg(irrigationSystemService, service, jsonBody)
-											}
-										}
-										response.writeHead(204)
-										return response.end()
-									} else {
-										this.log.warn('Webhook received from an unknown external id %s', jsonBody.externalId)
-										response.writeHead(404)
-										return response.end()
-									}
-								} catch (err) {
-									this.log.error('Error parsing webhook request ' + err)
-									response.writeHead(404)
-									return response.end()
-								}
-							})
-					}
-				})
-				.listen(
-					this.internal_webhook_port,
-					function () {
-						this.log.info('This server is listening on port %s.', this.internal_webhook_port)
-						if (this.useBasicAuth) {
-							this.log.info('Using HTTP basic authentication for Webhooks')
-						}
-						this.log.info('Make sure your router has port fowarding turned on for port %s to this server`s IP address and this port %s, unless you are using a relay service.', this.external_webhook_port, this.internal_webhook_port)
-					}.bind(this)
-				)
-		} else {
-			this.log.warn('Webhook support is disabled. This plugin will not sync Homekit to realtime events from other sources without Webhooks support.')
-		}
-		return
-	}
-
-	async startLiveUpdate(valveService) {
-		//check for duplicate call
-		let delta = []
-		let interval = []
-		let serial = valveService.getCharacteristic(Characteristic.SerialNumber).value
-		delta[serial] = new Date() - this.timeStamp[serial]
-		if (delta[serial] > 500 || delta[serial] == 0) {
-			//calls within 1/2 sec will be skipped as duplicate
-			this.timeStamp[serial] = new Date()
-		} else {
-			this.log.debug('Skipped new live update due to duplicate call, timestamp delta %s ms', delta[serial])
-			return
-		}
-		clearInterval(this.lastInterval[serial])
-		let startTime = new Date().getTime() //live refresh start time
-		if (!this.liveUpdate) {
-			this.log.debug('Live update started')
-		}
-		this.liveUpdate = true
-		this.getUpdate(valveService, interval) //fist call
-		interval[serial] = setInterval(async () => {
-			if (new Date().getTime() - startTime > this.liveTimeout * 60 * 1000 + 500) {
-				clearInterval(interval[serial])
-				this.liveUpdate = false
-				this.log.debug('Live update stopped')
-				return
-			}
-			this.getUpdate(valveService, interval) //remaing calls.
-			clearInterval(interval[serial])
-		}, this.liveRefresh * 1000)
-		this.lastInterval[serial] = interval[serial]
-	}
-
-	async getUpdate(valveService, interval) {
-		let pause = delay => new Promise(resolve => setTimeout(resolve, delay))
-		let serial = valveService.getCharacteristic(Characteristic.SerialNumber).value
-		try {
-			this.log.debug('updating serial#', serial)
-			let response = await this.rachioapi.getValve(this.token, serial).catch(err => {
-				this.log.error('Failed to get valve', err)
-			})
-
-			if (response.status == 429) {
-				this.log.warn('exceeded API rate limiting for the day, backing off')
-				clearInterval(interval[serial])
-				await pause(15 * 60 * 1000)
-				return
-			}
-
-			if (response.status == 200) {
-				let update = response.data
-				let valveAccessory = this.accessories[valveService.subtype]
-				let batteryStatus = valveAccessory.getServiceById(Service.Battery, valveService.subtype)
-				let timeRemaining = 0
-				let duration = update.valve.state.desiredState.defaultRuntimeSeconds
-				if (update.valve.state.reportedState.lastWateringAction) {
-					let start = update.valve.state.reportedState.lastWateringAction.start
-					duration = update.valve.state.reportedState.lastWateringAction.durationSeconds
-
-					let endTime = new Date(start).getTime() + duration * 1000
-					timeRemaining = Math.max(Math.round((endTime - Date.now()) / 1000), 0)
-					valveService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
-					valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
-					valveService.getCharacteristic(Characteristic.SetDuration).updateValue(duration)
-					valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(timeRemaining)
-					this.endTime[serial] = endTime
-				} else {
-					valveService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
-					valveService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
-					//valveService.getCharacteristic(Characteristic.SetDuration).updateValue(duration)
-					//valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(0)
-					this.endTime[serial] = 0
-				}
-
-				switch (update.valve.state.reportedState.batteryStatus) {
-					case 'GOOD':
-						batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).updateValue(Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
-						break
-					case 'LOW':
-						batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).updateValue(Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
-						break
-				}
-			}
-			return
-		} catch (err) {
-			this.log.error('error trying to update valve status', err)
-		}
-	}
-
-	localMessage(listener) {
-		this.eventMsg = (irrigationSystemService, service, myJson) => {
-			listener(irrigationSystemService, service, myJson)
+			this.listener.eventMsg(irrigationSystemService, service, myJson)
 		}
 	}
 }

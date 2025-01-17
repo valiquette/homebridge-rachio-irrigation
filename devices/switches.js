@@ -4,7 +4,7 @@ class switches {
 	constructor(platform, log) {
 		this.log = log
 		this.platform = platform
-		this.rachioapi = new RachioAPI(this, log)
+		this.rachioapi = new RachioAPI(platform, log)
 	}
 
 	createScheduleSwitchService(schedule) {

@@ -1,12 +1,18 @@
 # Changes
 
-## 1.3.8
-Bug fixes
+## 1.4.0
+Updates
+-  support Webhooks for Smart Hose Timer
 -  added logging to reflect use case where no devices are configured
 -  added cache removal of accessories that are configured to not be displayed
--  updated text in config schema
+-  updated text in config schema, will support new UI config validation
+
+Bug fixes
 -  fixed crash condition with wi-fi hub
+-  fixed a program mode warning
+-  fixed issue where defualt runtime would not update without removing accessory
 -  fixed bug with homekit schedule naming issue #65
+-  fixed bug with homekit schedule staying in sync issue #70
 -  code cleanup
 
 ## 1.3.7
