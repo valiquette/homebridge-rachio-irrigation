@@ -6,23 +6,22 @@
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 <br>Rachio Irrigation System platform plugin for [Homebridge](https://github.com/nfarina/homebridge).
 <br>Supporting
-- Rachio 1 Contollers.
-- Rachio 2 Contollers.
-- Rachio 3 Contrllers.
-- Rachio Smart Hose Timers.
+- Rachio 1 Contollers
+- Rachio 2 Contollers
+- Rachio 3 Contrllers
+- Rachio Smart Hose Timers
 
 ## Notes on the Smart Hose Timer
-The Smart Hose Timer is currently not suppoerted by Webhooks or WebSocket. Updates will rely on polling.<br>
-The plugin will only poll when there is a request from Homebridge or Homekit to get an update.
-API activity can be viewed in the debug log and there are configurations to tweak this.
-Battery support is limited to good and bad which traslated to 100% and 10%.
-The bridge is worthless to expose, but my plan is to use that as the device for an irrigation system where the hose timer are the zones.
-Hoping Rachio improves the new API
-
+- Webhooks are now supported and should be the prefered method.
+- Active polling can still be enabled for use case were webhooks is not an option.
+- API activity for polling can be viewed in the debug log and there are configurations to tweak this.
+- Battery support is limited to good and bad.
+- The bridge is worthless to expose, but my plan is to use that as the device for an irrigation system where the hose timer are the zones.
 
 ## About
 
-This plugin provides multiple options for use in HomeKit<br>Both option have additional switches as options for Standby mode and a Run All along with any Rachio Schedules
+This plugin provides multiple options for use in HomeKit.
+<br>Both option have additional switches as options for Standby mode and a Run All along with any Rachio Schedules.
 1.	Irrigation System Accessory with zones that are linked (default in configuration)
 2.	Irrigation System Accessory with separate zones shown as a single tile
 3.	Irrigation System Accessory with separate zones shown as a separate tiles (option in HomeKit)
@@ -51,17 +50,20 @@ You can acquire your API key from Rachio io.app [documented here](https://rachio
 
 `homebridge-rachio-irrigation` **requires** webhooks to update HomeKit accessory status in real time such as a defined schedule from the Rachio app.
 ### Only configure one webhook method at a time, if more than one is configured Webhook Relay will be used.
+-	Webhook version 1 can use basic authentication which can be configure in the settings.
+-	Webhook version 2 is encrypting messages and it can only be decode with your API token as the key. Messages that fail will be rejected.
 
 ## Port fowarding
-### Setting up webhooks, the easy way (if your router supports it):
+### Setting up webhooks, the easy way if your router supports it:
+ - No IPV6 support yet from Rachio so IPV4 port forwarding is requred.
  - You must know your external network IP address. [You can discover it here](https://www.myexternalip.com) to be entered in the config as the "external_Webhook_address"
  - You must enable port fowarding on the router this server is conected to. Follow you routers instructions for this step.
  - The port forwarding should look like external_webhook_port -> internal_port for your servers IP address which can be found on the Homebridge Status page in system information.
- - **NOTE:** if your IP Address is changed by your ISP, you will need to edit the IP address in the config to match it whenever it changes. You should use a Dynamic IP address DNS service if your IP changes often.
+ - **NOTE:** if your IP Address is changed by your ISP, you will need to edit the IP address in the config to match it whenever it changes. You can use the config option to automatically correct this.
  - Advanced settings for HTTPS, If you have a registered domanin and a valid signed cerficate you may use TLS connection.
 
 ## Relay service
-### If you cannot setup port forwarding on your router (or don't want to):
+### If you cannot setup port forwarding on your router or don't want to or your ISP is using CGNAT:
  - You must have an always-on computer available on your network (MacOS, Linux, Windows). If you're running Homebridge, you can use that one.
  - Create an account at [Webhook Relay](https://webhookrelay.com). The free account should be fine.
  - Create a new webhook relay: [here](https://my.webhookrelay.com/new-basic-forwarding)
@@ -92,7 +94,7 @@ If you see log messages like `Webhook received from an unknown external id`, you
 ## Installation
 1. Install this plugin using: npm install -g homebridge-rachio-irrigation
 2. Suggest running as a child bridge
-3. Use plugin settings to edit ``config.json`` and add your account detail.
+3. Use plugin settings to edit ``config.json`` and add your account detail
 4. Run Homebridge
 5. Pair to HomeKit
 

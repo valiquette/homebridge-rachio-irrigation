@@ -3,6 +3,7 @@
 	"headerDisplay": "Homebridge plugin for Rachio Controllers",
 	"pluginType": "platform",
 	"singular": true,
+	"strictValidation": true,
 	"schema": {
 		"type": "object",
 		"properties": {
@@ -131,7 +132,7 @@
 			},
 			"use_basic_auth": {
 				"title": "HTTP basic authentication",
-				"description": "Use HTTP basic authentication (recommended).",
+				"description": "Using HTTP basic authentication recommended for Webhook-v1.",
 				"type": "boolean",
 				"required": false,
 				"default": false
@@ -189,6 +190,12 @@
 				"required": false,
 				"default": false,
 				"description": "Do you want to log Webhook messages?"
+			},
+			"pollValves": {
+				"title": "Enable polling. Select this option if unable to configure webhooks",
+				"type": "boolean",
+				"required": false,
+				"default": false
 			},
 			"valveType": {
 				"title": "Display Timers as",
@@ -315,13 +322,14 @@
 		{
 			"type": "fieldset",
 			"title": "Smart Hose Timer",
-			"description": "Expand to adjust polling timers",
+			"description": "Expand to expose Smart Hose Timers",
 			"expandable": true,
 			"flex-flow": "row wrap",
 			"items": [
 				"showBridge",
 				"showValves",
 				"valveType",
+				"pollValves",
 				"liveRefreshTimeout",
 				"liveRefreshRate"
 			]
@@ -351,6 +359,10 @@
 					},
 					{
 						"type": "help",
+						"helpvalue": "<i>Important note.<p class='help-block'> Your router will need to forward this external port to your internal webhook port. Consult the readme for additional webhook information.</p>"
+					},
+					{
+						"type": "help",
 						"helpvalue": "<p class='help-block'> Rachio supports HTTP Basic Authentication for webhooks. if checked any incoming message will need to match this user:password</p>"
 					},
 					{
@@ -368,10 +380,6 @@
 							"password"
 						]
 					},
-				{
-					"type": "help",
-					"helpvalue": "<i>Important note.<p class='help-block'> Your router will need to forward this external port to your internal webhook port. Consult the readme for additional webhook information.</p>"
-				},
 				{
 					"key": "Advanced",
 					"title": "TLS/SSL option",
