@@ -9,7 +9,8 @@ class Rachio {
 	}
 
 	async updateService(irrigationSystemService, activeService, jsonBody) {
-		if (jsonBody.resourceType == 'IRRIGATION_CONTROLLER' || jsonBody.resourceType == 'VALVE') { //webhook v2 message
+		if (jsonBody.resourceType == 'IRRIGATION_CONTROLLER' || jsonBody.resourceType == 'VALVE') {
+			//webhook v2 message
 			/***********************************************************
 			Event Type options from webhook info
 					"SCHEDULE_STARTED_EVENT",
@@ -31,7 +32,8 @@ class Rachio {
 					"PROGRAM_RAIN_SKIP_CREATED_EVENT",
 					"PROGRAM_RAIN_SKIP_CANCELED_EVENT"
 			************************************************************/
-			try { //v2
+			try {
+				//version 2
 				/*****************************
 								 Possible states
 						Active	InUse	  HomeKit Shows
@@ -56,7 +58,7 @@ class Rachio {
 						} else {
 							this.log('<%s> %s, stopped after %s minutes.', jsonBody.externalId, jsonBody.eventType, Math.round(jsonBody.payload.durationSeconds / 60))
 						}
-						this.log.debug('%s stopped watering at %s for %s minutes', activeService.getCharacteristic(Characteristic.Name).value, new Date(jsonBody.payload.endTime).toLocaleTimeString(), Math.round(jsonBody.payload.durationSeconds / 60))
+						this.log.debug('%s stopped watering at %s after %s minutes', activeService.getCharacteristic(Characteristic.Name).value, new Date(jsonBody.payload.endTime).toLocaleTimeString(), Math.round(jsonBody.payload.durationSeconds / 60))
 						irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 						activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
 						activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
@@ -65,7 +67,6 @@ class Rachio {
 					case 'DEVICE_ZONE_RUN_PAUSED_EVENT':
 						clearTimeout(this.localWebhook)
 						let pauseDuration = Math.round((Date.parse(jsonBody.payload.endTime) - Date.now() - (Date.parse(this.platform.endTime[activeService.subtype]) - Date.now())) / 1000)
-						//let pauseDuration = jsonBody.payload.durationSeconds //not correct
 						let pauseDurationInMinutes = Math.round(jsonBody.payload.durationSeconds / 60)
 						this.log.info('<%s> %s, paused for duration %s minutes.', jsonBody.externalId, jsonBody.eventType, pauseDurationInMinutes)
 						//this.log.debug(jsonBody.summary)
@@ -81,7 +82,7 @@ class Rachio {
 						} else {
 							this.log('<%s> %s, completed after %s minutes.', jsonBody.externalId, jsonBody.eventType, Math.round(jsonBody.payload.durationSeconds / 60))
 						}
-						this.log.debug(activeService.getCharacteristic(Characteristic.Name).value + ' completed watering at ' + new Date().toLocaleTimeString() + ' for ' + Math.round(jsonBody.payload.durationSeconds / 60) + ' minutes')
+						this.log.debug(activeService.getCharacteristic(Characteristic.Name).value + ' completed watering at ' + new Date().toLocaleTimeString() + ' after ' + Math.round(jsonBody.payload.durationSeconds / 60) + ' minutes')
 						irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 						activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
 						activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
@@ -113,21 +114,23 @@ class Rachio {
 						break
 
 					case 'VALVE_RUN_START_EVENT':
+						jsonBody.payload.endTime = new Date(Date.parse(jsonBody.payload.startTime) + jsonBody.payload.durationSeconds * 1000) // need to add to json, missing jsonBody.payload.endTime
 						this.log.info('<%s> %s, started for duration %s minutes.', jsonBody.externalId, jsonBody.eventType, Math.round(jsonBody.payload.durationSeconds / 60))
 						this.log.debug('%s started watering at %s', activeService.getCharacteristic(Characteristic.Name).value, new Date(jsonBody.payload.startTime).toLocaleTimeString())
 						//valveSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 						activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE)
 						activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.IN_USE)
 						activeService.getCharacteristic(Characteristic.RemainingDuration).updateValue(jsonBody.payload.durationSeconds)
-						this.platform.endTime[activeService.subtype] = new Date(Date.parse(jsonBody.payload.startTime) + jsonBody.payload.durationSeconds*1000) // need to add to json, missing jsonBody.payload.endTime
+						this.platform.endTime[activeService.subtype] = jsonBody.payload.endTime
 						break
 					case 'VALVE_RUN_END_EVENT':
+						jsonBody.payload.endTime = new Date(Date.parse(jsonBody.payload.startTime) + jsonBody.payload.durationSeconds * 1000) // need to add to json, missing jsonBody.payload.endTime
 						if (jsonBody.payload.durationSeconds < 60) {
 							this.log('<%s> %s, stopped after %s seconds.', jsonBody.externalId, jsonBody.eventType, jsonBody.payload.durationSeconds)
 						} else {
-							this.log('<%s> %s, stopped after %s minutes.', jsonBody.externalId, jsonBody.eventType, Math.round(jsonBody.timestamp / 60))
+							this.log('<%s> %s, stopped after %s minutes.', jsonBody.externalId, jsonBody.eventType, Math.round(jsonBody.payload.durationSeconds / 60))
 						}
-						this.log.debug('%s stopped watering at %s for %s minutes', activeService.getCharacteristic(Characteristic.Name).value, new Date(jsonBody.payload.endTime).toLocaleTimeString(),  Math.round(jsonBody.payload.durationSeconds / 60))
+						this.log.debug('%s stopped watering at %s after %s minutes', activeService.getCharacteristic(Characteristic.Name).value, new Date(jsonBody.payload.endTime).toLocaleTimeString(), Math.round(jsonBody.payload.durationSeconds / 60))
 						//valveSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
 						activeService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE)
 						activeService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)
@@ -137,9 +140,7 @@ class Rachio {
 				this.log.error('Error updating service', err)
 			}
 		} else {
-
-
-			/***********************************************************
+			/**********************************************
 						 Possiible responses from webhooks
 			Type : DEVICE_STATUS
 				Subtype:
@@ -177,8 +178,9 @@ class Rachio {
 				Subtype : ZONE_DELTA
 			Type : SCHEDULE_DELTA
 				Subtype : SCHEDULE_DELTA
-			************************************************************/
-			try { //v1
+			**********************************************/
+			try {
+				//version 1
 				switch (jsonBody.type) {
 					case 'ZONE_STATUS':
 						this.log.debug('Zone Status Update')

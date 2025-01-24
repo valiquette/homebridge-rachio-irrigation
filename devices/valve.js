@@ -243,7 +243,7 @@ class valve {
 						externalId: this.platform.webhook_key_local,
 						payload: {
 							durationSeconds: valveService.getCharacteristic(Characteristic.SetDuration).value,
-							flowDetected: false,
+								flowDetected: false,
 							runType: 'QUICK_RUN',
 							startTime: new Date().toISOString()
 						},
@@ -256,7 +256,7 @@ class valve {
 						eventType: 'VALVE_RUN_END_EVENT',
 						externalId: this.platform.webhook_key_local,
 						payload: {
-							durationSeconds: Math.round(valveService.getCharacteristic(Characteristic.SetDuration).value - (Date.parse(this.platform.endTime[valveService.getCharacteristic(Characteristic.SerialNumber).value]) - Date.now()) / 1000),
+							durationSeconds: Math.round(valveService.getCharacteristic(Characteristic.SetDuration).value),
 							endReason: 'COMPLETED',
 							flowDetected: false,
 							runType: 'QUICK_RUN',

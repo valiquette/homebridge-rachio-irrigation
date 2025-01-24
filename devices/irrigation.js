@@ -44,6 +44,7 @@ class irrigation {
 	updateValveService(device, zone, valveService) {
 		if (valveService) {
 			let defaultRuntime = this.platform.defaultRuntime
+	//		this.platform.endTime[valveService.subtype] = new Date(Date.now()) + this.defaultRuntime
 			try {
 				switch (this.platform.runtimeSource) {
 					case 0:
@@ -279,14 +280,14 @@ class irrigation {
 					}
 					let myZoneStop = {
 						eventId: 'c55fe382-9aad-310d-beb4-652542deea89',
-						eventType: 'DEVICE_ZONE_RUN_STOPPED_EVENT',
+						eventType: 'DEVICE_ZONE_RUN_COMPLETED_EVENT',
 						externalId: this.platform.webhook_key_local,
 						payload: {
-							durationSeconds: Math.round(valveService.getCharacteristic(Characteristic.SetDuration).value - (Date.parse(this.platform.endTime[valveService.subtype]) - Date.now()) / 1000),
+							durationSeconds: Math.round(valveService.getCharacteristic(Characteristic.SetDuration).value),
 							endTime: new Date(Date.now() + valveService.getCharacteristic(Characteristic.SetDuration).value * 1000).toISOString(),
 							flowVolumeG: '0.0',
 							runType: 'MANUAL',
-							startTime: new Date().toLocaleTimeString(),
+							startTime: new Date().toISOString(),
 							zoneNumber: valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value
 						},
 						resourceId: device.id,
@@ -323,7 +324,7 @@ class irrigation {
 							endTime: new Date(Date.now() + valveService.getCharacteristic(Characteristic.SetDuration).value * 1000).toISOString(),
 							flowVolumeG: '0.0',
 							runType: 'MANUAL',
-							startTime: new Date().toLocaleTimeString(),
+							startTime: new Date().toISOString(),
 							zoneNumber: valveService.getCharacteristic(Characteristic.ServiceLabelIndex).value
 						},
 						resourceId: device.id,
