@@ -1,4 +1,9 @@
 # Changes
+## 1.4.1
+Updates
+-  Improved error handling
+-  Fix bugs with new v2 webhooks that prevented configuring a new webhook without basic auth enabled
+-  Bumped dependencies
 
 ## 1.4.0
 Updates

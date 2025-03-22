@@ -630,6 +630,7 @@ class RachioAPI {
 	}
 
 	async configureWebhooks(token, external_webhook_address, delete_webhooks, device_id, device_name, webhook_key) {
+		try {
 			/*********************************************
 			Event Type options from get events
 							"id": 5 ="DEVICE_STATUS_EVENT"
@@ -644,9 +645,8 @@ class RachioAPI {
 							"id": 14="DELTA"
 			**********************************************/
 
-		let events = [{id: 5}, {id: 6}]   //eventTypes: [{id: 5}, {id: 10}, {id: 6}, {id: 7}, {id: 9}]
+			let events = [{id: 5}, {id: 6}]   //eventTypes: [{id: 5}, {id: 10}, {id: 6}, {id: 7}, {id: 9}]
 
-		try {
 			this.log.info('Configuring Rachio webhooks for controller ID %s', device_id)
 			let response = await axios({
 				method: 'get',
@@ -659,15 +659,17 @@ class RachioAPI {
 				},
 				responseType: 'json'
 			}).catch(err => {
-				this.log.error('Error retrieving webhooks %s', err.message)
-				this.log.warn(JSON.stringify(err.response.data, null, 2))
 				this.log.debug(JSON.stringify(err, null, 2))
+				this.log.error('Error retrieving webhooks %s', err.message)
+				if(err.response){
+					this.log.warn(JSON.stringify(err.response.data, null, 2));
+				}
+				throw err.code;
 			})
 			if (response.status == 200) {
 				if (this.platform.showAPIMessages) {
 					this.log.debug('configured webhooks response', JSON.stringify(response.data, null, 2))
 				}
-				//return response
 			}
 			let webhooks = response.data
 			if (this.platform.showAPIMessages) {
@@ -694,9 +696,12 @@ class RachioAPI {
 						},
 						responseType: 'json'
 					}).catch(err => {
-						this.log.error('Error deleting old webhook $s : $s', webhook.id, err.message)
-						this.log.warn(JSON.stringify(err.response.data, null, 2))
 						this.log.debug(JSON.stringify(err, null, 2))
+						this.log.error('Error deleting old webhook $s : $s', webhook.id, err.message)
+						if(err.response){
+							this.log.warn(JSON.stringify(err.response.data, null, 2));
+						}
+						throw err.code;
 					})
 					if (response.status == 204) {
 						this.log.debug('Successfully deleted old webhook %s', webhook.id)
@@ -724,9 +729,12 @@ class RachioAPI {
 						},
 						responseType: 'json'
 					}).catch(err => {
-						this.log.error('Error deleting extra webhook $s : $s', webhook.id, err.message)
-						this.log.warn(JSON.stringify(err.response.data, null, 2))
 						this.log.debug(JSON.stringify(err, null, 2))
+						this.log.error('Error deleting old webhook $s : $s', webhook.id, err.message)
+						if(err.response){
+							this.log.warn(JSON.stringify(err.response.data, null, 2));
+						}
+						throw err.code;
 					})
 					if (response.status == 204) {
 						this.log.debug('Successfully deleted extra webhook %s', webhook.id)
@@ -752,9 +760,12 @@ class RachioAPI {
 						eventTypes: events
 					}
 				}).catch(err => {
-					this.log.error('Error updating exsisting webhook $s : $s', updateWebhook.id, err.message)
-					this.log.warn(JSON.stringify(err.response.data, null, 2))
 					this.log.debug(JSON.stringify(err, null, 2))
+					this.log.error('Error updating exsisting webhook $s : $s', updateWebhook.id, err.message)
+					if(err.response){
+						this.log.warn(JSON.stringify(err.response.data, null, 2));
+					}
+					throw err.code;
 				})
 			} else {
 				this.log.info('Creating Webhook for ' + external_webhook_address)
@@ -775,9 +786,12 @@ class RachioAPI {
 						eventTypes: events
 					}
 				}).catch(err => {
-					this.log.error('Error configuring new webhook $s : $s', updateWebhook.id, err, message)
-					this.log.warn(JSON.stringify(err.response.data, null, 2))
 					this.log.debug(JSON.stringify(err, null, 2))
+					this.log.error('Error configuring new webhook $s : $s', updateWebhook.id, err, message)
+					if(err.response){
+						this.log.warn(JSON.stringify(err.response.data, null, 2));
+					}
+					throw err.code;
 				})
 			}
 			if (this.platform.showAPIMessages) {
@@ -795,11 +809,12 @@ class RachioAPI {
 			}
 			return
 		} catch (err) {
-			this.log.error('Error configuring webhook \n%s', err)
+			this.log.error('Error configuring webhook for %s \n%s', device_name, err)
 		}
 	}
 
 	async configureWebhooksv2(token, external_webhook_address, delete_webhooks, device_id, device_name, webhook_key, type) {
+		try {
 			/*********************************************
 					Event Type options from webhook info
 					"SCHEDULE_STARTED_EVENT",
@@ -822,46 +837,45 @@ class RachioAPI {
 					"PROGRAM_RAIN_SKIP_CANCELED_EVENT"
 			**********************************************/
 
-		let param
-		let resource
-		let event
-		let events
-		if (type == 'irrigation_controller_id'){
-			param = {
-				'resource_id.irrigation_controller_id': device_id
+			let param
+			let resource
+			let event
+			let events
+			if (type == 'irrigation_controller_id'){
+				param = {
+					'resource_id.irrigation_controller_id': device_id
+				}
+				resource = {
+					irrigation_controller_id: device_id
+				}
+				events = [
+					'DEVICE_ZONE_RUN_STARTED_EVENT',
+					'DEVICE_ZONE_RUN_PAUSED_EVENT',
+					'DEVICE_ZONE_RUN_STOPPED_EVENT',
+					'DEVICE_ZONE_RUN_COMPLETED_EVENT',
+					'SCHEDULE_STARTED_EVENT',
+					'SCHEDULE_STOPPED_EVENT',
+					'SCHEDULE_COMPLETED_EVENT'
+				]
+				event = {
+					event_types: events
 			}
-			resource = {
-				irrigation_controller_id: device_id
+			} else if (type == 'valve_id') {
+				param = {
+					'resource_id.valve_id': device_id
+				}
+				resource = {
+					valve_id: device_id
+				}
+				events = [
+					'VALVE_RUN_START_EVENT',
+					'VALVE_RUN_END_EVENT'
+				]
+				event = {
+					event_types: events
+				}
 			}
-			events = [
-				'DEVICE_ZONE_RUN_STARTED_EVENT',
-				'DEVICE_ZONE_RUN_PAUSED_EVENT',
-				'DEVICE_ZONE_RUN_STOPPED_EVENT',
-				'DEVICE_ZONE_RUN_COMPLETED_EVENT',
-				'SCHEDULE_STARTED_EVENT',
-				'SCHEDULE_STOPPED_EVENT',
-				'SCHEDULE_COMPLETED_EVENT'
-			]
-			event = {
-				event_types: events
-		}
-		} else if (type == 'valve_id') {
-			param = {
-				'resource_id.valve_id': device_id
-			}
-			resource = {
-				valve_id: device_id
-			}
-			events = [
-				'VALVE_RUN_START_EVENT',
-				'VALVE_RUN_END_EVENT'
-			]
-			event = {
-				event_types: events
-			}
-		}
 
-		try {
 			this.log.debug('Configuring Rachio webhooks v2 for controller ID %s', device_id)
 			let response = await axios({
 				method: 'get',
@@ -875,19 +889,21 @@ class RachioAPI {
 				params: param,
 				responseType: 'json'
 			}).catch(err => {
+				this.log.debug(JSON.stringify(err, null, 2))
 				this.log.error('Error retrieving webhooks %s', err.message)
-				this.log.debug(JSON.stringify(err.response.data, null, 2))
-				this.log.warn(JSON.stringify(err, null, 2))
+				if(err.response){
+					this.log.warn(JSON.stringify(err.response.data, null, 2));
+				}
+				throw err.code;
 			})
 			if (response.status == 200) {
 				if (this.platform.showAPIMessages) {
-					this.log.debug('configured webhooks response', JSON.stringify(response.data, null, 2))
+					this.log.debug('configured webhooks v2 response', JSON.stringify(response.data, null, 2))
 				}
-				//return response
 			}
 			let webhooks = response.data.webhooks
 			if (this.platform.showAPIMessages) {
-				this.log.debug('configured webhooks response', JSON.stringify(response.data, null, 2))
+				this.log.debug('configured webhooks v2 response', JSON.stringify(response.data, null, 2))
 			}
 			if (!webhooks || !Array.isArray(webhooks)) {
 				return
@@ -909,12 +925,15 @@ class RachioAPI {
 						},
 						responseType: 'json'
 					}).catch(err => {
-						this.log.error('Error deleting old webhook $s : $s', webhook.id, err.message)
-						this.log.warn(JSON.stringify(err.response.data, null, 2))
 						this.log.debug(JSON.stringify(err, null, 2))
+						this.log.error('Error deleting old webhook $s : $s', webhook.id, err.message)
+						if(err.response){
+							this.log.warn(JSON.stringify(err.response.data, null, 2));
+						}
+						throw err.code;
 					})
 					if (response.status == 204) {
-						this.log.debug('Successfully deleted old webhook %s', webhook.id)
+						this.log.debug('Successfully deleted old v2 webhook %s', webhook.id)
 					}
 				})
 			}
@@ -939,9 +958,12 @@ class RachioAPI {
 						},
 						responseType: 'json'
 					}).catch(err => {
-						this.log.error('Error deleting extra webhook $s : $s', webhook.id, err.message)
-						this.log.warn(JSON.stringify(err.response.data, null, 2))
 						this.log.debug(JSON.stringify(err, null, 2))
+						this.log.error('Error deleting old v2 webhook $s : $s', webhook.id, err.message)
+						if(err.response){
+							this.log.warn(JSON.stringify(err.response.data, null, 2));
+						}
+						throw err.code;
 					})
 					if (response.status == 204) {
 						this.log.debug('Successfully deleted extra webhook %s', webhook.id)
@@ -970,9 +992,12 @@ class RachioAPI {
 						event_types: event,
 					}
 				}).catch(err => {
-					this.log.error('Error updating exsisting webhook $s : $s', updateWebhook.id, err.message)
-					this.log.warn(JSON.stringify(err.response.data, null, 2))
 					this.log.debug(JSON.stringify(err, null, 2))
+					this.log.error('Error updating exsisting v2 webhook $s : $s', updateWebhook.id, err.message)
+					if(err.response){
+						this.log.warn(JSON.stringify(err.response.data, null, 2));
+					}
+					throw err.code;
 				})
 			} else {
 				this.log.info('Creating Webhook for ' + external_webhook_address)
@@ -993,17 +1018,20 @@ class RachioAPI {
 						event_types: events,
 					}
 				}).catch(err => {
-					this.log.error('Error configuring new webhook $s : $s', updateWebhook.id, err, message)
-					this.log.warn(JSON.stringify(err.response.data, null, 2))
-					this.log.debug(JSON.stringify(err, null, 2))
+					this.log.info(JSON.stringify(err, null, 2))
+					this.log.error('Error configuring new v2 webhook $s : $s', updateWebhook.id, err, message)
+					if(err.response){
+						this.log.warn(JSON.stringify(err.response.data, null, 2));
+					}
+					throw err.code;
 				})
 			}
 			if (this.platform.showAPIMessages) {
-				this.log.debug('create/update webhooks response', JSON.stringify(response.data, null, 2))
+				this.log.debug('create/update webhooks v2 response', JSON.stringify(response.data, null, 2))
 			}
 			let test_webhook_url = external_webhook_address + '/test'
 			if (response.status == 200) {
-				this.log.success('Successfully configured webhook for device id %s with external ID "%s" ', device_name, webhook_key)
+				this.log.success('Successfully configured webhook for device id %s with external id "%s" ', device_name, webhook_key)
 				this.log.info(
 					'To test Webhook setup, navigate to %s to ensure port forwarding is configured correctly. ' +
 						'\nNote: For local config this will not work from this server, you cannot be connected to the same router doing the fowarding. ' +
@@ -1013,7 +1041,7 @@ class RachioAPI {
 			}
 			return
 		} catch (err) {
-			this.log.error('Error configuring webhook \n%s', err)
+			this.log.error('Error configuring webhook for device id %s \n%s', device_name, err)
 		}
 	}
 

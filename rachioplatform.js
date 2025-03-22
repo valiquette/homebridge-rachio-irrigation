@@ -250,6 +250,8 @@ class RachioPlatform {
 			this.external_webhook_addressv2 = destination + this.external_IP_address + port
 		} else {
 			this.external_webhook_address = destination + this.external_IP_address + port
+			this.external_webhook_addressv2 = destination + this.external_IP_address + port
+
 		}
 		if (!this.external_webhook_address) {
 			this.log.warn(`Cannot validate webhook destination address, will not set Webhooks. Please check webhook config settings for proper format and does not include any prefx like http://`)
