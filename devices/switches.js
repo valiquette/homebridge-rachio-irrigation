@@ -63,7 +63,7 @@ class switches {
 					callback()
 				}
 				break
-			case device.name + ' Quick Run-All':
+			case device.name + ' Quick Run All':
 				if (switchService.getCharacteristic(Characteristic.StatusFault).value == Characteristic.StatusFault.GENERAL_FAULT) {
 					callback('error')
 				} else {
