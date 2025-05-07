@@ -1,4 +1,11 @@
 # Changes
+
+## 1.4.2
+Updates
+-  Fixed issue: Error with Quick Run #75
+-  Bumped dependencies
+-  Refactored some error handling
+
 ## 1.4.1
 Updates
 -  Improved error handling

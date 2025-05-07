@@ -22,9 +22,11 @@ tsconfig.json
 # vscode
 .vscode
 
+# github
+.gitignore
+
 # prettier
 .prettierrc
 
 # nodemon
 nodemon.json
-

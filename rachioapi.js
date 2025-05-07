@@ -30,7 +30,7 @@ class RachioAPI {
 				if (err.response) {
 					this.log.warn(JSON.stringify(err.response.data, null, 2))
 				}
-				return err.response
+				throw err.code
 			})
 			if (response.status == 200) {
 				if (this.platform.showAPIMessages) {
@@ -39,7 +39,8 @@ class RachioAPI {
 				return response.data
 			}
 		} catch (err) {
-			this.log.error('Error retrieving personId \n%s', err)
+			//this.log.error('Error retrieving personId \n%s', err)
+			throw err
 		}
 	}
 
@@ -62,7 +63,7 @@ class RachioAPI {
 				if (err.response) {
 					this.log.warn(JSON.stringify(err.response.data, null, 2))
 				}
-				return err.response
+				throw err.code
 			})
 			if (response.status == 200) {
 				if (this.platform.showAPIMessages) {
@@ -71,7 +72,8 @@ class RachioAPI {
 				return response.data
 			}
 		} catch (err) {
-			this.log.error('Error retrieving deviceId \n%s', err)
+			//this.log.error('Error retrieving deviceId \n%s', err)
+			throw err
 		}
 	}
 
@@ -94,7 +96,7 @@ class RachioAPI {
 				if (err.response) {
 					this.log.warn(JSON.stringify(err.response.data, null, 2))
 				}
-				return err.response
+				throw err.code
 			})
 			if (response.status == 200) {
 				if (this.platform.showAPIMessages) {
@@ -103,7 +105,8 @@ class RachioAPI {
 				return response.data
 			}
 		} catch (err) {
-			this.log.error('Error getting device state \n%s', err)
+			//this.log.error('Error getting device state \n%s', err)
+			throw err
 		}
 	}
 
@@ -126,7 +129,7 @@ class RachioAPI {
 				if (err.response) {
 					this.log.warn(JSON.stringify(err.response.data, null, 2))
 				}
-				return err.response
+				throw err.code
 			})
 			if (response.status == 200) {
 				if (this.platform.showAPIMessages) {
@@ -135,7 +138,8 @@ class RachioAPI {
 				return response.data
 			}
 		} catch (err) {
-			this.log.error('Error getting device details \n%s', err)
+			//this.log.error('Error getting device details \n%s', err)
+			throw err
 		}
 	}
 
@@ -158,7 +162,7 @@ class RachioAPI {
 				if (err.response) {
 					this.log.warn(JSON.stringify(err.response.data, null, 2))
 				}
-				return err.response
+				throw err.code
 			})
 			if (response.status == 200) {
 				if (this.platform.showAPIMessages) {
@@ -167,7 +171,8 @@ class RachioAPI {
 				return response.data
 			}
 		} catch (err) {
-			this.log.error('Error getting device info \n%s', err)
+			//this.log.error('Error getting device info \n%s', err)
+			throw err
 		}
 	}
 
@@ -190,7 +195,7 @@ class RachioAPI {
 				if (err.response) {
 					this.log.warn(JSON.stringify(err.response.data, null, 2))
 				}
-				return err.response
+				throw err.code
 			})
 			if (response.status == 200) {
 				if (this.platform.showAPIMessages) {
@@ -199,7 +204,8 @@ class RachioAPI {
 				return response.data
 			}
 		} catch (err) {
-			this.log.error('Error getting location list \n%s', err)
+			//this.log.error('Error getting location list \n%s', err)
+			throw err
 		}
 	}
 

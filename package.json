@@ -1,15 +1,15 @@
 {
 	"name": "homebridge-rachio-irrigation",
 	"displayName": "Rachio",
-	"version": "1.4.1",
+	"version": "1.4.2",
 	"description": "Rachio Irrigation System platform plugin for [Homebridge](https://github.com/nfarina/homebridge).",
 	"main": "index.js",
 	"dependencies": {
-		"axios": "^1.8.4"
+		"axios": "^1.9.0"
 	},
 	"engines": {
 		"homebridge": "^1.8.0 || ^1.9.0 || ^2.0.0-beta.0",
-		"node": "^18.20.0 || ^20.18.0 || ^22.14.0"
+		"node": "^18.20.0 || ^20.18.0 || ^22.15.0"
 	},
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
