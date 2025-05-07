@@ -68,6 +68,17 @@ class switches {
 					callback('error')
 				} else {
 					if (value) {
+						let completeRun = 0
+						let x
+						device.zones.forEach(zone =>{
+							completeRun = completeRun + this.platform.defaultRuntime
+						})
+						clearTimeout(x)
+						x = setTimeout(() => {
+							switchService.getCharacteristic(Characteristic.On).updateValue(false)
+							this.log.info('Quick Run All finished, completed after %s minutes', completeRun/60)
+						}, completeRun*1000);
+
 						response = await this.rachioapi.startMultipleZone(this.platform.token, device.zones, this.platform.defaultRuntime)
 						if (response.status == 204) {
 							switchService.getCharacteristic(Characteristic.On).updateValue(value)
