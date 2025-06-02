@@ -77,6 +77,74 @@ class RachioAPI {
 		}
 	}
 
+		async getPropertyEntity(token, resource, id) {
+		try {
+			this.log.debug('Getting Property info')
+			let response = await axios({
+				method: 'get',
+				baseURL: alt_api_endpoint,
+				url: `property/findPropertyByEntity`,
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
+				},
+				params: {
+					[`resource_id.${resource}`]: `${id}`
+				},
+				responseType: 'json'
+			}).catch(err => {
+				this.log.error('Error getting property info %s', err.message)
+				this.log.debug(JSON.stringify(err, null, 2))
+				if (err.response) {
+					this.log.warn(JSON.stringify(err.response.data, null, 2))
+				}
+				return err.response
+			})
+			if (response.status == 200) {
+				if (this.platform.showAPIMessages) {
+					this.log.debug('get property info response', JSON.stringify(response.data, null, 2))
+				}
+				return response.data
+			}
+		} catch (err) {
+			this.log.error('Error getting property info \n%s', err)
+		}
+	}
+
+		async getDevice(token, device) {
+		try {
+			this.log.debug('Getting current device', device)
+			let response = await axios({
+				method: 'get',
+				baseURL: alt_api_endpoint,
+				url: `/device/getDevice/${device}`,
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
+				},
+				responseType: 'json'
+			}).catch(err => {
+				this.log.error('Error getting device %s', err.message)
+				this.log.debug(JSON.stringify(err, null, 2))
+				if (err.response) {
+					this.log.warn(JSON.stringify(err.response.data, null, 2))
+				}
+				throw err.code
+			})
+			if (response.status == 200) {
+				if (this.platform.showAPIMessages) {
+					this.log.debug('get device response', JSON.stringify(response.data, null, 2))
+				}
+				return response.data
+			}
+		} catch (err) {
+			//this.log.error('Error getting device \n%s', err)
+			throw err
+		}
+	}
+
 	async getDeviceState(token, device) {
 		try {
 			this.log.debug('Getting current device state', device)

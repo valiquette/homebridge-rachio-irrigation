@@ -1,5 +1,13 @@
 # Changes
 
+## 1.4.3
+Updates
+-  Fixed issue: No more adress line in the basestation object #77
+-  Added new "property service" API
+-  Moved location address for valves to a new API end point.
+-  Updated controller location to use new API end point.
+-  Updated battery status for "replace" status.
+
 ## 1.4.2
 Updates
 -  Fixed issue: Error with Quick Run #75

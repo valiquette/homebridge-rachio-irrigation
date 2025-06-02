@@ -54,7 +54,6 @@ class RachioPlatform {
 		this.showRunAll = config.show_runall
 		this.showSchedules = config.show_schedules
 		this.locationAddress = config.location_address
-		this.locationMatch = true
 		this.accessories = []
 		this.zoneList = []
 		this.foundLocations
@@ -281,40 +280,26 @@ class RachioPlatform {
 			})
 			this.log.info('Found Account for username %s', personInfo.username)
 			this.log.info('Getting Location info...')
-
-			let location = await this.rachioapi.getLocationList(this.token).catch(err => {
-				this.log.error('Failed to get location summary', err)
-				throw err
-			})
-			if (location.locationSummary.length == 0) {
-				this.log.warn('No device locations found')
-			}
-			location.locationSummary.forEach(address => {
-				this.log.info('Found Location: id=%s address=%s geo=%s', address.location.id, address.location.address.addressLine1, address.location.geoPoint)
-				this.foundLocations = location.locationSummary
-				address.location.deviceId.forEach(device => {
-					this.log.info('Found Location: device id=%s ', device)
-				})
-			})
 			if (personInfo.devices.length > 0) {
+				let location
 				personInfo.devices
-					.filter(newDevice => {
-						this.foundLocations.forEach(location => {
-							location.location.deviceId.forEach(device => {
-								if (!this.locationAddress || this.locationAddress == location.location.address.addressLine1) {
-									if (newDevice.id == device) {
-										this.log.info('Adding controller %s found at the configured location: %s', newDevice.name, location.location.address.addressLine1)
-										this.locationMatch = true
-									}
-								} else {
-									if (newDevice.id == device) {
-										this.log.info('Skipping controller %s at %s, not found at the configured location: %s', newDevice.name, location.location.address.addressLine1, this.locationAddress)
-										this.locationMatch = false
-									}
-								}
-							})
+					.filter(async newDevice => {
+						let device = await this.rachioapi.getDevice(this.token, newDevice.id).catch(err => {
+							this.log.error('Failed to get location property', err)
+							throw err
 						})
-						return this.locationMatch
+						location = await this.rachioapi.getPropertyEntity(this.token, 'location_id',device.device.locationId).catch(err => {
+							this.log.error('Failed to get location property', err)
+							throw err
+						})
+						this.log.info('Found Location: id = %s address = %s locality = %s', location.property.address.id, location.property.address.lineOne, location.property.address.locality)
+						if (!this.locationAddress || location.property.address.lineOne == this.locationAddress) {
+							this.log.info('Adding controller %s found at the configured location: %s', newDevice.name, location.property.address.lineOne)
+							return true
+						} else {
+							this.log.info('Skipping controller %s at %s, not found at the configured location: %s', newDevice.name, location.property.address.lineOne, this.locationAddress)
+							return false
+						}
 					})
 					.forEach(async newDevice => {
 						try{
@@ -571,13 +556,18 @@ class RachioPlatform {
 				throw err
 			})
 			if (list.baseStations.length > 0) {
+				let location
 				list.baseStations
-					.filter(baseStation => {
-						if (!this.locationAddress || baseStation.address.lineOne == this.locationAddress) {
-							this.log('Found WiFi Hub %s at the configured location: %s', baseStation.serialNumber, baseStation.address.lineOne)
+					.filter(async baseStation => {
+						location = await this.rachioapi.getPropertyEntity(this.token, 'base_station_id', baseStation.id).catch(err => {
+							this.log.error('Failed to get base station property', err)
+							throw err
+						})
+						if (!this.locationAddress || location.property.address.lineOne == this.locationAddress) {
+							this.log('Found WiFi Hub %s at the configured location: %s', baseStation.serialNumber, location.property.address.lineOne)
 							return true
 						} else {
-							this.log('Skipping WiFi Hub %s st %s, not found at the configured location: %s', baseStation.serialNumber, baseStation.address.lineOne, this.locationAddress)
+							this.log('Skipping WiFi Hub %s st %s, not found at the configured location: %s', baseStation.serialNumber, location.property.address.lineOne, this.locationAddress)
 							return false
 						}
 					})
@@ -588,7 +578,7 @@ class RachioPlatform {
 						}
 						if (this.showBridge) {
 							this.log.debug('Adding Hub Device')
-							this.log.debug('Found WiFi Hub %s', baseStation.address.locality)
+							this.log.debug('Found WiFi Hub %s', location.property.address.locality)
 
 							// Create and configure Bridge Service
 							this.log.debug('Creating and configuring new Wifi Hub')
@@ -609,7 +599,7 @@ class RachioPlatform {
 								this.api.registerPlatformAccessories(PluginName, PlatformName, [bridgeAccessory])
 							}
 						} else {
-							this.log.info('Skipping WiFi Hub %s based on config', baseStation.address.locality)
+							this.log.info('Skipping WiFi Hub %s based on config for', this.locationAddress)
 						}
 
 						let valveList = await this.rachioapi.listValves(this.token, baseStation.id).catch(err => {
@@ -645,7 +635,7 @@ class RachioPlatform {
 
 								// Create and configure Irrigation Service
 								this.log.debug('Creating and configuring new valve')
-								let valveAccessory = this.valve.createValveAccessory(baseStation, valve, this.accessories[uuid])
+								let valveAccessory = this.valve.createValveAccessory(baseStation, location.property, valve, this.accessories[uuid])
 								let valveService = valveAccessory.getService(Service.Valve)
 								this.valve.updateValveService(baseStation, valve, valveService)
 								this.valve.configureValveService(valve, valveAccessory.getService(Service.Valve))
@@ -664,6 +654,9 @@ class RachioPlatform {
 												break
 											case 'LOW':
 												batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).updateValue(Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+												break
+											case 'REPLACE':
+												batteryStatus.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
 												break
 										}
 									} else {
