@@ -22,6 +22,10 @@ class battery {
 			case 'LOW':
 				batteryStatus.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
 				break
+			case 'REPLACE':
+				batteryStatus.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+				this.log.warn('Replace batteries for %s soon', response.data.valve.name)
+				break
 		}
 
 		return batteryStatus
@@ -59,6 +63,10 @@ class battery {
 						break
 					case 'LOW':
 						batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).updateValue(Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+						break
+					case 'REPLACE':
+						batteryStatus.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+						this.log.warn('Replace batteries for %s soon', response.data.valve.name)
 						break
 				}
 			}

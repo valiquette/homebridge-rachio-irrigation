@@ -14,12 +14,12 @@ class valve {
 		this.pollValves = config.pollValves ? config.pollValves : false
 	}
 
-	createValveAccessory(base, valve, platformAccessory) {
+	createValveAccessory(base, property, valve, platformAccessory) {
 		let valveService
 		if (!platformAccessory) {
 			// Create new Valve System Service
-			this.log.debug('Create valve accessory %s %s', valve.id, base.address.locality)
-			platformAccessory = new PlatformAccessory(base.address.locality, valve.id)
+			this.log.debug('Create valve accessory %s %s', valve.id, property.address.locality)
+			platformAccessory = new PlatformAccessory(property.address.locality, valve.id)
 			//valveService = platformAccessory.addService(Service.Valve, valve.id, valve.id) // changed warning message for "-" in name
 			valveService = platformAccessory.addService(Service.Valve, valve.id.replace(/-/g, ''), valve.id)
 			valveService.addCharacteristic(Characteristic.SerialNumber) //Use Serial Number to store the zone id
@@ -34,7 +34,7 @@ class valve {
 		// Create AccessoryInformation Service
 		platformAccessory
 			.getService(Service.AccessoryInformation)
-			.setCharacteristic(Characteristic.Name, base.address.locality)
+			.setCharacteristic(Characteristic.Name, property.address.locality)
 			.setCharacteristic(Characteristic.Manufacturer, 'Rachio')
 			.setCharacteristic(Characteristic.SerialNumber, base.serialNumber)
 			.setCharacteristic(Characteristic.Model, 'SHVK001')
