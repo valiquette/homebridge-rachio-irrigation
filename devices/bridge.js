@@ -8,17 +8,17 @@ class bridge {
 		this.rachioapi = new RachioAPI(platform, log)
 	}
 
-	createBridgeAccessory(device, platformAccessory) {
+	createBridgeAccessory(device, location, platformAccessory) {
 		if (!platformAccessory) {
-			this.log.debug('Create Bridge Accessory %s %s', device.id, device.address.locality)
-			platformAccessory = new PlatformAccessory(device.address.locality, device.id)
+			this.log.debug('Create Bridge Accessory %s %s', device.id, location.property.address.locality)
+			platformAccessory = new PlatformAccessory(location.property.address.locality, device.id)
 		} else {
-			this.log.debug('Update Bridge Accessory %s %s', device.id, device.address.locality)
+			this.log.debug('Update Bridge Accessory %s %s', device.id, location.property.address.locality)
 		}
 
 		platformAccessory
 			.getService(Service.AccessoryInformation)
-			.setCharacteristic(Characteristic.Name, device.address.locality)
+			.setCharacteristic(Characteristic.Name, location.property.address.locality)
 			.setCharacteristic(Characteristic.Manufacturer, 'Rachio')
 			.setCharacteristic(Characteristic.SerialNumber, device.serialNumber)
 			.setCharacteristic(Characteristic.Model, 'HUB101')
@@ -29,10 +29,10 @@ class bridge {
 		return platformAccessory
 	}
 
-	createBridgeService(device) {
+	createBridgeService(device, location) {
 		let bridgeService
-		this.log.debug('create bridge service for %s', device.address.locality)
-		bridgeService = new Service.WiFiTransport(device.address.locality, device.id)
+		this.log.debug('create bridge service for %s', location.property.address.locality)
+		bridgeService = new Service.WiFiTransport(location.property.address.locality, device.id)
 		bridgeService.setCharacteristic(Characteristic.CurrentTransport, device.reportedState.connected)
 		return bridgeService
 	}

@@ -1,7 +1,7 @@
 {
 	"name": "homebridge-rachio-irrigation",
 	"displayName": "Rachio",
-	"version": "1.4.3",
+	"version": "1.4.4",
 	"description": "Rachio Irrigation System platform plugin for [Homebridge](https://github.com/nfarina/homebridge).",
 	"main": "index.js",
 	"dependencies": {
