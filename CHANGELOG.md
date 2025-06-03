@@ -1,5 +1,10 @@
 # Changes
 
+## 1.4.4
+Updates
+-  Fixed issue: No more adress line in the basestation object #77
+-	 Fixed issue if expose wifi bridge is enable in plugin config
+
 ## 1.4.3
 Updates
 -  Fixed issue: No more adress line in the basestation object #77

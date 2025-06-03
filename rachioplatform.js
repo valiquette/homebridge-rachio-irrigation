@@ -572,6 +572,11 @@ class RachioPlatform {
 						}
 					})
 					.forEach(async baseStation => {
+						//pulling bridge location
+						location = await this.rachioapi.getPropertyEntity(this.token, 'base_station_id', baseStation.id).catch(err => {
+							this.log.error('Failed to get base station property', err)
+							throw err
+						})
 						let uuid = baseStation.id
 						if (baseStation.reportedState.firmwareUpgradeAvailable) {
 							this.log.warn('Hub firmware upgrade available')
@@ -582,9 +587,9 @@ class RachioPlatform {
 
 							// Create and configure Bridge Service
 							this.log.debug('Creating and configuring new Wifi Hub')
-							let bridgeAccessory = this.bridge.createBridgeAccessory(baseStation, this.accessories[uuid])
+							let bridgeAccessory = this.bridge.createBridgeAccessory(baseStation, location, this.accessories[uuid])
 							let bridgeService = bridgeAccessory.getService(Service.WiFiTransport)
-							bridgeService = this.bridge.createBridgeService(baseStation)
+							bridgeService = this.bridge.createBridgeService(baseStation, location)
 							this.bridge.configureBridgeService(bridgeService)
 							// set current device status
 							bridgeService.getCharacteristic(Characteristic.StatusFault).updateValue(baseStation.reportedState.connected)
