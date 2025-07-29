@@ -1,5 +1,13 @@
 # Changes
 
+## 1.4.5
+Updates
+-  Updated check for IPv6 address
+-	 Update Wifi hub detection
+-  Bumped dependencies
+-  Deprecated node 18 support
+-	 Issue #83 corrected where location filter stopped working
+
 ## 1.4.4
 Updates
 -  Fixed issue: No more adress line in the basestation object #77

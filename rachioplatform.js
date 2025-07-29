@@ -183,7 +183,8 @@ class RachioPlatform {
 			if (ipv4) {
 				axios({
 					method: 'get',
-					url: 'https://api4.ipify.org?format=json',
+					//url: 'https://api4.ipify.org?format=json',
+					url: 'https://api.ipify.org?format=json',
 					responseType: 'json'
 				})
 					.then(response => {
@@ -204,7 +205,8 @@ class RachioPlatform {
 			} else if (ipv6) {
 				axios({
 					method: 'get',
-					url: 'https://api6.ipify.org?format=json',
+					//url: 'https://api6.ipify.org?format=json',
+					url: 'https://api64.ipify.org?format=json',
 					responseType: 'json'
 				})
 					.then(response => {
@@ -281,28 +283,24 @@ class RachioPlatform {
 			this.log.info('Found Account for username %s', personInfo.username)
 			this.log.info('Getting Location info...')
 			if (personInfo.devices.length > 0) {
-				let location
 				personInfo.devices
-					.filter(async newDevice => {
-						let device = await this.rachioapi.getDevice(this.token, newDevice.id).catch(err => {
-							this.log.error('Failed to get location property', err)
-							throw err
-						})
-						location = await this.rachioapi.getPropertyEntity(this.token, 'location_id',device.device.locationId).catch(err => {
-							this.log.error('Failed to get location property', err)
-							throw err
-						})
-						this.log.info('Found Location: id = %s address = %s locality = %s', location.property.address.id, location.property.address.lineOne, location.property.address.locality)
-						if (!this.locationAddress || location.property.address.lineOne == this.locationAddress) {
-							this.log.info('Adding controller %s found at the configured location: %s', newDevice.name, location.property.address.lineOne)
-							return true
-						} else {
-							this.log.info('Skipping controller %s at %s, not found at the configured location: %s', newDevice.name, location.property.address.lineOne, this.locationAddress)
-							return false
-						}
-					})
 					.forEach(async newDevice => {
 						try{
+							let device = await this.rachioapi.getDevice(this.token, newDevice.id).catch(err => {
+								this.log.error('Failed to get location property', err)
+								throw err
+							})
+							let location = await this.rachioapi.getPropertyEntity(this.token, 'location_id',device.device.locationId).catch(err => {
+								this.log.error('Failed to get location property', err)
+								throw err
+							})
+							this.log.info('Found Location: id = %s address = %s locality = %s', location.property.address.id, location.property.address.lineOne, location.property.address.locality)
+							if (!this.locationAddress || location.property.address.lineOne == this.locationAddress) {
+								this.log.info('Adding controller %s found at the configured location: %s', newDevice.name, location.property.address.lineOne)
+							} else {
+								this.log.info('Skipping controller %s at %s, not found at the configured location: %s', newDevice.name, location.property.address.lineOne, this.locationAddress)
+								return
+							}
 							//adding devices that met filter criteria
 							this.log.info('Found Controller %s status %s', newDevice.name, newDevice.status)
 							let uuid = newDevice.id
@@ -556,22 +554,18 @@ class RachioPlatform {
 				throw err
 			})
 			if (list.baseStations.length > 0) {
-				let location
 				list.baseStations
-					.filter(async baseStation => {
-						location = await this.rachioapi.getPropertyEntity(this.token, 'base_station_id', baseStation.id).catch(err => {
+					.forEach(async baseStation => {
+							let location = await this.rachioapi.getPropertyEntity(this.token, 'base_station_id', baseStation.id).catch(err => {
 							this.log.error('Failed to get base station property', err)
 							throw err
 						})
 						if (!this.locationAddress || location.property.address.lineOne == this.locationAddress) {
-							this.log('Found WiFi Hub %s at the configured location: %s', baseStation.serialNumber, location.property.address.lineOne)
-							return true
+							this.log.info('Found WiFi Hub %s at the configured location: %s', baseStation.serialNumber, location.property.address.lineOne)
 						} else {
-							this.log('Skipping WiFi Hub %s st %s, not found at the configured location: %s', baseStation.serialNumber, location.property.address.lineOne, this.locationAddress)
-							return false
+							this.log.info('Skipping WiFi Hub %s st %s, not found at the configured location: %s', baseStation.serialNumber, location.property.address.lineOne, this.locationAddress)
+							return
 						}
-					})
-					.forEach(async baseStation => {
 						//pulling bridge location
 						location = await this.rachioapi.getPropertyEntity(this.token, 'base_station_id', baseStation.id).catch(err => {
 							this.log.error('Failed to get base station property', err)
@@ -589,14 +583,13 @@ class RachioPlatform {
 							this.log.debug('Creating and configuring new Wifi Hub')
 							let bridgeAccessory = this.bridge.createBridgeAccessory(baseStation, location, this.accessories[uuid])
 							let bridgeService = bridgeAccessory.getService(Service.WiFiTransport)
-							bridgeService = this.bridge.createBridgeService(baseStation, location)
-							this.bridge.configureBridgeService(bridgeService)
 							// set current device status
-							bridgeService.getCharacteristic(Characteristic.StatusFault).updateValue(baseStation.reportedState.connected)
-							let service = bridgeAccessory.getService(Service.WiFiTransport)
-							if (!service) {
+							if (!bridgeService) {
+								bridgeService = this.bridge.createBridgeService(baseStation, location)
 								bridgeAccessory.addService(bridgeService)
 							}
+							this.bridge.configureBridgeService(bridgeService)
+							bridgeService.getCharacteristic(Characteristic.StatusFault).updateValue(baseStation.reportedState.connected)
 							this.log.info('Adding WiFi Hub')
 							if (!this.accessories[uuid]) {
 								this.log.debug('Registering platform accessory')
