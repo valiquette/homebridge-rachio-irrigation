@@ -1,5 +1,11 @@
 # Changes
 
+## 1.4.6
+Updates
+-  Code Cleanup
+-  Fix an issue that may have duplicated an accessory
+-  Update naming for Valve accessory to avoid duplication
+
 ## 1.4.5
 Updates
 -  Updated check for IPv6 address

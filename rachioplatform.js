@@ -323,7 +323,13 @@ class RachioPlatform {
 							this.log.debug('Creating and configuring new device')
 							let irrigationAccessory = this.irrigation.createIrrigationAccessory(newDevice, deviceState, this.accessories[uuid])
 							this.irrigation.configureIrrigationService(newDevice, irrigationAccessory.getService(Service.IrrigationSystem))
-
+							// Register platform accessory
+							if (!this.accessories[uuid]) {
+								this.log.debug('Registering platform accessory')
+								this.log.info('Adding new accessory %s', irrigationAccessory.displayName)
+								this.accessories[uuid] = irrigationAccessory
+								this.api.registerPlatformAccessories(PluginName, PlatformName, [irrigationAccessory])
+							}
 							// Create and configure Values services and link to Irrigation Service
 							newDevice.zones = newDevice.zones.sort(function (a, b) {
 								return a.zoneNumber - b.zoneNumber
@@ -480,15 +486,6 @@ class RachioPlatform {
 									this.api.updatePlatformAccessories([irrigationAccessory])
 								}
 							}
-
-							// Register platform accessory
-							if (!this.accessories[uuid]) {
-								this.log.debug('Registering platform accessory')
-								this.log.info('Adding new accessory %s', irrigationAccessory.displayName)
-								this.accessories[uuid] = irrigationAccessory
-								this.api.registerPlatformAccessories(PluginName, PlatformName, [irrigationAccessory])
-							}
-
 							//find any running zone and set its state
 							let schedule = await this.rachioapi.currentSchedule(this.token, newDevice.id).catch(err => {
 								this.log.error('Failed to get current schedule', err)
@@ -637,7 +634,13 @@ class RachioPlatform {
 								let valveService = valveAccessory.getService(Service.Valve)
 								this.valve.updateValveService(baseStation, valve, valveService)
 								this.valve.configureValveService(valve, valveAccessory.getService(Service.Valve))
-
+								// Register platform accessory
+								if (!this.accessories[uuid]) {
+									this.log.debug('Registering platform accessory')
+									this.log.info('Adding new accessory %s', valveAccessory.displayName)
+									this.accessories[uuid] = valveAccessory
+									this.api.registerPlatformAccessories(PluginName, PlatformName, [valveAccessory])
+								}
 								// Create and configure Battery Service
 								if (valve.state.reportedState.batteryStatus != null) {
 									this.log.info('Adding Battery status for %s', valve.name)
@@ -675,15 +678,6 @@ class RachioPlatform {
 										this.api.updatePlatformAccessories([valveAccessory])
 									}
 								}
-
-								// Register platform accessory
-								if (!this.accessories[uuid]) {
-									this.log.debug('Registering platform accessory')
-									this.log.info('Adding new accessory %s', valveAccessory.displayName)
-									this.accessories[uuid] = valveAccessory
-									this.api.registerPlatformAccessories(PluginName, PlatformName, [valveAccessory])
-								}
-
 								//find any running zone and set its state
 								let programs = await this.rachioapi.listPrograms(this.token, valve.id).catch(err => {
 									this.log.error('Failed to get current programs', err)
