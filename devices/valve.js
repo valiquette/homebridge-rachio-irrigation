@@ -18,8 +18,8 @@ class valve {
 		let valveService
 		if (!platformAccessory) {
 			// Create new Valve System Service
-			this.log.debug('Create valve accessory %s %s', valve.id, property.address.locality)
-			platformAccessory = new PlatformAccessory(property.address.locality, valve.id)
+			this.log.debug('Create valve accessory %s %s', valve.id, property.address.locality +' '+ valve.name)
+			platformAccessory = new PlatformAccessory(property.address.locality +' '+ valve.name, valve.id)
 			//valveService = platformAccessory.addService(Service.Valve, valve.id, valve.id) // changed warning message for "-" in name
 			valveService = platformAccessory.addService(Service.Valve, valve.id.replace(/-/g, ''), valve.id)
 			valveService.addCharacteristic(Characteristic.SerialNumber) //Use Serial Number to store the zone id
@@ -34,7 +34,7 @@ class valve {
 		// Create AccessoryInformation Service
 		platformAccessory
 			.getService(Service.AccessoryInformation)
-			.setCharacteristic(Characteristic.Name, property.address.locality)
+			.setCharacteristic(Characteristic.Name, property.address.locality +' '+ valve.name)
 			.setCharacteristic(Characteristic.Manufacturer, 'Rachio')
 			.setCharacteristic(Characteristic.SerialNumber, base.serialNumber)
 			.setCharacteristic(Characteristic.Model, 'SHVK001')
@@ -54,19 +54,6 @@ class valve {
 			valveService.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.GENERAL_FAULT)
 		}
 		return platformAccessory
-	}
-
-	configureValveService(base, valve, valveService) {
-		this.log.info('Configure Valve service for %s', valveService.getCharacteristic(Characteristic.Name).value)
-		valveService
-			.setCharacteristic(Characteristic.Active, Characteristic.Active.ACTIVE)
-			.setCharacteristic(Characteristic.InUse, Characteristic.InUse.NOT_IN_USE)
-			.setCharacteristic(Characteristic.StatusFault, !valve.state.reportedState.connected)
-			.setCharacteristic(Characteristic.Duration, valve.state.desiredState.defaultRuntimeSeconds)
-			.setCharacteristic(Characteristic.RemainingDuration, 0)
-		valveService.getCharacteristic(Characteristic.Active).on('get', this.getDeviceValue.bind(this, valveService, 'DeviceActive'))
-		valveService.getCharacteristic(Characteristic.InUse).on('get', this.getDeviceValue.bind(this, valveService, 'DeviceInUse'))
-		valveService.getCharacteristic(Characteristic.ProgramMode).on('get', this.getDeviceValue.bind(this, valveService, 'DeviceProgramMode'))
 	}
 
 	updateValveService(base, valve, valveService) {
@@ -146,38 +133,17 @@ class valve {
 			valveService.getCharacteristic(Characteristic.Name).value,
 			valveService.getCharacteristic(Characteristic.SetDuration).value / 60
 		)
-		valveService.getCharacteristic(Characteristic.Active).on('get', this.getValveValue.bind(this, valveService, 'ValveActive')).on('set', this.setValveValue.bind(this, device, valveService))
-
-		valveService.getCharacteristic(Characteristic.InUse).on('get', this.getValveValue.bind(this, valveService, 'ValveInUse')).on('set', this.setValveValue.bind(this, device, valveService))
-
-		valveService.getCharacteristic(Characteristic.SetDuration).on('get', this.getValveValue.bind(this, valveService, 'ValveSetDuration')).on('set', this.setValveSetDuration.bind(this, device, valveService))
-
-		valveService.getCharacteristic(Characteristic.RemainingDuration).on('get', this.getValveValue.bind(this, valveService, 'ValveRemainingDuration'))
-	}
-
-	getDeviceValue(valveService, characteristicName, callback) {
-		switch (characteristicName) {
-			case 'DeviceActive':
-				//this.log.debug('%s=%s %s', valveService.getCharacteristic(Characteristic.Name).value, characteristicName,valveService.getCharacteristic(Characteristic.Active).value)
-				if (valveService.getCharacteristic(Characteristic.StatusFault).value == Characteristic.StatusFault.GENERAL_FAULT) {
-					callback('error')
-				} else {
-					callback(null, valveService.getCharacteristic(Characteristic.Active).value)
-				}
-				break
-			case 'DeviceInUse':
-				//this.log.debug('%s=%s %s', valveService.getCharacteristic(Characteristic.Name).value, characteristicName,valveService.getCharacteristic(Characteristic.InUse).value)
-				callback(null, valveService.getCharacteristic(Characteristic.InUse).value)
-				break
-			case 'DeviceProgramMode':
-				//this.log.debug('%s=%s %s', valveService.getCharacteristic(Characteristic.Name).value, characteristicName,valveService.getCharacteristic(Characteristic.ProgramMode).value)
-				callback(null, valveService.getCharacteristic(Characteristic.ProgramMode).value)
-				break
-			default:
-				this.log.debug('Unknown Device Characteristic Name called', characteristicName)
-				callback()
-				break
-		}
+		valveService.getCharacteristic(Characteristic.Active)
+			.on('get', this.getValveValue.bind(this, valveService, 'ValveActive'))
+			.on('set', this.setValveValue.bind(this, device, valveService))
+		valveService.getCharacteristic(Characteristic.InUse)
+			.on('get', this.getValveValue.bind(this, valveService, 'ValveInUse'))
+			.on('set', this.setValveValue.bind(this, device, valveService))
+		valveService.getCharacteristic(Characteristic.SetDuration)
+			.on('get', this.getValveValue.bind(this, valveService, 'ValveSetDuration'))
+			.on('set', this.setValveSetDuration.bind(this, device, valveService))
+		valveService.getCharacteristic(Characteristic.RemainingDuration)
+			.on('get', this.getValveValue.bind(this, valveService, 'ValveRemainingDuration'))
 	}
 
 	getValveValue(valveService, characteristicName, callback) {
