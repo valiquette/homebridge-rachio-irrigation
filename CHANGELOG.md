@@ -3,6 +3,12 @@
 ## 1.4.6
 Updates
 -  Code Cleanup
+-  Support Homebridge 2.0 & Node 24 (HAP definitions, strict types)
+-  Bumped dependencies
+
+## 1.4.6
+Updates
+-  Code Cleanup
 -  Fix an issue that may have duplicated an accessory
 -  Update naming for Valve accessory to avoid duplication
 

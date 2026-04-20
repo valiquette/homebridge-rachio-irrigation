@@ -33,11 +33,12 @@ class battery {
 
 	configureBatteryService(batteryStatus) {
 		this.log.debug('configured battery service for %s', batteryStatus.getCharacteristic(Characteristic.Name).value)
-		batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).on('get', this.getStatusLowBattery.bind(this, batteryStatus))
+		batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).onGet(this.getStatusLowBattery.bind(this, batteryStatus))
 	}
 
-	async getStatusLowBattery(batteryStatus, callback) {
+	async getStatusLowBattery(batteryStatus) {
 		let deviceId = batteryStatus.subtype
+		let currentValue = batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).value
 		if(!this.timeStamp[deviceId]) {
 			this.timeStamp[deviceId] = new Date()
 		}
@@ -47,8 +48,7 @@ class battery {
 			this.timeStamp[deviceId] = new Date()
 		} else {
 			this.log.debug('skipped battery update, to soon. timestamp delta %s sec', this.delta[deviceId]/1000)
-			callback(null, batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).value)
-			return
+			return currentValue
 		}
 		// add connection state to this call
 		try {
@@ -69,11 +69,12 @@ class battery {
 						this.log.warn('Replace batteries for %s soon', response.data.valve.name)
 						break
 				}
+				currentValue = batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).value
 			}
 		} catch (err) {
 		this.log.error('error trying to update battery status', err)
 		}
-		callback(null, batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).value)
+		return currentValue
 	}
 }
 module.exports = battery

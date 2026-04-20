@@ -20,7 +20,6 @@ class valve {
 			// Create new Valve System Service
 			this.log.debug('Create valve accessory %s %s', valve.id, property.address.locality +' '+ valve.name)
 			platformAccessory = new PlatformAccessory(property.address.locality +' '+ valve.name, valve.id)
-			//valveService = platformAccessory.addService(Service.Valve, valve.id, valve.id) // changed warning message for "-" in name
 			valveService = platformAccessory.addService(Service.Valve, valve.id.replace(/-/g, ''), valve.id)
 			valveService.addCharacteristic(Characteristic.SerialNumber) //Use Serial Number to store the zone id
 			valveService.addCharacteristic(Characteristic.Model)
@@ -134,37 +133,37 @@ class valve {
 			valveService.getCharacteristic(Characteristic.SetDuration).value / 60
 		)
 		valveService.getCharacteristic(Characteristic.Active)
-			.on('get', this.getValveValue.bind(this, valveService, 'ValveActive'))
-			.on('set', this.setValveValue.bind(this, device, valveService))
+			.onGet(this.getValveValue.bind(this, valveService, 'ValveActive'))
+			.onSet(this.setValveValue.bind(this, device, valveService))
 		valveService.getCharacteristic(Characteristic.InUse)
-			.on('get', this.getValveValue.bind(this, valveService, 'ValveInUse'))
-			.on('set', this.setValveValue.bind(this, device, valveService))
+			.onGet(this.getValveValue.bind(this, valveService, 'ValveInUse'))
+			.onSet(this.setValveValue.bind(this, device, valveService))
 		valveService.getCharacteristic(Characteristic.SetDuration)
-			.on('get', this.getValveValue.bind(this, valveService, 'ValveSetDuration'))
-			.on('set', this.setValveSetDuration.bind(this, device, valveService))
+			.onGet(this.getValveValue.bind(this, valveService, 'ValveSetDuration'))
+			.onSet(this.setValveSetDuration.bind(this, valveService))
 		valveService.getCharacteristic(Characteristic.RemainingDuration)
-			.on('get', this.getValveValue.bind(this, valveService, 'ValveRemainingDuration'))
+			.onGet(this.getValveValue.bind(this, valveService, 'ValveRemainingDuration'))
 	}
 
-	getValveValue(valveService, characteristicName, callback) {
+	getValveValue(valveService, characteristicName) {
 		//this.log.debug('value', valveService.getCharacteristic(Characteristic.Name).value, characteristicName)
+		if (valveService.getCharacteristic(Characteristic.StatusFault).value == Characteristic.StatusFault.GENERAL_FAULT) {
+			throw new HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE)
+		}
+		let currentValue
 		switch (characteristicName) {
 			case 'ValveActive':
-				if (valveService.getCharacteristic(Characteristic.StatusFault).value == Characteristic.StatusFault.GENERAL_FAULT) {
-					callback('error')
-				} else {
-					//this.polling.startLiveUpdate(valveService) ///disabled for webhooks
-					if (this.pollValves) {
-						this.polling.startLiveUpdate(valveService)
-					}
-					callback(null, valveService.getCharacteristic(Characteristic.Active).value)
+				//this.polling.startLiveUpdate(valveService) ///disabled for webhooks
+				if (this.pollValves) {
+					this.polling.startLiveUpdate(valveService)
 				}
+				currentValue = valveService.getCharacteristic(Characteristic.Active).value
 				break
 			case 'ValveInUse':
-				callback(null, valveService.getCharacteristic(Characteristic.InUse).value)
+				currentValue = valveService.getCharacteristic(Characteristic.InUse).value
 				break
 			case 'ValveSetDuration':
-				callback(null, valveService.getCharacteristic(Characteristic.SetDuration).value)
+				currentValue = valveService.getCharacteristic(Characteristic.SetDuration).value
 				break
 			case 'ValveRemainingDuration':
 				// Calc remain duration
@@ -175,21 +174,20 @@ class valve {
 					timeRemaining = 0
 				}
 				//valveService.getCharacteristic(Characteristic.RemainingDuration).updateValue(timeRemaining)
-				callback(null, timeRemaining)
+				currentValue = timeRemaining
 				break
 			default:
 				this.log.debug('Unknown Valve Characteristic Name called', characteristicName)
-				callback()
 				break
 		}
+		return currentValue
 	}
 
-	async setValveValue(device, valveService, value, callback) {
+	async setValveValue(device, valveService, value) {
 		//this.log.debug('%s - Set Active state to %s', valveService.getCharacteristic(Characteristic.Name).value, value)
 		if (value == valveService.getCharacteristic(Characteristic.Active).value) {
 			//IOS 17 bug fix for duplicate calls
 			this.log.debug('supressed duplicate call from IOS for %s, current value %s, new value %s', valveService.getCharacteristic(Characteristic.Name).value, value, valveService.getCharacteristic(Characteristic.Active).value)
-			callback()
 			return
 		}
 		// Set homekit state and prepare message for rachio API
@@ -277,14 +275,14 @@ class valve {
 				} else this.log.info('Failed to stop valve')
 				break
 		}
-		callback()
+		return
 	}
 
-	setValveSetDuration(device, valveService, value, callback) {
+	setValveSetDuration(device, valveService, value) {
 		// Set default duration from Homekit value
 		valveService.getCharacteristic(Characteristic.SetDuration).updateValue(value)
 		this.log.info('Set %s duration for %s mins', valveService.getCharacteristic(Characteristic.Name).value, value / 60)
-		callback()
+		return
 	}
 }
 module.exports = valve

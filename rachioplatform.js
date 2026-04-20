@@ -15,9 +15,19 @@ let valve = require('./devices/valve')
 let battery = require('./devices/battery')
 let bridge = require('./devices/bridge')
 let deviceState
+let HapStatusError
+let HAPStatus
 
 class RachioPlatform {
 	constructor(log, config, api) {
+		HapStatusError = RachioPlatform.HapStatusError
+		HAPStatus = RachioPlatform.HAPStatus
+		if (typeof global.HapStatusError === 'undefined') {
+			global.HapStatusError = HapStatusError
+		}
+		if (typeof global.HAPStatus === 'undefined') {
+			global.HAPStatus = HAPStatus
+		}
 		this.rachioapi = new RachioAPI(this, log)
 		this.rachio = new RachioUpdate(this, log, config)
 		this.listener = new listener(this, log, config)
