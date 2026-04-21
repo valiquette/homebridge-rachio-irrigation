@@ -661,14 +661,24 @@ class RachioPlatform {
 										this.battery.configureBatteryService(batteryStatus)
 										switch (valve.state.reportedState.batteryStatus) {
 											case 'GOOD':
-												batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).updateValue(Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
-												break
-											case 'LOW':
-												batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).updateValue(Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
-												break
-											case 'REPLACE':
-												batteryStatus.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
-												break
+															batteryStatus
+																.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
+																.setCharacteristic(Characteristic.ChargingState, Characteristic.ChargingState.NOT_CHARGEABLE)
+																.setCharacteristic(Characteristic.BatteryLevel, 100);
+															break
+														case 'LOW':
+															batteryStatus
+																.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+																.setCharacteristic(Characteristic.ChargingState, Characteristic.ChargingState.NOT_CHARGEABLE)
+																.setCharacteristic(Characteristic.BatteryLevel, 40);
+															break
+														case 'REPLACE':
+															batteryStatus
+																.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+																.setCharacteristic(Characteristic.ChargingState, Characteristic.ChargingState.NOT_CHARGEABLE)
+																.setCharacteristic(Characteristic.BatteryLevel, 10);
+															this.log.warn('Replace batteries for %s soon', response.data.valve.name)
+															break
 										}
 									} else {
 										//add new

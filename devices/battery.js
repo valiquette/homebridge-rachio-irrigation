@@ -17,13 +17,22 @@ class battery {
 
 		switch (device.state.reportedState.batteryStatus) {
 			case 'GOOD':
-				batteryStatus.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
+				batteryStatus
+					.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
+					.setCharacteristic(Characteristic.ChargingState, Characteristic.ChargingState.NOT_CHARGEABLE)
+					.setCharacteristic(Characteristic.BatteryLevel, 100);
 				break
 			case 'LOW':
-				batteryStatus.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+				batteryStatus
+					.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+					.setCharacteristic(Characteristic.ChargingState, Characteristic.ChargingState.NOT_CHARGEABLE)
+					.setCharacteristic(Characteristic.BatteryLevel, 40);
 				break
 			case 'REPLACE':
-				batteryStatus.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+				batteryStatus
+					.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+					.setCharacteristic(Characteristic.ChargingState, Characteristic.ChargingState.NOT_CHARGEABLE)
+					.setCharacteristic(Characteristic.BatteryLevel, 10);
 				this.log.warn('Replace batteries for %s soon', response.data.valve.name)
 				break
 		}
@@ -33,7 +42,8 @@ class battery {
 
 	configureBatteryService(batteryStatus) {
 		this.log.debug('configured battery service for %s', batteryStatus.getCharacteristic(Characteristic.Name).value)
-		batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).onGet(this.getStatusLowBattery.bind(this, batteryStatus))
+		batteryStatus.getCharacteristic(Characteristic.StatusLowBattery)
+		.onGet(this.getStatusLowBattery.bind(this, batteryStatus))
 	}
 
 	async getStatusLowBattery(batteryStatus) {
@@ -59,13 +69,22 @@ class battery {
 			if (response.status == 200) {
 				switch (response.data.valve.state.reportedState.batteryStatus) {
 					case 'GOOD':
-						batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).updateValue(Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
+						batteryStatus
+							.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
+							.setCharacteristic(Characteristic.ChargingState, Characteristic.ChargingState.NOT_CHARGEABLE)
+							.setCharacteristic(Characteristic.BatteryLevel, 100);
 						break
 					case 'LOW':
-						batteryStatus.getCharacteristic(Characteristic.StatusLowBattery).updateValue(Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+						batteryStatus
+							.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+							.setCharacteristic(Characteristic.ChargingState, Characteristic.ChargingState.NOT_CHARGEABLE)
+							.setCharacteristic(Characteristic.BatteryLevel, 40);
 						break
 					case 'REPLACE':
-						batteryStatus.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+						batteryStatus
+							.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+							.setCharacteristic(Characteristic.ChargingState, Characteristic.ChargingState.NOT_CHARGEABLE)
+							.setCharacteristic(Characteristic.BatteryLevel, 10);
 						this.log.warn('Replace batteries for %s soon', response.data.valve.name)
 						break
 				}

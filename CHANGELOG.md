@@ -4,6 +4,7 @@
 Updates
 -  Code Cleanup
 -  Support Homebridge 2.0 & Node 24 (HAP definitions, strict types)
+-  show representative battery level
 -  Bumped dependencies
 
 ## 1.4.6
