@@ -9,5 +9,8 @@ module.exports = homebridge => {
 	PluginName = packageJson.name
 	PluginVersion = packageJson.version
 	PlatformName = 'rachio'
+	RachioPlatform.HapStatusError = homebridge.hap.HapStatusError
+	RachioPlatform.HAPStatus = homebridge.hap.HAPStatus
+
 	homebridge.registerPlatform(PluginName, PlatformName, RachioPlatform, true)
 }
