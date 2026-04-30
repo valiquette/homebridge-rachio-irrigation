@@ -527,6 +527,133 @@ class RachioAPI {
 		}
 	}
 
+		async getValveDayViews(token, baseStationId) {
+		try {
+			this.log.debug('Getting Base Station')
+			let response = await axios({
+				method: 'post',
+				baseURL: alt_api_endpoint,
+				url: `/summary/getValveDayViews`,
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
+				},
+				responseType: 'json',
+				data: {
+					"start": {
+						"year": new Date().getFullYear(),
+						"month": new Date().getMonth()+1,
+						"day": new Date().getDate()
+					},
+					"end": {
+						"year": new Date().getFullYear(),
+						"month": new Date().getMonth()+1,
+						"day": new Date().getDate()
+					},
+					"resourceId": {
+						"baseStationId": baseStationId
+					}
+				}
+			}).catch(err => {
+				this.log.error('Error getting base station daily views %s', err.message)
+				this.log.debug(JSON.stringify(err, null, 2))
+				if (err.response) {
+					this.log.warn(JSON.stringify(err.response.data, null, 2))
+				}
+				return err.response
+			})
+			if (response.status == 200) {
+				if (this.platform.showAPIMessages) {
+					this.log.debug('get base station daily view response', JSON.stringify(response.data, null, 2))
+				}
+				return response.data
+			}
+		} catch (err) {
+			this.log.error('Error getting base station daily view \n%s', err)
+		}
+	}
+
+	async createSkip(token, runId) {
+		try {
+			this.log.debug('Creating Skip Event')
+			let response = await axios({
+				method: 'post',
+				baseURL: alt_api_endpoint,
+				url: `/program/createPlannedRunSkipOverrides`,
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
+				},
+				responseType: 'json',
+				data: {
+					"date": {
+						"year": new Date().getFullYear(),
+						"month": new Date().getMonth()+1,
+						"day": new Date().getDate()
+					},
+					"plannedRunId": runId
+				}
+			}).catch(err => {
+				this.log.error('Error creating skip event %s', err.message)
+				this.log.debug(JSON.stringify(err, null, 2))
+				if (err.response) {
+					this.log.warn(JSON.stringify(err.response.data, null, 2))
+				}
+				return err.response
+			})
+			if (response.status == 200) {
+				if (this.platform.showAPIMessages) {
+					this.log.debug('Create skip response', JSON.stringify(response.data, null, 2))
+				}
+				return response.data
+			}
+		} catch (err) {
+			this.log.error('Error creating skip event \n%s', err)
+		}
+	}
+
+	async deleteSkip(token, runId) {
+		try {
+			this.log.debug('Deleting Skip Event')
+			let response = await axios({
+				method: 'post',
+				baseURL: alt_api_endpoint,
+				url: `/program/deletePlannedRunSkipOverrides`,
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
+				},
+				responseType: 'json',
+				data: {
+					"date": {
+						"year": new Date().getFullYear(),
+						"month": new Date().getMonth()+1,
+						"day": new Date().getDate()
+					},
+					"plannedRunId": runId
+				}
+			}).catch(err => {
+				this.log.error('Error deleting skip event %s', err.message)
+				this.log.debug(JSON.stringify(err, null, 2))
+				if (err.response) {
+					this.log.warn(JSON.stringify(err.response.data, null, 2))
+				}
+				return err.response
+			})
+			if (response.status == 200) {
+				if (this.platform.showAPIMessages) {
+					this.log.debug('Delete skip response', JSON.stringify(response.data, null, 2))
+				}
+				return response.data
+			}
+		} catch (err) {
+			this.log.error('Error deleting skip event \n%s', err)
+		}
+	}
+
 	async listValves(token, baseStationId) {
 		try {
 			this.log.debug('Getting valves List')

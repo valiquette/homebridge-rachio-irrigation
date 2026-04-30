@@ -240,6 +240,12 @@
 				"required": true,
 				"default": true
 			},
+			"showPrograms": {
+				"title": "Expose Smart Hose Programs ablity to skip in HomeKit",
+				"type": "boolean",
+				"required": true,
+				"default": false
+			},
 			"liveRefreshTimeout": {
 				"title": "Active Polling Timeout",
 				"description": "Active polling duration in minutes. Default 2",
@@ -328,6 +334,7 @@
 			"items": [
 				"showBridge",
 				"showValves",
+				"showPrograms",
 				"valveType",
 				"pollValves",
 				"liveRefreshTimeout",

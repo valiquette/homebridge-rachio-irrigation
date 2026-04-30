@@ -1,5 +1,9 @@
 # Changes
 
+## 1.5.0-beta.1
+Enhancement
+-  Added Valve Program switch to allow manual skip overrides
+
 ## 1.4.7
 Updates
 -  Code Cleanup

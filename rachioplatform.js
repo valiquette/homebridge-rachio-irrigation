@@ -12,6 +12,7 @@ let listener = require('./listener')
 let irrigation = require('./devices/irrigation')
 let switches = require('./devices/switches')
 let valve = require('./devices/valve')
+let skipSwitch = require('./devices/skipSwitch')
 let battery = require('./devices/battery')
 let bridge = require('./devices/bridge')
 let deviceState
@@ -34,6 +35,7 @@ class RachioPlatform {
 		this.irrigation = new irrigation(this, log, config)
 		this.switches = new switches(this, log)
 		this.valve = new valve(this, log, config)
+		this.skipSwitch = new skipSwitch(this, log)
 		this.battery = new battery(this, log)
 		this.bridge = new bridge(this, log)
 		this.log = log
@@ -73,14 +75,18 @@ class RachioPlatform {
 		this.showAPIMessages = config.showAPIMessages ? config.showAPIMessages : false
 		this.showWebhookMessages = config.showWebhookMessages ? config.showWebhookMessages : false
 		this.showBridge = config.showBridge ? config.showBridge : false
+		this.showSkip = config.showPrograms ? config.showPrograms : false
 		this.showControllers = config.showControllers ? config.showControllers : false
 		this.showValves = config.showValves ? config.showValves : false
 		this.valveType = config.valveType ? config.valveType : 0
 
+		if(this.showSkip && !this.showBridge){
+			this.showBridge = true
+			this.log.warn('Expose WiFi Bridge must be set to true in plugin in config when exposing programs')
+		}
 		if (this.useBasicAuth && (!this.user || !this.password)) {
 			this.log.warn(`HTTP Basic Athentication cannot be used for webhooks without a valid user and password.`)
 		}
-
 		if (!this.token) {
 			this.log.error(`API KEY is required in order to communicate with the Rachio API, please see https://rachio.readme.io/docs/authentication for instructions.`)
 		} else {
@@ -607,6 +613,26 @@ class RachioPlatform {
 							this.log.info('Skipping WiFi Hub %s based on config for', this.locationAddress)
 						}
 
+						if (this.showSkip) {
+							this.log.debug('Adding Skip Program Switches')
+							// Create and configure skip switch
+							this.log.debug('Creating and configuring switch to toggle manual skip')
+							this.setSkip(baseStation)
+							//set loop here
+
+							const now = new Date();
+							const midnight = new Date(now);
+							midnight.setHours(24, 0, 0, 0); // Sets to 00:00:00.000 of the next day
+
+							setTimeout(() => {
+								setInterval(() => {
+									this.log.warn('Checking for new programs')
+									this.setSkip(baseStation)
+								}, 24 * 60 * 60 * 1000) // 24 hours
+							}, midnight.getTime() - now.getTime()) //to next midnight
+
+						}
+
 						let valveList = await this.rachioapi.listValves(this.token, baseStation.id).catch(err => {
 							this.log.error('Failed to get valve list', err)
 							throw err
@@ -877,5 +903,49 @@ class RachioPlatform {
 			this.listener.eventMsg(irrigationSystemService, service, myJson)
 		}
 	}
+
+	async setSkip(baseStation){
+		let programs = await this.rachioapi.getValveDayViews(this.token, baseStation.id).catch(err => {
+			this.log.error('Failed to get base station list', err)
+			throw err
+		})
+		let activePrograms = []
+		let uuid = baseStation.id
+		let bridgeAccessory = this.accessories[uuid]
+		programs.valveDayViews.forEach(day => {
+			day.valveProgramRunSummaries.forEach(run => {
+				activePrograms.push(run.programId)
+				this.log(run.programId)
+				let skipService = bridgeAccessory.getServiceById(Service.Switch, run.programId)
+				if (!skipService) {
+					skipService = this.skipSwitch.createSwitchService('Skip ' + run.programName, run.programId)
+					bridgeAccessory.addService(skipService)
+				}
+				this.skipSwitch.configureSwitchService(run, skipService, baseStation)
+				this.log.debug('updating Skip Program Switches')
+				if (!this.accessories[uuid]) {
+					this.log.debug('Registering platform accessory')
+					this.accessories[uuid] = bridgeAccessory
+					this.api.registerPlatformAccessories(PluginName, PlatformName, [bridgeAccessory])
+				}
+			})
+			//logic to remove old switch
+			bridgeAccessory.services.forEach(service => {
+				if(service.constructor.name == 'Switch'){
+					//this.log.warn(service.constructor.name, service.displayName, service.subtype)
+					let found = activePrograms.find((element) => element == service.subtype);
+					if (!found) {
+						let skipService = bridgeAccessory.getServiceById(Service.Switch, service.subtype)
+						if (skipService) {
+							this.log.dedug('removing old program %s', service.displayName)
+							bridgeAccessory.removeService(skipService)
+							this.api.updatePlatformAccessories([bridgeAccessory])
+						}
+					}
+				}
+			})
+		})
+	}
+
 }
 module.exports = RachioPlatform
