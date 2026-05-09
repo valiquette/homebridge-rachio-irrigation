@@ -677,7 +677,7 @@ class RachioPlatform {
 																.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
 																.setCharacteristic(Characteristic.ChargingState, Characteristic.ChargingState.NOT_CHARGEABLE)
 																.setCharacteristic(Characteristic.BatteryLevel, 10);
-															this.log.warn('Replace batteries for %s soon', response.data.valve.name)
+															this.log.warn('Replace batteries for %s soon', valve.name)
 															break
 										}
 									} else {
