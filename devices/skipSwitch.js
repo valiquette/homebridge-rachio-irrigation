@@ -5,6 +5,8 @@ class skipSwitch {
 		this.log = log
 		this.platform = platform
 		this.rachioapi = new RachioAPI(platform, log)
+		this.delta = []
+		this.timeStamp = []
 	}
 
 	createSwitchService(switchName, uuid) {
@@ -43,7 +45,7 @@ class skipSwitch {
 				run.valveRunSummaries.forEach(summary => {
 					if(device.programId == run.programId){
 						if(summary.skip?.manualOverrideTrigger == undefined){
-							this.log.info('create skip')
+							this.log.info('Add skip for program % valve ',run.programName, summary.valveName)
 							if(run.plannedRunId) {
 								response = this.rachioapi.createSkip(this.platform.token, run.plannedRunId)
 							}
@@ -53,7 +55,7 @@ class skipSwitch {
 								switchService.getCharacteristic(Characteristic.On).updateValue(false)
 							}
 						} else {
-							this.log.info('delete skip')
+							this.log.info('Remove skip for program % valve ',run.programName, summary.valveName)
 							if(run.plannedRunId){
 								response = this.rachioapi.deleteSkip(this.platform.token, run.plannedRunId)
 							}
@@ -71,13 +73,27 @@ class skipSwitch {
 	}
 
 	async getSwitchValue(device, switchService, baseStation) {
+		let deviceId = switchService.subtype
 		let currentValue = switchService.getCharacteristic(Characteristic.On).value
+
+		if(!this.timeStamp[deviceId]) {
+			this.timeStamp[deviceId] = new Date()
+		}
+		//check for duplicate call
+		this.delta[deviceId] = new Date() - this.timeStamp[deviceId]
+		if (this.delta[deviceId] > 60 * 60 * 1000 || this.delta[deviceId] == 0) {  // check after 1 hour
+			this.timeStamp[deviceId] = new Date()
+		} else {
+			this.log.debug('skipped program update, to soon. timestamp delta %s sec', this.delta[deviceId]/1000)
+			return currentValue
+		}
+
 		if (switchService.getCharacteristic(Characteristic.StatusFault).value == Characteristic.StatusFault.GENERAL_FAULT) {
 			throw new HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE)
 		} else {
 			let programs = await this.rachioapi.getValveDayViews(this.platform.token, baseStation.id).catch(err => {
-			this.log.error('Failed to get daily view', err)
-			throw err
+			//this.log.error('Failed to get daily view', err)
+			throw (`Failed to get daily view ${err}`)
 		})
 		programs.valveDayViews.forEach(day => {
 			day.valveProgramRunSummaries.forEach(run => {

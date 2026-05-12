@@ -180,8 +180,12 @@ class RachioPlatform {
 			/(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))/
 		let fqdnformat = /(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{0,62}[a-zA-Z0-9]\.)+[a-zA-Z]{2,63}$)/
 		if (this.relay_address) {
-			this.useBasicAuth = false
-			this.external_webhook_address = this.relay_address
+			if (this.useBasicAuth && this.user && this.password) {
+				let destination = (this.relay_address.split('//'))
+				this.external_webhook_address = destination[0] + '//' + this.user + ':' + this.password + '@' + destination[1]
+			} else {
+				this.external_webhook_address = this.relay_address
+			}
 			this.external_webhook_addressv2 = this.relay_address
 		}
 		//check external IP address
@@ -331,6 +335,7 @@ class RachioPlatform {
 							}
 							this.log('Retrieved device state %s for %s with a %s state, running', deviceState.state.state, newDevice.name, deviceState.state.desiredState, deviceState.state.firmwareVersion)
 							if (this.external_webhook_address) {
+								//v1 srtill used for device status
 								this.rachioapi.configureWebhooks(this.token, this.external_webhook_address, this.delete_webhooks, newDevice.id, newDevice.name, this.webhook_key, 'irrigation_controller_id')
 								this.rachioapi.configureWebhooksv2(this.token, this.external_webhook_addressv2, this.delete_webhooks, newDevice.id, newDevice.name, this.webhook_key, 'irrigation_controller_id')
 							}
@@ -589,10 +594,9 @@ class RachioPlatform {
 							this.log.warn('Hub firmware upgrade available')
 						}
 						if (this.showBridge) {
+							// Create and configure Bridge Service
 							this.log.debug('Adding Hub Device')
 							this.log.debug('Found WiFi Hub %s', location.property.address.locality)
-
-							// Create and configure Bridge Service
 							this.log.debug('Creating and configuring new Wifi Hub')
 							let bridgeAccessory = this.bridge.createBridgeAccessory(baseStation, location, this.accessories[uuid])
 							let bridgeService = bridgeAccessory.getService(Service.WiFiTransport)
@@ -614,23 +618,23 @@ class RachioPlatform {
 						}
 
 						if (this.showSkip) {
-							this.log.debug('Adding Skip Program Switches')
 							// Create and configure skip switch
+							this.log.debug('Adding Skip Program Switches')
 							this.log.debug('Creating and configuring switch to toggle manual skip')
 							this.setSkip(baseStation)
 							//set loop here
 
-							const now = new Date();
-							const midnight = new Date(now);
-							midnight.setHours(24, 0, 0, 0); // Sets to 00:00:00.000 of the next day
-
+							const now = new Date()
+							const midnight = new Date()
+							midnight.setHours(24, 1, 0, 0) // Sets to 00:01:00
 							setTimeout(() => {
 								setInterval(() => {
-									this.log.warn('Checking for new programs')
+									this.log.info('Checking for programs chnages')
 									this.setSkip(baseStation)
-								}, 24 * 60 * 60 * 1000) // 24 hours
+								}, 24 * 60 * 60 * 1000) // every 24 hours
+								this.setSkip(baseStation)
 							}, midnight.getTime() - now.getTime()) //to next midnight
-
+							//this.log(new Date(midnight.getTime() - now.getTime()).toISOString().slice(11, 16))
 						}
 
 						let valveList = await this.rachioapi.listValves(this.token, baseStation.id).catch(err => {
@@ -703,7 +707,7 @@ class RachioPlatform {
 																.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
 																.setCharacteristic(Characteristic.ChargingState, Characteristic.ChargingState.NOT_CHARGEABLE)
 																.setCharacteristic(Characteristic.BatteryLevel, 10);
-															this.log.warn('Replace batteries for %s soon', response.data.valve.name)
+															this.log.warn('Replace batteries for %s soon', valve.name)
 															break
 										}
 									} else {
@@ -847,6 +851,8 @@ class RachioPlatform {
 	}
 
 	setValveStatus(response) {
+		//set current valve status
+		//create a fake webhook response
 		if (response.status == 'PROCESSING') {
 			//create a fake webhook response
 			this.log.debug('Found zone-%s running', response.zoneNumber)
@@ -905,46 +911,51 @@ class RachioPlatform {
 	}
 
 	async setSkip(baseStation){
-		let programs = await this.rachioapi.getValveDayViews(this.token, baseStation.id).catch(err => {
-			this.log.error('Failed to get base station list', err)
-			throw err
-		})
-		let activePrograms = []
-		let uuid = baseStation.id
-		let bridgeAccessory = this.accessories[uuid]
-		programs.valveDayViews.forEach(day => {
-			day.valveProgramRunSummaries.forEach(run => {
-				activePrograms.push(run.programId)
-				this.log(run.programId)
-				let skipService = bridgeAccessory.getServiceById(Service.Switch, run.programId)
-				if (!skipService) {
-					skipService = this.skipSwitch.createSwitchService('Skip ' + run.programName, run.programId)
-					bridgeAccessory.addService(skipService)
-				}
-				this.skipSwitch.configureSwitchService(run, skipService, baseStation)
-				this.log.debug('updating Skip Program Switches')
-				if (!this.accessories[uuid]) {
-					this.log.debug('Registering platform accessory')
-					this.accessories[uuid] = bridgeAccessory
-					this.api.registerPlatformAccessories(PluginName, PlatformName, [bridgeAccessory])
-				}
+		try {
+			//create schedule to get planned runs for the day
+			//and or remove new switches for the day
+			let programs = await this.rachioapi.getValveDayViews(this.token, baseStation.id).catch(err => {
+				throw (`Failed to get base station list ${err}`)
 			})
-			//logic to remove old switch
-			bridgeAccessory.services.forEach(service => {
-				if(service.constructor.name == 'Switch'){
-					//this.log.warn(service.constructor.name, service.displayName, service.subtype)
-					let found = activePrograms.find((element) => element == service.subtype);
-					if (!found) {
-						let skipService = bridgeAccessory.getServiceById(Service.Switch, service.subtype)
-						if (skipService) {
-							this.log.dedug('removing old program %s', service.displayName)
-							bridgeAccessory.removeService(skipService)
-							this.api.updatePlatformAccessories([bridgeAccessory])
+			let activePrograms = []
+			let uuid = baseStation.id
+			let bridgeAccessory = this.accessories[uuid]
+			programs.valveDayViews.forEach(day => {
+				day.valveProgramRunSummaries.forEach(run => {
+					activePrograms.push(run.programId)
+					this.log.info('Updating Program %s', run.programName)
+					let skipService = bridgeAccessory.getServiceById(Service.Switch, run.programId)
+					if (!skipService) {
+						skipService = this.skipSwitch.createSwitchService('Skip ' + run.programName, run.programId)
+						this.log.info('Adding program switch %s', skipService.displayName)
+						bridgeAccessory.addService(skipService)
+					}
+					this.skipSwitch.configureSwitchService(run, skipService, baseStation)
+					this.log.debug('Updating skip program switches')
+					if (!this.accessories[uuid]) {
+						this.log.debug('Registering platform accessory')
+						this.accessories[uuid] = bridgeAccessory
+						this.api.registerPlatformAccessories(PluginName, PlatformName, [bridgeAccessory])
+					}
+				})
+				//logic to remove old switch
+				bridgeAccessory.services.forEach(service => {
+					if(service.constructor.name == 'Switch'){
+						let found = activePrograms.find((element) => element == service.subtype);
+						if (!found) {
+							let skipService = bridgeAccessory.getServiceById(Service.Switch, service.subtype)
+							if (skipService) {
+								this.log.info('Removing unused program switch %s', service.displayName)
+								bridgeAccessory.removeService(skipService)
+								this.api.updatePlatformAccessories([bridgeAccessory])
+							}
 						}
 					}
-				}
+				})
 			})
-		})
+		} catch (err) {
+			this.log.error(err)
+		}
 	}
 
 }

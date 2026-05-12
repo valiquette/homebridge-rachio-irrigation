@@ -241,7 +241,7 @@
 				"default": true
 			},
 			"showPrograms": {
-				"title": "Expose Smart Hose Programs ablity to skip in HomeKit",
+				"title": "Expose Smart Hose Timer's ablity to skip Programs in HomeKit",
 				"type": "boolean",
 				"required": true,
 				"default": false
