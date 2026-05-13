@@ -1,5 +1,13 @@
 # Changes
 
+## 1.5.1
+Enhancement
+-  Added Valve Program switch to allow manual skip overrides
+-  Improve error handling
+-  Fix webhook bug with basic aith for webhook v1 issue #87
+-  Fixes a runtime error triggered when a Rachio wireless valve reports a critically low battery state.
+-  Bumped dependencies
+
 ## 1.4.7
 Updates
 -  Code Cleanup

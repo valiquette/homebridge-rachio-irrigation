@@ -28,36 +28,41 @@ class listen {
 			this.log.debug('Will listen for Webhooks matching Webhook ID %s', this.platform.webhook_key)
 			server
 				.createServer(options, (request, response) => {
-					let authPassed
-					if (this.platform.useBasicAuth) {
-						if (request.headers.authorization) {
-							let b64encoded = Buffer.from(this.user + ':' + this.password, 'utf8').toString('base64')
-							this.log.debug('webhook request authorization header=%s', request.headers.authorization)
-							this.log.debug('webhook expected authorization header=%s', 'Basic ' + b64encoded)
-							if (request.headers.authorization == 'Basic ' + b64encoded) {
-								this.log.debug('Webhook authentication passed')
-								authPassed = true
-							} else {
-								this.log.warn('Webhook authentication failed')
-								this.log.debug('Webhook authentication failed', request.headers.authorization)
-								authPassed = false
-							}
-						} else {
-							this.log.warn('Expecting webhook authentication')
-							this.log.debug('Expecting webhook authentication', request)
-							authPassed = false
-						}
-					} else {
-						authPassed = true
-					}
+					let webhookAuthentication
 					if (request.method === 'GET' && request.url === '/test') {
-						this.log.info('Test received on Rachio listener. Webhooks are configured correctly! Authorization %s', authPassed ? 'passed' : 'failed')
+						//check v1 authentication
+						if (request.headers.authorization){
+							webhookAuthentication = this.checkAuth(request)
+							this.log.debug('Webhook v1 Authentication', webhookAuthentication ? 'passed' : 'failed')
+							if(!webhookAuthentication){
+								this.log.warn('Webhook v1 Authentication failed unknown sender')
+							}
+						}
+						//check v2 authentication SHT
+						if(request.headers['x-signature']){
+							webhookAuthentication = this.checkKey(this.platform.token, request.headers['x-signature'], JSON.stringify(jsonBody))
+							this.log.debug('Webhook v2 Authentication', webhookAuthentication ? 'passed' : 'failed')
+							if(!webhookAuthentication){
+								this.log.warn('Webhook v2 Authentication failed unknown sender')
+							}
+						}
+						//check for basic auth enabled
+						if (this.platform.useBasicAuth && !request.headers.authorization && !request.headers['x-signature']){
+							webhookAuthentication = false
+							this.log.debug('Webhook Authentication', webhookAuthentication ? 'passed' : 'failed')
+							if(!webhookAuthentication){
+								this.log.warn('Webhook Authentication failed')
+							}
+						}
+						this.log.info('Test received on Rachio listener. Webhooks are configured correctly! Authorization %s', webhookAuthentication ? 'passed' : 'failed')
 						response.writeHead(200)
-						//response.write(new Date().toTimeString() + ' Webhooks are configured correctly! Authorization ' + authPassed ? 'passed' : 'failed')
-						let x = `${new Date().toTimeString()} \nWebhooks are configured correctly! \nAuthorization ${authPassed ? 'passed' : 'failed'}`
+						let x = `${new Date().toTimeString()} \nWebhooks are configured correctly! \nAuthorization ${webhookAuthentication ? 'passed' : 'failed'}`
 						response.write(x)
+						if (this.platform.useBasicAuth) {
+							response.write(`\nHTTP basic authentication is enabled and failing authorization in this test is expected.`)
+						}
 						return response.end()
-					} else if (request.method === 'POST' && request.url === '/' && authPassed) {
+					} else if (request.method === 'POST' && request.url === '/') {
 						let body = []
 						request
 							.on('data', chunk => {
@@ -67,12 +72,32 @@ class listen {
 								try {
 									body = Buffer.concat(body).toString().trim()
 									let jsonBody = JSON.parse(body)
-									//check v2 authentication
-									if(request.headers['x-signature']){
-										let webhookAuthentication = this.checkKey(this.platform.token, request.headers['x-signature'], JSON.stringify(jsonBody))
+									//check v1 authentication
+									if (request.headers.authorization){
+										webhookAuthentication = this.checkAuth(request)
+										this.log.debug('Webhook v1 Authentication', webhookAuthentication ? 'passed' : 'failed')
+										if(!webhookAuthentication){
+											this.log.warn('Webhook v1 Authentication failed unknown sender')
+											response.writeHead(403)
+											return response.end()
+										}
+									}
+									//check v2 authentication SHT
+									if (request.headers['x-signature']){
+										webhookAuthentication = this.checkKey(this.platform.token, request.headers['x-signature'], JSON.stringify(jsonBody))
+										this.log.debug('Webhook v2 Authentication', webhookAuthentication ? 'passed' : 'failed')
+										if(!webhookAuthentication){
+											this.log.warn('Webhook v2 Authentication failed unknown sender')
+											response.writeHead(403)
+											return response.end()
+										}
+									}
+									//check for basic auth enabled
+									if (this.platform.useBasicAuth && !request.headers.authorization && !request.headers['x-signature']){
+										webhookAuthentication = false
 										this.log.debug('Webhook Authentication', webhookAuthentication ? 'passed' : 'failed')
 										if(!webhookAuthentication){
-											this.log.warn('Webhook Authentication failed unknown sender')
+											this.log.warn('Webhook Authentication failed')
 											response.writeHead(403)
 											return response.end()
 										}
@@ -184,6 +209,18 @@ class listen {
 			.digest('hex')
 		if (signature == hash) {
 			pass = true
+		}
+		return pass
+	}
+
+	checkAuth(message){
+		let pass = false
+		let b64encoded = Buffer.from(this.platform.user + ':' + this.platform.password, 'utf8').toString('base64')
+		if (message.headers.authorization == 'Basic ' + b64encoded) {
+			pass = true
+		} else {
+			this.log.debug('webhook v1 request authorization header=%s', message.headers.authorization)
+			this.log.debug('webhook v1 expected authorization header=%s', 'Basic ' + b64encoded)
 		}
 		return pass
 	}

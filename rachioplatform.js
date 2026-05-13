@@ -12,6 +12,7 @@ let listener = require('./listener')
 let irrigation = require('./devices/irrigation')
 let switches = require('./devices/switches')
 let valve = require('./devices/valve')
+let skipSwitch = require('./devices/skipSwitch')
 let battery = require('./devices/battery')
 let bridge = require('./devices/bridge')
 let deviceState
@@ -34,6 +35,7 @@ class RachioPlatform {
 		this.irrigation = new irrigation(this, log, config)
 		this.switches = new switches(this, log)
 		this.valve = new valve(this, log, config)
+		this.skipSwitch = new skipSwitch(this, log)
 		this.battery = new battery(this, log)
 		this.bridge = new bridge(this, log)
 		this.log = log
@@ -73,14 +75,18 @@ class RachioPlatform {
 		this.showAPIMessages = config.showAPIMessages ? config.showAPIMessages : false
 		this.showWebhookMessages = config.showWebhookMessages ? config.showWebhookMessages : false
 		this.showBridge = config.showBridge ? config.showBridge : false
+		this.showSkip = config.showPrograms ? config.showPrograms : false
 		this.showControllers = config.showControllers ? config.showControllers : false
 		this.showValves = config.showValves ? config.showValves : false
 		this.valveType = config.valveType ? config.valveType : 0
 
+		if(this.showSkip && !this.showBridge){
+			this.showBridge = true
+			this.log.warn('Expose WiFi Bridge must be set to true in plugin in config when exposing programs')
+		}
 		if (this.useBasicAuth && (!this.user || !this.password)) {
 			this.log.warn(`HTTP Basic Athentication cannot be used for webhooks without a valid user and password.`)
 		}
-
 		if (!this.token) {
 			this.log.error(`API KEY is required in order to communicate with the Rachio API, please see https://rachio.readme.io/docs/authentication for instructions.`)
 		} else {
@@ -174,8 +180,12 @@ class RachioPlatform {
 			/(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))/
 		let fqdnformat = /(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{0,62}[a-zA-Z0-9]\.)+[a-zA-Z]{2,63}$)/
 		if (this.relay_address) {
-			this.useBasicAuth = false
-			this.external_webhook_address = this.relay_address
+			if (this.useBasicAuth && this.user && this.password) {
+				let destination = (this.relay_address.split('//'))
+				this.external_webhook_address = destination[0] + '//' + this.user + ':' + this.password + '@' + destination[1]
+			} else {
+				this.external_webhook_address = this.relay_address
+			}
 			this.external_webhook_addressv2 = this.relay_address
 		}
 		//check external IP address
@@ -325,6 +335,7 @@ class RachioPlatform {
 							}
 							this.log('Retrieved device state %s for %s with a %s state, running', deviceState.state.state, newDevice.name, deviceState.state.desiredState, deviceState.state.firmwareVersion)
 							if (this.external_webhook_address) {
+								//v1 srtill used for device status
 								this.rachioapi.configureWebhooks(this.token, this.external_webhook_address, this.delete_webhooks, newDevice.id, newDevice.name, this.webhook_key, 'irrigation_controller_id')
 								this.rachioapi.configureWebhooksv2(this.token, this.external_webhook_addressv2, this.delete_webhooks, newDevice.id, newDevice.name, this.webhook_key, 'irrigation_controller_id')
 							}
@@ -583,10 +594,9 @@ class RachioPlatform {
 							this.log.warn('Hub firmware upgrade available')
 						}
 						if (this.showBridge) {
+							// Create and configure Bridge Service
 							this.log.debug('Adding Hub Device')
 							this.log.debug('Found WiFi Hub %s', location.property.address.locality)
-
-							// Create and configure Bridge Service
 							this.log.debug('Creating and configuring new Wifi Hub')
 							let bridgeAccessory = this.bridge.createBridgeAccessory(baseStation, location, this.accessories[uuid])
 							let bridgeService = bridgeAccessory.getService(Service.WiFiTransport)
@@ -605,6 +615,26 @@ class RachioPlatform {
 							}
 						} else {
 							this.log.info('Skipping WiFi Hub %s based on config for', this.locationAddress)
+						}
+
+						if (this.showSkip) {
+							// Create and configure skip switch
+							this.log.debug('Adding Skip Program Switches')
+							this.log.debug('Creating and configuring switch to toggle manual skip')
+							this.setSkip(baseStation)
+							//set loop here
+
+							const now = new Date()
+							const midnight = new Date()
+							midnight.setHours(24, 1, 0, 0) // Sets to 00:01:00
+							setTimeout(() => {
+								setInterval(() => {
+									this.log.info('Checking for programs chnages')
+									this.setSkip(baseStation)
+								}, 24 * 60 * 60 * 1000) // every 24 hours
+								this.setSkip(baseStation)
+							}, midnight.getTime() - now.getTime()) //to next midnight
+							//this.log(new Date(midnight.getTime() - now.getTime()).toISOString().slice(11, 16))
 						}
 
 						let valveList = await this.rachioapi.listValves(this.token, baseStation.id).catch(err => {
@@ -821,6 +851,8 @@ class RachioPlatform {
 	}
 
 	setValveStatus(response) {
+		//set current valve status
+		//create a fake webhook response
 		if (response.status == 'PROCESSING') {
 			//create a fake webhook response
 			this.log.debug('Found zone-%s running', response.zoneNumber)
@@ -877,5 +909,54 @@ class RachioPlatform {
 			this.listener.eventMsg(irrigationSystemService, service, myJson)
 		}
 	}
+
+	async setSkip(baseStation){
+		try {
+			//create schedule to get planned runs for the day
+			//and or remove new switches for the day
+			let programs = await this.rachioapi.getValveDayViews(this.token, baseStation.id).catch(err => {
+				throw (`Failed to get base station list ${err}`)
+			})
+			let activePrograms = []
+			let uuid = baseStation.id
+			let bridgeAccessory = this.accessories[uuid]
+			programs.valveDayViews.forEach(day => {
+				day.valveProgramRunSummaries.forEach(run => {
+					activePrograms.push(run.programId)
+					this.log.info('Updating Program %s', run.programName)
+					let skipService = bridgeAccessory.getServiceById(Service.Switch, run.programId)
+					if (!skipService) {
+						skipService = this.skipSwitch.createSwitchService('Skip ' + run.programName, run.programId)
+						this.log.info('Adding program switch %s', skipService.displayName)
+						bridgeAccessory.addService(skipService)
+					}
+					this.skipSwitch.configureSwitchService(run, skipService, baseStation)
+					this.log.debug('Updating skip program switches')
+					if (!this.accessories[uuid]) {
+						this.log.debug('Registering platform accessory')
+						this.accessories[uuid] = bridgeAccessory
+						this.api.registerPlatformAccessories(PluginName, PlatformName, [bridgeAccessory])
+					}
+				})
+				//logic to remove old switch
+				bridgeAccessory.services.forEach(service => {
+					if(service.constructor.name == 'Switch'){
+						let found = activePrograms.find((element) => element == service.subtype);
+						if (!found) {
+							let skipService = bridgeAccessory.getServiceById(Service.Switch, service.subtype)
+							if (skipService) {
+								this.log.info('Removing unused program switch %s', service.displayName)
+								bridgeAccessory.removeService(skipService)
+								this.api.updatePlatformAccessories([bridgeAccessory])
+							}
+						}
+					}
+				})
+			})
+		} catch (err) {
+			this.log.error(err)
+		}
+	}
+
 }
 module.exports = RachioPlatform

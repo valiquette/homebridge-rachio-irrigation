@@ -64,7 +64,8 @@ class battery {
 		try {
 			this.log.debug('updating battery for valve deviceId ', deviceId)
 			let response = await this.rachioapi.getValve(this.platform.token, deviceId).catch(err => {
-				this.log.error('Failed to get valve', err)
+				//this.log.error('Failed to get valve', err)
+				throw (`Failed to get valve battery status ${err}`)
 			})
 			if (response.status == 200) {
 				switch (response.data.valve.state.reportedState.batteryStatus) {

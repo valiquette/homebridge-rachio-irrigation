@@ -527,6 +527,138 @@ class RachioAPI {
 		}
 	}
 
+		async getValveDayViews(token, baseStationId) {
+		try {
+			this.log.debug('Getting Base Station')
+			let response = await axios({
+				method: 'post',
+				baseURL: alt_api_endpoint,
+				url: `/summary/getValveDayViews`,
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
+				},
+				responseType: 'json',
+				data: {
+					"start": {
+						"year": new Date().getFullYear(),
+						"month": new Date().getMonth()+1,
+						"day": new Date().getDate()
+					},
+					"end": {
+						"year": new Date().getFullYear(),
+						"month": new Date().getMonth()+1,
+						"day": new Date().getDate()
+					},
+					"resourceId": {
+						"baseStationId": baseStationId
+					}
+				}
+			}).catch(err => {
+				this.log.error('Error getting base station daily views %s', err.message)
+				this.log.debug(JSON.stringify(err, null, 2))
+				if (err.response) {
+					this.log.debug(JSON.stringify(err.response.data, null, 2))
+				} else if (err.code) {
+					this.log.debug(err.code)
+				} else {
+					this.log.warn('Error %s', err.name)
+				}
+				throw err?.code?? err
+			})
+			if (response.status == 200) {
+				if (this.platform.showAPIMessages) {
+					this.log.debug('get base station daily view response', JSON.stringify(response.data, null, 2))
+				}
+				return response.data
+			}
+		} catch (err) {
+			throw err
+			//this.log.error('Error getting base station daily view \n%s', err)
+		}
+	}
+
+	async createSkip(token, runId) {
+		try {
+			this.log.debug('Creating Skip Event')
+			let response = await axios({
+				method: 'post',
+				baseURL: alt_api_endpoint,
+				url: `/program/createPlannedRunSkipOverrides`,
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
+				},
+				responseType: 'json',
+				data: {
+					"date": {
+						"year": new Date().getFullYear(),
+						"month": new Date().getMonth()+1,
+						"day": new Date().getDate()
+					},
+					"plannedRunId": runId
+				}
+			}).catch(err => {
+				this.log.error('Error creating skip event %s', err.message)
+				this.log.debug(JSON.stringify(err, null, 2))
+				if (err.response) {
+					this.log.warn(JSON.stringify(err.response.data, null, 2))
+				}
+				return err.response
+			})
+			if (response.status == 200) {
+				if (this.platform.showAPIMessages) {
+					this.log.debug('Create skip response', JSON.stringify(response.data, null, 2))
+				}
+				return response.data
+			}
+		} catch (err) {
+			this.log.error('Error creating skip event \n%s', err)
+		}
+	}
+
+	async deleteSkip(token, runId) {
+		try {
+			this.log.debug('Deleting Skip Event')
+			let response = await axios({
+				method: 'post',
+				baseURL: alt_api_endpoint,
+				url: `/program/deletePlannedRunSkipOverrides`,
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PluginName}/${PluginVersion}`
+				},
+				responseType: 'json',
+				data: {
+					"date": {
+						"year": new Date().getFullYear(),
+						"month": new Date().getMonth()+1,
+						"day": new Date().getDate()
+					},
+					"plannedRunId": runId
+				}
+			}).catch(err => {
+				this.log.error('Error deleting skip event %s', err.message)
+				this.log.debug(JSON.stringify(err, null, 2))
+				if (err.response) {
+					this.log.warn(JSON.stringify(err.response.data, null, 2))
+				}
+				return err.response
+			})
+			if (response.status == 200) {
+				if (this.platform.showAPIMessages) {
+					this.log.debug('Delete skip response', JSON.stringify(response.data, null, 2))
+				}
+				return response.data
+			}
+		} catch (err) {
+			this.log.error('Error deleting skip event \n%s', err)
+		}
+	}
+
 	async listValves(token, baseStationId) {
 		try {
 			this.log.debug('Getting valves List')
@@ -576,9 +708,13 @@ class RachioAPI {
 				this.log.error('Error getting valve %s', err.message)
 				this.log.debug(JSON.stringify(err, null, 2))
 				if (err.response) {
-					this.log.warn(JSON.stringify(err.response.data, null, 2))
+					this.log.debug(JSON.stringify(err.response.data, null, 2))
+				} else if (err.code) {
+					this.log.debug(err.code)
+				} else {
+					this.log.warn('Error %s', err.name)
 				}
-				return err.response
+				throw err?.code?? err
 			})
 			if (response.status == 200) {
 				if (this.platform.showAPIMessages) {
@@ -588,7 +724,8 @@ class RachioAPI {
 				return response
 			}
 		} catch (err) {
-			this.log.error('Error getting valve \n%s', err)
+			throw err
+			//this.log.error('Error getting valve \n%s', err)
 		}
 	}
 
@@ -869,11 +1006,11 @@ class RachioAPI {
 				})
 			}
 			if (this.platform.showAPIMessages) {
-				this.log.debug('create/update webhooks response', JSON.stringify(response.data, null, 2))
+				this.log.debug('create/update webhooks v1 response', JSON.stringify(response.data, null, 2))
 			}
 			let test_webhook_url = external_webhook_address + '/test'
 			if (response.status == 200) {
-				this.log.success('Successfully configured webhook for %s with external ID "%s" ', device_name, webhook_key)
+				this.log.success('Successfully configured webhook v1 for %s with external id "%s" ', device_name, webhook_key)
 				this.log.info(
 					'To test Webhook setup, navigate to %s to ensure port forwarding is configured correctly. ' +
 						'\nNote: For local config this will not work from this server, you cannot be connected to the same router doing the fowarding. ' +
@@ -891,24 +1028,35 @@ class RachioAPI {
 		try {
 			/*********************************************
 					Event Type options from webhook info
-					"SCHEDULE_STARTED_EVENT",
-					"SCHEDULE_STOPPED_EVENT",
-					"SCHEDULE_COMPLETED_EVENT",
-					"DEVICE_ZONE_RUN_STARTED_EVENT",
-					"DEVICE_ZONE_RUN_PAUSED_EVENT",
-					"DEVICE_ZONE_RUN_STOPPED_EVENT",
-					"DEVICE_ZONE_RUN_COMPLETED_EVENT",
-					"CLIMATE_SKIP_NOTIFICATION_EVENT",
-					"FREEZE_SKIP_NOTIFICATION_EVENT",
-					"RAIN_SKIP_NOTIFICATION_EVENT",
-					"WIND_SKIP_NOTIFICATION_EVENT",
-					"NO_SKIP_NOTIFICATION_EVENT"
+								"resourceType": "VALVE",
+								"eventTypes": [
+										"VALVE_RUN_START_EVENT",
+										"VALVE_RUN_END_EVENT"
 
-					"VALVE_RUN_START_EVENT",
-					"VALVE_RUN_END_EVENT"
+								"resourceType": "PROGRAM",
+								"eventTypes": [
+										"PROGRAM_RAIN_SKIP_CREATED_EVENT",
+										"PROGRAM_RAIN_SKIP_CANCELED_EVENT"
 
-					"PROGRAM_RAIN_SKIP_CREATED_EVENT",
-					"PROGRAM_RAIN_SKIP_CANCELED_EVENT"
+								"resourceType": "IRRIGATION_CONTROLLER",
+								"eventTypes": [
+										"SCHEDULE_STARTED_EVENT",
+										"SCHEDULE_STOPPED_EVENT",
+										"SCHEDULE_COMPLETED_EVENT",
+										"DEVICE_ZONE_RUN_STARTED_EVENT",
+										"DEVICE_ZONE_RUN_PAUSED_EVENT",
+										"DEVICE_ZONE_RUN_STOPPED_EVENT",
+										"DEVICE_ZONE_RUN_COMPLETED_EVENT",
+										"CLIMATE_SKIP_NOTIFICATION_EVENT",
+										"FREEZE_SKIP_NOTIFICATION_EVENT",
+										"RAIN_SKIP_NOTIFICATION_EVENT",
+										"WIND_SKIP_NOTIFICATION_EVENT",
+										"NO_SKIP_NOTIFICATION_EVENT"
+
+								"resourceType": "LIGHTING_CONTROLLER",
+								"eventTypes": [
+										"LIGHTING_ZONE_STATE_CHANGE_EVENT"
+
 			**********************************************/
 
 			let param
@@ -1105,7 +1253,7 @@ class RachioAPI {
 			}
 			let test_webhook_url = external_webhook_address + '/test'
 			if (response.status == 200) {
-				this.log.success('Successfully configured webhook for device id %s with external id "%s" ', device_name, webhook_key)
+				this.log.success('Successfully configured webhook SHT for device id %s with external id "%s" ', device_name, webhook_key)
 				this.log.info(
 					'To test Webhook setup, navigate to %s to ensure port forwarding is configured correctly. ' +
 						'\nNote: For local config this will not work from this server, you cannot be connected to the same router doing the fowarding. ' +
