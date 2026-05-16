@@ -255,8 +255,9 @@ class Rachio {
 						break
 					case 'DEVICE_STATUS':
 						this.log.debug('Device status update')
-						let irrigationAccessory = this.platform.accessories[jsonBody.deviceId]
-						let switchService = irrigationAccessory.getServiceById(Service.Switch, UUIDGen.generate(jsonBody.deviceName + ' Standby'))
+						const index = this.platform.accessories.findIndex(accessory => accessory.UUID === jsonBody.deviceId)
+						const irrigationAccessory = this.platform.accessories[index]
+						let switchService = irrigationAccessory.getServiceById(Service.Switch, genUUID.generate(jsonBody.deviceName + ' Standby'))
 						switch (jsonBody.subType) {
 							case 'ONLINE':
 								this.log('<%s> %s connected at %s', jsonBody.externalId, jsonBody.deviceId, new Date(jsonBody.timestamp).toString())
@@ -349,8 +350,9 @@ class Rachio {
 								if (Service.IrrigationSystem.UUID != activeService.UUID) {
 									activeService.getCharacteristic(Characteristic.On).updateValue(false)
 								} else if (this.showRunall) {
-									let irrigationAccessory = this.platform.accessories[jsonBody.deviceId]
-									let switchService = irrigationAccessory.getServiceById(Service.Switch, UUIDGen.generate(jsonBody.deviceName + ' Quick Run-All'))
+									const index = this.platform.accessories.findIndex(accessory => accessory.UUID === jsonBody.deviceId)
+									const irrigationAccessory = this.platform.accessories[index]
+									let switchService = irrigationAccessory.getServiceById(Service.Switch, genUUID.generate(jsonBody.deviceName + ' Quick Run-All'))
 									switchService.getCharacteristic(Characteristic.On).updateValue(false)
 								}
 								irrigationSystemService.getCharacteristic(Characteristic.InUse).updateValue(Characteristic.InUse.NOT_IN_USE)

@@ -108,8 +108,9 @@ class listen {
 									switch (jsonBody.resourceType) {
 										case 'IRRIGATION_CONTROLLER':
 											if (jsonBody.externalId === this.platform.webhook_key) {
-												let irrigationAccessory = this.platform.accessories[jsonBody.resourceId]
-												let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
+												const index = this.platform.accessories.findIndex(accessory => accessory.UUID === jsonBody.resourceId);
+												const irrigationAccessory = this.platform.accessories[index]
+												const irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
 												let service
 												if (jsonBody.payload.zoneNumber) {
 													let index = this.platform.zoneList
@@ -140,8 +141,9 @@ class listen {
 
 										case 'VALVE':
 											if (jsonBody.externalId === this.platform.webhook_key) {
-												let valveAccessory = this.platform.accessories[jsonBody.resourceId]
-												let valveService = valveAccessory.getService(Service.Valve)
+												const index = this.platform.accessories.findIndex(accessory => accessory.UUID === jsonBody.resourceId);
+												const valveAccessory = this.platform.accessories[index]
+												const valveService = valveAccessory.getService(Service.Valve)
 												this.log.debug('Webhook match found for %s will update valve service', valveService.getCharacteristic(Characteristic.Name).value)
 												this.eventMsg(null, valveService, jsonBody)
 												response.writeHead(204)
@@ -153,8 +155,9 @@ class listen {
 											}
 										default: //v1 webhooks
 											if (jsonBody.externalId === this.platform.webhook_key) {
-												let irrigationAccessory = this.platform.accessories[jsonBody.deviceId]
-												let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
+												const index = this.platform.accessories.findIndex(accessory => accessory.UUID === jsonBody.resourceId);
+												const irrigationAccessory = this.platform.accessories[index]
+												const irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
 												let service
 												if (jsonBody.zoneId) {
 													service = irrigationAccessory.getServiceById(Service.Valve, jsonBody.zoneId)

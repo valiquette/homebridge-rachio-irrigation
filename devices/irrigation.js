@@ -262,7 +262,8 @@ class irrigation {
 			this.log.debug('supressed duplicate call from IOS for %s, current value %s, new value %s', valveService.getCharacteristic(Characteristic.Name).value, value, valveService.getCharacteristic(Characteristic.Active).value)
 			return
 		}
-		let irrigationAccessory = this.platform.accessories[device.id]
+		const index = this.platform.accessories.findIndex(accessory => accessory.UUID === device.id)
+		const irrigationAccessory = this.platform.accessories[index]
 		let irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
 		// Set homekit state and prepare message for Rachio API
 		let runTime = valveService.getCharacteristic(Characteristic.SetDuration).value
