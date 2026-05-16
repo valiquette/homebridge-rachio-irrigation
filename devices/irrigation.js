@@ -3,12 +3,11 @@ let RachioAPI = require('../rachioapi')
 let listener = require('../listener')
 
 class irrigation {
-	constructor(platform, log, config) {
-		this.log = log
-		this.config = config
+	constructor(platform) {
+		this.log = platform.log
 		this.platform = platform
-		this.rachioapi = new RachioAPI(platform, log)
-		this.listener = new listener(platform, log, config)
+		this.rachioapi = new RachioAPI(platform)
+		this.listener = new listener(platform)
 	}
 	createIrrigationAccessory(device, deviceState, platformAccessory) {
 		this.log.debug('Create Irrigation device %s', device.id, device.name)
@@ -38,6 +37,7 @@ class irrigation {
 			.setCharacteristic(Characteristic.FirmwareRevision, deviceState.state.firmwareVersion)
 			.setCharacteristic(Characteristic.HardwareRevision, 'Rev-2')
 			.setCharacteristic(Characteristic.SoftwareRevision, packageJson.version)
+		this.configureIrrigationService(device, irrigationSystemService)
 		return platformAccessory
 	}
 
@@ -130,6 +130,8 @@ class irrigation {
 		} else {
 			valve.setCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.NOT_CONFIGURED)
 		}
+		this.updateValveService(device, zone, valveService)
+		this.configureValveService(device, valveService)
 		return valve
 	}
 

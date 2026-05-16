@@ -4,14 +4,14 @@ let listener = require('../listener')
 let polling = require('../polling')
 
 class valve {
-	constructor(platform, log, config) {
-		this.log = log
-		this.config = config
+	constructor(platform) {
+		this.log = platform.log
+		this.config = platform.config
 		this.platform = platform
-		this.rachioapi = new RachioAPI(platform, log)
-		this.listener = new listener(platform, log, config)
-		this.polling = new polling(platform, log, config)
-		this.pollValves = config.pollValves ? config.pollValves : false
+		this.rachioapi = new RachioAPI(platform)
+		this.listener = new listener(platform)
+		this.polling = new polling(platform)
+		this.pollValves = this.config.pollValves ? this.config.pollValves : false
 	}
 
 	createValveAccessory(base, property, valve, platformAccessory) {

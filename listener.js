@@ -5,11 +5,11 @@ let crypto = require('crypto')
 let RachioUpdate = require('./rachioupdate')
 
 class listen {
-	constructor(platform, log, config) {
-		this.log = log
-		this.config = config
+	constructor(platform) {
+		this.log = platform.log
+		this.config = platform.config
 		this.platform = platform
-		this.rachio = new RachioUpdate(platform, log, config)
+		this.rachio = new RachioUpdate(platform)
 	}
 
 	configureListener() {

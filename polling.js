@@ -1,16 +1,16 @@
 let RachioAPI = require('./rachioapi')
 
 class polling {
-	constructor(platform, log, config) {
-		this.log = log
-		this.config = config
+	constructor(platform) {
+		this.log = platform.log
+		this.config = platform.config
 		this.platform = platform
-		this.rachioapi = new RachioAPI(platform, log)
+		this.rachioapi = new RachioAPI(platform)
 
 		this.lastInterval = []
 		this.timeStamp = []
-		this.liveTimeout = config.liveRefreshTimeout ? config.liveRefreshTimeout : 2 //min
-		this.liveRefresh = config.liveRefreshRate ? config.liveRefreshRate : 20 //sec
+		this.liveTimeout = this.config.liveRefreshTimeout ? this.config.liveRefreshTimeout : 2 //min
+		this.liveRefresh = this.config.liveRefreshRate ? this.config.liveRefreshRate : 20 //sec
 	}
 
 	async startLiveUpdate(valveService) {

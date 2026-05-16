@@ -29,18 +29,17 @@ class RachioPlatform {
 		if (typeof global.HAPStatus === 'undefined') {
 			global.HAPStatus = HAPStatus
 		}
-		this.rachioapi = new RachioAPI(this, log)
-		this.rachio = new RachioUpdate(this, log, config)
-		this.listener = new listener(this, log, config)
-		this.irrigation = new irrigation(this, log, config)
-		this.switches = new switches(this, log)
-		this.valve = new valve(this, log, config)
-		this.skipSwitch = new skipSwitch(this, log)
-		this.battery = new battery(this, log)
-		this.bridge = new bridge(this, log)
 		this.log = log
 		this.api = api
 		this.config = config
+		this.rachioapi = new RachioAPI(this)
+		this.rachio = new RachioUpdate(this)
+		this.listener = new listener(this)
+		this.switches = new switches(this)
+		this.valve = new valve(this)
+		this.skipSwitch = new skipSwitch(this)
+		this.battery = new battery(this)
+		this.bridge = new bridge(this)
 		this.token = config.api_key
 		this.retryWait = config.retryWait ? config.retryWait : 60 //sec
 		this.retryMax = config.retryMax ? config.retryMax : 3 //attempts
@@ -138,6 +137,16 @@ class RachioPlatform {
 				}.bind(this)
 			)
 		}
+	}
+
+	//**
+	//** REQUIRED - Homebridge will call the 'configureAccessory' method once for every cached accessory restored //*
+	//**
+	
+	configureAccessory(accessory) {
+		// Add cached devices to the accessories array
+		this.log.info('Found cached accessory, configuring %s', accessory.displayName)
+		this.accessories[accessory.UUID] = accessory
 	}
 
 	identify() {
@@ -327,7 +336,6 @@ class RachioPlatform {
 							this.log.info('Getting device state info...')
 							deviceState = await this.rachioapi.getDeviceState(this.token, newDevice.id).catch(err => {
 								this.log.error('Failed to get device state', err)
-								//throw new Error ('Test')
 								throw err
 							})
 							if (!deviceState) {
@@ -335,21 +343,24 @@ class RachioPlatform {
 							}
 							this.log('Retrieved device state %s for %s with a %s state, running', deviceState.state.state, newDevice.name, deviceState.state.desiredState, deviceState.state.firmwareVersion)
 							if (this.external_webhook_address) {
-								//v1 srtill used for device status
+								//v1 still used for device status
 								this.rachioapi.configureWebhooks(this.token, this.external_webhook_address, this.delete_webhooks, newDevice.id, newDevice.name, this.webhook_key, 'irrigation_controller_id')
 								this.rachioapi.configureWebhooksv2(this.token, this.external_webhook_addressv2, this.delete_webhooks, newDevice.id, newDevice.name, this.webhook_key, 'irrigation_controller_id')
 							}
 
 							// Create and configure Irrigation Service
 							this.log.debug('Creating and configuring new device')
-							let irrigationAccessory = this.irrigation.createIrrigationAccessory(newDevice, deviceState, this.accessories[uuid])
-							this.irrigation.configureIrrigationService(newDevice, irrigationAccessory.getService(Service.IrrigationSystem))
+							//const uuid = this.genUUID(newDevice.id);
+							const index = this.accessories.findIndex(accessory => accessory.UUID === uuid);
+							const irrigationAccessory = new irrigation(this).createIrrigationAccessory(newDevice, deviceState, this.accessories[uuid])
 							// Register platform accessory
 							if (!this.accessories[uuid]) {
 								this.log.debug('Registering platform accessory')
 								this.log.info('Adding new accessory %s', irrigationAccessory.displayName)
 								this.accessories[uuid] = irrigationAccessory
 								this.api.registerPlatformAccessories(PluginName, PlatformName, [irrigationAccessory])
+							} else {
+								this.log.debug('Accessory exists, refreshing');
 							}
 							// Create and configure Values services and link to Irrigation Service
 							newDevice.zones = newDevice.zones.sort(function (a, b) {
@@ -365,16 +376,10 @@ class RachioPlatform {
 										zone: zone.zoneNumber,
 										zoneId: zone.id
 									})
-									let valveService = irrigationAccessory.getServiceById(Service.Valve, zone.id)
-									if (valveService) {
-										this.irrigation.updateValveService(newDevice, zone, valveService)
-										this.irrigation.configureValveService(newDevice, valveService)
-										this.api.updatePlatformAccessories([irrigationAccessory])
-									} else {
+									const valveService = irrigationAccessory.getServiceById(Service.Valve, zone.id)
+									if (!valveService) {
 										//add new
-										valveService = this.irrigation.createValveService(zone)
-										this.irrigation.updateValveService(newDevice, valveService)
-										this.irrigation.configureValveService(newDevice, valveService)
+										const valveService = new irrigation(this).createValveService(zone)
 										irrigationAccessory.addService(valveService)
 										this.api.updatePlatformAccessories([irrigationAccessory])
 										if (this.useIrrigationDisplay) {
@@ -384,6 +389,8 @@ class RachioPlatform {
 										} else {
 											this.log.debug('Using separate tiles')
 										}
+									} else {
+										this.api.updatePlatformAccessories([irrigationAccessory])
 									}
 								}
 							})
@@ -760,15 +767,6 @@ class RachioPlatform {
 				this.log.error('Failed to get devices...\n%s', err)
 			}
 		}
-	}
-
-	//**
-	//** REQUIRED - Homebridge will call the 'configureAccessory' method once for every cached accessory restored
-	//**
-	configureAccessory(accessory) {
-		// Add cached devices to the accessories array
-		this.log.info('Found cached accessory, configuring %s', accessory.displayName)
-		this.accessories[accessory.UUID] = accessory
 	}
 
 	setOnlineStatus(newDevice) {

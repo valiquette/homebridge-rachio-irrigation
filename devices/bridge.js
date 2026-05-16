@@ -2,10 +2,10 @@ let packageJson = require('../package.json')
 let RachioAPI = require('../rachioapi')
 
 class bridge {
-	constructor(platform, log) {
-		this.log = log
+	constructor(platform) {
+		this.log = platform.log
 		this.platform = platform
-		this.rachioapi = new RachioAPI(platform, log)
+		this.rachioapi = new RachioAPI(platform)
 	}
 
 	createBridgeAccessory(device, location, platformAccessory) {

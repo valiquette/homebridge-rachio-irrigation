@@ -1,9 +1,9 @@
 'use strict'
 
 class Rachio {
-	constructor(platform, log, config) {
-		this.log = log
-		this.config = config
+	constructor(platform) {
+		this.log = platform.log
+		this.config = platform.config
 		this.platform = platform
 		this.showAPIMessages
 	}

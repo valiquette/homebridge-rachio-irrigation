@@ -6,8 +6,8 @@ let api_endpoint = 'https://api.rach.io/1/public'
 let alt_api_endpoint = 'https://cloud-rest.rach.io'
 
 class RachioAPI {
-	constructor(platform, log) {
-		this.log = log
+	constructor(platform) {
+		this.log = platform.log
 		this.platform = platform
 	}
 

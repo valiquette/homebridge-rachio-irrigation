@@ -1,10 +1,10 @@
 let RachioAPI = require('../rachioapi')
 
 class skipSwitch {
-	constructor(platform, log) {
-		this.log = log
+	constructor(platform) {
+		this.log = platform.log
 		this.platform = platform
-		this.rachioapi = new RachioAPI(platform, log)
+		this.rachioapi = new RachioAPI(platform)
 		this.delta = []
 		this.timeStamp = []
 	}
