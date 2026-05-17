@@ -101,40 +101,38 @@ class RachioPlatform {
 			this.api.on(
 				'didFinishLaunching',
 				async function () {
+					let x
 					if (this.showControllers || this.showValves) {
 						//Get info to configure webhooks
 						await this.getWebhookInfo()
 						//Configure listerner for webhook messages
 						await this.listener.configureListener()
 					}
-					if (this.showControllers) {
-						//Get controllers
-						this.log.info('Setting up Controller devices')
-						let x = await this.getRachioDevices().catch(err => {
-							this.log.error ('Failure launching plugin, controller')
-						})
-						setTimeout(() => {
-							if (x) {
-								this.log.success('Rachio Platform finished loading Smart Sprinkler Controller')
-							} else {
-								this.log.warn('No Smart Sprinkler Controllers found')
-							}
-						}, 1000)
-					}
-					if (this.showValves) {
-						//Get valves
-						this.log.info('Setting up Wifi hub devices')
-						let x = await this.getRachioValves().catch(err => {
-							this.log.error ('Failure launching plugin, hose timers')
-						})
-						setTimeout(() => {
-							if (x) {
-								this.log.success('Rachio Platform finished loading Smart Hose Timers')
-							} else {
-								this.log.warn('No Smart Hose Timers found')
-							}
-						}, 1000)
-					}
+					//Get controllers
+					this.log.info('Setting up Controller devices')
+					x = await this.getRachioDevices().catch(err => {
+						this.log.error ('Failure launching plugin, controller')
+					})
+					setTimeout(() => {
+						if (x) {
+							this.log.success('Rachio Platform finished loading Smart Sprinkler Controller')
+						} else {
+							this.log.warn('No Smart Sprinkler Controllers found')
+						}
+					}, 1000)
+
+					//Get valves
+					this.log.info('Setting up Wifi hub devices')
+					x = await this.getRachioValves().catch(err => {
+						this.log.error ('Failure launching plugin, hose timers')
+					})
+					setTimeout(() => {
+						if (x) {
+							this.log.success('Rachio Platform finished loading Smart Hose Timers')
+						} else {
+							this.log.warn('No Smart Hose Timers found')
+						}
+					}, 1000)
 				}.bind(this)
 			)
 		}
@@ -321,14 +319,14 @@ class RachioPlatform {
 								this.rachioapi.configureWebhooksv2(this.token, this.external_webhook_addressv2, this.delete_webhooks, newDevice.id, newDevice.name, this.webhook_key, 'irrigation_controller_id')
 							}
 
-							// Create and configure Irrigation Service
+							// Create and configure Irrigation
 							this.log.debug('Creating and configuring new device')
 							const index = this.accessories.findIndex(accessory => accessory.UUID === newDevice.id)
 							const irrigationAccessory = new irrigation(this).createIrrigationAccessory(newDevice, deviceState, this.accessories[index])
 							// check if still required
 							if (!this.showControllers) {
-								this.log.info('Removing Smart Sprinker Controller %s', accessory.displayName)
-								this.log.debug('Removing Smart Sprinker Controller %s', accessory.UUID)
+								this.log.info('Removing Smart Sprinker Controller %s', irrigationAccessory.displayName)
+								this.log.debug('Removing Smart Sprinker Controller %s', irrigationAccessory.UUID)
 								this.api.unregisterPlatformAccessories(PluginName, PlatformName, [irrigationAccessory])
 								this.accessories.splice(index, 1);
 								return
@@ -342,7 +340,7 @@ class RachioPlatform {
 							} else {
 								this.log.debug('Accessory exists, refreshing');
 							}
-							// Create and configure Values services and link to Irrigation Service
+							// Create and configure Value service and link to Irrigation
 							newDevice.zones = newDevice.zones.sort(function (a, b) {
 								return a.zoneNumber - b.zoneNumber
 							})
@@ -359,7 +357,7 @@ class RachioPlatform {
 									const valveService = irrigationAccessory.getServiceById(Service.Valve, zone.id)
 									if (!valveService) {
 										//add new
-										const valveService = new irrigation(this).createValveService(zone)
+										const valveService = new irrigation(this).createValveService(newDevice, zone)
 										irrigationAccessory.addService(valveService)
 										this.api.updatePlatformAccessories([irrigationAccessory])
 										if (this.useIrrigationDisplay) {
@@ -579,13 +577,14 @@ class RachioPlatform {
 						if (baseStation.reportedState.firmwareUpgradeAvailable) {
 							this.log.warn('Hub firmware upgrade available')
 						}
+						const index = this.accessories.findIndex(accessory => accessory.UUID === baseStation.id)
+						const bridgeAccessory = this.bridge.createBridgeAccessory(baseStation, location, this.accessories[index])
+						// check if still required
 						if (this.showBridge) {
-							// Create and configure Bridge Service
+							// Create and configure Bridge
 							this.log.debug('Adding Hub Device')
 							this.log.debug('Found WiFi Hub %s', location.property.address.locality)
 							this.log.debug('Creating and configuring new Wifi Hub')
-							const index = this.accessories.findIndex(accessory => accessory.UUID === baseStation.id)
-							let bridgeAccessory = this.bridge.createBridgeAccessory(baseStation, location, this.accessories[index])
 							let bridgeService = bridgeAccessory.getService(Service.WiFiTransport)
 							// set current device status
 							if (!bridgeService) {
@@ -603,8 +602,8 @@ class RachioPlatform {
 						} else {
 							this.log.info('Skipping WiFi Hub %s based on config for', this.locationAddress)
 							if (this.accessories[index]) {
-								this.log.info('Removing Smart Hose Bridge %s', accessory.displayName)
-								this.log.debug('Removing Smart Hose Bridge %s', accessory.UUID)
+								this.log.info('Removing Smart Hose Bridge %s', bridgeAccessory.displayName)
+								this.log.debug('Removing Smart Hose Bridge %s', bridgeAccessory.UUID)
 								this.api.unregisterPlatformAccessories(PluginName, PlatformName, [this.accessories[index]]);
 								this.accessories.splice(index, 1);
 							}
@@ -635,11 +634,9 @@ class RachioPlatform {
 							throw err
 						})
 						if (valveList.valves.length > 0) {
-							valveList.valves.forEach(async (valve, index) => {
-								//this.log.debug(JSON.stringify(valve, null, 2))//temp
-								let uuid = valve.id
-
-								valve.zone = index + 1
+							valveList.valves.forEach(async (valve, zoneNumber) => {
+								valve.zone = zoneNumber + 1
+								const index = this.accessories.findIndex(accessory => accessory.UUID === valve.id)
 								this.log.debug('Creating and configuring new valve')
 								if (this.accessories[index]) {
 									// Check if accessory changed
@@ -662,18 +659,16 @@ class RachioPlatform {
 									this.rachioapi.configureWebhooksv2(this.token, this.external_webhook_addressv2, this.delete_webhooks, valve.id, valve.name, this.webhook_key, 'valve_id')
 								}
 
-								// Create and configure Irrigation Service
+								// Create and configure Valve
 								this.log.debug('Creating and configuring new valve')
+								//const index = this.accessories.findIndex(accessory => accessory.UUID === baseStation.id)
+								//const index = this.accessories.findIndex(accessory => accessory.UUID === valve.id)
 								const valveAccessory = this.valve.createValveAccessory(baseStation, location.property, valve, this.accessories[index])
-								let valveService = valveAccessory.getService(Service.Valve)
-								this.valve.updateValveService(baseStation, valve, valveService)
-								this.valve.configureValveService(valve, valveAccessory.getService(Service.Valve))
 								// check if still required
 								if (!this.showValves) {
-									this.log.info('Removing Smart Hose Timer %s', accessory.displayName)
-									this.log.debug('Removing Smart Hose Timer %s', accessory.UUID)
+									this.log.info('Removing Smart Hose Timer %s', valveAccessory.displayName)
+									this.log.debug('Removing Smart Hose Timer %s', valveAccessory.UUID)
 									this.api.unregisterPlatformAccessories(PluginName, PlatformName, [valveAccessory])
-									//x delete this.accessories[accessory.uuid]
 									this.accessories.splice(index, 1);
 								}
 								// Register platform accessory
@@ -682,8 +677,10 @@ class RachioPlatform {
 									this.log.info('Adding new accessory %s', valveAccessory.displayName)
 									this.accessories.push(valveAccessory);
 									this.api.registerPlatformAccessories(PluginName, PlatformName, [valveAccessory])
+								} else {
+									this.log.debug('Accessory exists, refreshing');
 								}
-								// Create and configure Battery Service
+								// Create and configure Battery
 								if (valve.state.reportedState.batteryStatus != null) {
 									this.log.info('Adding Battery status for %s', valve.name)
 									let batteryStatus = valveAccessory.getService(Service.Battery)
@@ -714,7 +711,7 @@ class RachioPlatform {
 										}
 									} else {
 										//add new
-										batteryStatus = this.battery.createBatteryService(valve, uuid)
+										batteryStatus = this.battery.createBatteryService(valve, valve.id)
 										this.battery.configureBatteryService(batteryStatus)
 										valveAccessory.addService(batteryStatus)
 										this.api.updatePlatformAccessories([valveAccessory])

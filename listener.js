@@ -113,12 +113,12 @@ class listen {
 												const irrigationSystemService = irrigationAccessory.getService(Service.IrrigationSystem)
 												let service
 												if (jsonBody.payload.zoneNumber) {
-													let index = this.platform.zoneList
+													let valveIndex = this.platform.zoneList
 														.filter(check => {
 															return check.deviceId == jsonBody.resourceId
 														})
 														.findIndex(zone => zone.zone == jsonBody.payload.zoneNumber)
-													let zoneId = this.platform.zoneList[index].zoneId
+													let zoneId = this.platform.zoneList[valveIndex].zoneId
 													service = irrigationAccessory.getServiceById(Service.Valve, zoneId)
 													this.log.debug('Webhook match found for %s will update zone service', service.getCharacteristic(Characteristic.Name).value)
 													this.eventMsg(irrigationSystemService, service, jsonBody)

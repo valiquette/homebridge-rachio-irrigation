@@ -10,9 +10,9 @@ class irrigation {
 		this.listener = new listener(platform)
 	}
 	createIrrigationAccessory(device, deviceState, platformAccessory) {
-		this.log.debug('Create Irrigation device %s', device.id, device.name)
 		if (!platformAccessory) {
 			// Create new Irrigation System Service
+			this.log.debug('Create Irrigation device %s', device.id, device.name)
 			platformAccessory = new PlatformAccessory(device.name, device.id)
 			platformAccessory.addService(Service.IrrigationSystem, device.name)
 		} else {
@@ -78,7 +78,7 @@ class irrigation {
 		irrigationSystemService.getCharacteristic(Characteristic.ProgramMode).onGet(this.getDeviceValue.bind(this, irrigationSystemService, 'DeviceProgramMode'))
 	}
 
-		createValveService(zone) {
+		createValveService(device, zone) {
 		// Create Valve Service
 		let valve = new Service.Valve(zone.name, zone.id)
 		let defaultRuntime = this.platform.defaultRuntime
@@ -130,8 +130,8 @@ class irrigation {
 		} else {
 			valve.setCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.NOT_CONFIGURED)
 		}
-		this.updateValveService(device, zone, valveService)
-		this.configureValveService(device, valveService)
+		this.updateValveService(device, zone, valve)
+		this.configureValveService(device, valve)
 		return valve
 	}
 

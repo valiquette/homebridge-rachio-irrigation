@@ -15,12 +15,11 @@ class valve {
 	}
 
 	createValveAccessory(base, property, valve, platformAccessory) {
-		let valveService
 		if (!platformAccessory) {
 			// Create new Valve System Service
 			this.log.debug('Create valve accessory %s %s', valve.id, property.address.locality +' '+ valve.name)
 			platformAccessory = new PlatformAccessory(property.address.locality +' '+ valve.name, valve.id)
-			valveService = platformAccessory.addService(Service.Valve, valve.id.replace(/-/g, ''), valve.id)
+			let valveService = platformAccessory.addService(Service.Valve, valve.id.replace(/-/g, ''), valve.id)
 			valveService.addCharacteristic(Characteristic.SerialNumber) //Use Serial Number to store the zone id
 			valveService.addCharacteristic(Characteristic.Model)
 			valveService.addCharacteristic(Characteristic.ConfiguredName)
@@ -29,7 +28,14 @@ class valve {
 			// Update Valve System Service
 			this.log.debug('Update valve accessory %s %s', valve.id, valve.name)
 		}
-
+		// Check if the valve is connected
+		let valveService = platformAccessory.getService(Service.Valve)
+		if (valve.state.reportedState.connected == true) {
+			valveService.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
+		} else {
+			this.log.warn('%s disconnected at %s! This will show as non-responding in Homekit until the connection is restored.', valve.name, valve.state.reportedState.lastSeen)
+			valveService.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.GENERAL_FAULT)
+		}
 		// Create AccessoryInformation Service
 		platformAccessory
 			.getService(Service.AccessoryInformation)
@@ -44,14 +50,9 @@ class valve {
 			.setCharacteristic(Characteristic.ProductData, 'Valve')
 
 		// Create Valve Service
-		// Check if the valve is connected
-		valveService = platformAccessory.getService(Service.Valve)
-		if (valve.state.reportedState.connected == true) {
-			valveService.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT)
-		} else {
-			this.log.warn('%s disconnected at %s! This will show as non-responding in Homekit until the connection is restored.', valve.name, valve.state.reportedState.lastSeen)
-			valveService.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.GENERAL_FAULT)
-		}
+
+		this.updateValveService(base, valve, valveService)
+		this.configureValveService(valve, platformAccessory.getService(Service.Valve))
 		return platformAccessory
 	}
 
