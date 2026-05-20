@@ -1,5 +1,12 @@
 # Changes
 
+## 1.5.2
+Refatored
+-  Code cleanup
+-  refacored in Typescript
+-  Bumped dependencies
+
+
 ## 1.5.1
 Enhancement
 -  Added Valve Program switch to allow manual skip overrides
