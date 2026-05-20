@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+		"skipLibCheck": true,
+    "target": "esnext",
+    "lib": [
+      "DOM",
+      "esnext"
+    ],
+    "rootDir": "src",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "resolveJsonModule": true,
+    "strict": true,
+    "declaration": true,
+    "outDir": "dist",
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "eslint.config.js",
+    "homebridge-ui",
+    "src"
+  ],
+	"exclude": []
+}
