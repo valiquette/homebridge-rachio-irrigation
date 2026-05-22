@@ -237,14 +237,20 @@ export default class listen {
 	}
 
 	webMessage(listener: any) {
-		this.eventMsg = (systemService: any, service: any, myJson: any) => {
+		this.eventMsg = (systemService: Service, service: Service, myJson: string) => {
 			listener(systemService, service, myJson);
 		};
 	}
 
 
-	localMsg(msg: ((systemService: any, service: any, myJson: any) => void) | null, service?: any, myJson?: any) {
-		msg = (systemService: any, service: any, myJson: any) => {
+	localMsg(msg: ((systemService: Service, service: Service, myJson: string) => void) | null, service?: any, myJson?: any) {
+		msg = (systemService, service, myJson) => {
+			this.listener(systemService, service, myJson);
+		};
+	}
+
+	localMsg2(systemService: Service | undefined, service: Service, msg: ((systemService: Service, service: Service, myJson: any) => void)) {
+		msg = (systemService, service, myJson) => {
 			this.listener(systemService, service, myJson);
 		};
 	}

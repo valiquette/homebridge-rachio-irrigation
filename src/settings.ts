@@ -1,27 +1,22 @@
 import pkg from '../package.json' with { type: 'json' };
-import { PrimitiveTypes } from 'homebridge';
 export const PLATFORM_NAME = 'rachio'; // This is the name of the platform that users will use to register the plugin in the Homebridge config.json
 export const PLUGIN_NAME = pkg.name; //This must match the name of your plugin as defined the package.json
 export const PLUGIN_VERSION = pkg.version; //version
 
-export type bridgeDevice = {
+export type Property = {
+	property: {
+		name: string;
+		address: {
 			id: string;
-			serialNumber: string | number | boolean | PrimitiveTypes[] | {[key: string]: PrimitiveTypes;};
-			reportedState: {
-				connected: boolean;
-				wifiBridgeFirmwareVersion: string | number | boolean | PrimitiveTypes[] | {[key: string]: PrimitiveTypes};
-			};
+			lineOne: string;
+			lineTwo: string;
+			locality: string;
+			timeZone: string;
+		};
+	};
 }
 
-export type location = {
-			property: {
-				address: {
-					locality: string | number | boolean | PrimitiveTypes[] | {[key: string]: PrimitiveTypes;};
-				};
-			};
-}
-
-export type batteryService = {
+export type BatteryService = {
 	name: string;
 	id: string;
 	state: {
@@ -36,6 +31,19 @@ export type Schedule = {
 	id: string
 }
 
+export type BaseStation = {
+	id: string;
+	serialNumber: string;
+	name: string;
+	macAddress: string
+	reportedState: {
+		connected: boolean;
+		wifiBridgeFirmwareVersion: string;
+		firmwareUpgradeAvailable: boolean;
+		lastStateUpdate: string
+	};
+}
+
 export type Controller = {
 	id: string;
 	status: string
@@ -45,11 +53,73 @@ export type Controller = {
 	macAddress: string;
 	zones: {
 		id: string;
+		name: string;
 		zoneNumber: number;
-		enabled: boolean
-		runtime: number
+		enabled: boolean;
+		runtime: number;
+		fixedRuntime: number;
+		customNozzle: {
+			name: string
+		}
 	}[]
-	programId: string;
+	scheduleModeType: string;
+	flexScheduleRules: {
+		id: string;
+		name: string;
+		zones: {
+			zoneId: string,
+			duration: number,
+			sortOrder: number;
+		}[];
+	}[]
+	scheduleRules: {
+		id: string;
+		name: string;
+		zones: {
+			zoneId: string,
+			duration: number,
+			sortOrder: number;
+		}[],
+	}[];
 }
 
-export type Value = { value: string | number | boolean | PrimitiveTypes[] | { [key: string]: PrimitiveTypes; }; }
+export type Valve = {
+	id: string;
+	name: string;
+	baseStationId: string;
+	enabled: boolean;
+	state: {
+		reportedState: {
+			connected: boolean;
+			defaultRuntimeSeconds: number;
+			lastStateUpdate: string;
+			lastSeen: string;
+			batteryStatus: string;
+			firmwareVersion: string;
+			firmwareRetryRequired: boolean;
+			firmwareUpgradeAvailable: boolean;
+			firmwareUpgradeInProgress: boolean;
+			lastWateringAction: {
+				start: string;
+				durationSeconds: number;
+				reason: string;
+			}
+		}
+		desiredState: {
+			defaultRuntimeSeconds: number;
+		}
+	}
+	zone: number;
+}
+
+export type Zone = {
+	id: string;
+	name: string;
+	zoneNumber: number;
+	enabled: boolean;
+	runtime: number;
+	fixedRuntime: number;
+	customNozzle: {
+		name: string
+	}
+}

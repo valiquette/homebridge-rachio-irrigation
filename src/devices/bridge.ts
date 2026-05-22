@@ -1,7 +1,8 @@
+
 import pkg from 'homebridge-rachio-irrigation/package.json' with { type: 'json' };
 import { PlatformAccessory, Service, Characteristic, Logging } from 'homebridge';
 import RachioPlatform from '../rachioplatform.js';
-import type { bridgeDevice, location } from '../settings.js';
+import type { BaseStation, Property } from '../settings.js';
 
 export default class bridge {
 	public readonly Service: typeof Service;
@@ -14,16 +15,16 @@ export default class bridge {
 		this.Characteristic = platform.Characteristic;
 	}
 
-	createBridgeAccessory(device: bridgeDevice, location: location, platformAccessory: PlatformAccessory) {
+	createBridgeAccessory(device: BaseStation, property: Property, platformAccessory: PlatformAccessory) {
 		if (!platformAccessory) {
-			this.log.debug('Create Bridge Accessory %s %s', device.id, location.property.address.locality);
-			platformAccessory = new this.platform.api.platformAccessory(String(location.property.address.locality), device.id);
+			this.log.debug('Create Bridge Accessory %s %s', device.id, property.property.address.locality);
+			platformAccessory = new this.platform.api.platformAccessory(String(property.property.address.locality), device.id);
 		} else {
-			this.log.debug('Update Bridge Accessory %s %s', device.id, location.property.address.locality);
+			this.log.debug('Update Bridge Accessory %s %s', device.id, property.property.address.locality);
 		}
 
 		platformAccessory.getService(this.Service.AccessoryInformation)!
-			.setCharacteristic(this.Characteristic.Name, location.property.address.locality)
+			.setCharacteristic(this.Characteristic.Name, property.property.address.locality)
 			.setCharacteristic(this.Characteristic.Manufacturer, 'Rachio')
 			.setCharacteristic(this.Characteristic.SerialNumber, device.serialNumber)
 			.setCharacteristic(this.Characteristic.Model, 'HUB101')
@@ -34,9 +35,9 @@ export default class bridge {
 		return platformAccessory;
 	}
 
-	createBridgeService(device: bridgeDevice, location: location) {
-		this.log.debug('create bridge service for %s', location.property.address.locality);
-		const bridgeService: Service = new this.Service.WiFiTransport(String(location.property.address.locality), device.id);
+	createBridgeService(device: BaseStation, property: Property) {
+		this.log.debug('create bridge service for %s', property.property.address.locality);
+		const bridgeService: Service = new this.Service.WiFiTransport(String(property.property.address.locality), device.id);
 		bridgeService.setCharacteristic(this.Characteristic.CurrentTransport, device.reportedState.connected);
 		return bridgeService;
 	}

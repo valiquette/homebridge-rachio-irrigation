@@ -1,13 +1,15 @@
+
 import { Service, Characteristic, Logging } from 'homebridge';
 import RachioPlatform from '../rachioplatform.js';
 import RachioAPI from '../rachioapi.js';
-import type { batteryService } from '../settings.js';
+import type { BatteryService } from '../settings.js';
 
 export default class battery {
 	public readonly Service: typeof Service;
 	public readonly Characteristic: typeof Characteristic;
 	delta: number[];
 	timeStamp: number[];
+	devices: Service[];
 	constructor(
 			private readonly platform: RachioPlatform,
 			private readonly log: Logging = platform.log,
@@ -17,9 +19,10 @@ export default class battery {
 		this.Characteristic = platform.Characteristic;
 		this.timeStamp = [];
 		this.delta = [];
+		this.devices = [];
 	}
 
-	createBatteryService(device: batteryService) {
+	createBatteryService(device: BatteryService) {
 		this.log.debug('create battery service for %s', device.name);
 		const batteryStatus: Service = new this.Service.Battery(device.name, device.id);
 
@@ -50,28 +53,29 @@ export default class battery {
 
 	configureBatteryService(batteryStatus: Service) {
 		this.log.debug('configured battery service for %s', batteryStatus.getCharacteristic(this.Characteristic.Name).value);
+		this.devices.push(batteryStatus)
 		batteryStatus.getCharacteristic(this.Characteristic.StatusLowBattery)
 			.onGet(this.getStatusLowBattery.bind(this, batteryStatus));
 	}
 
 	async getStatusLowBattery(batteryStatus: Service) {
-		const deviceId: number = Number(batteryStatus.subtype);
+		const index = this.devices.findIndex(device => device.subtype === batteryStatus.subtype);
 		let currentValue = batteryStatus.getCharacteristic(this.Characteristic.StatusLowBattery).value;
-		if(!this.timeStamp[deviceId]) {
-			this.timeStamp[deviceId] = +new Date();
+		if(!this.timeStamp[index]) {
+			this.timeStamp[index] = +new Date();
 		}
 		//check for duplicate call
-		this.delta[deviceId] =  new Date().valueOf()- this.timeStamp[deviceId];
-		if (this.delta[deviceId] > 60 * 60 * 1000 || this.delta[deviceId] == 0) {  // check after 1 hour
-			this.timeStamp[deviceId] = +new Date();
+		this.delta[index] =  new Date().valueOf()- this.timeStamp[index];
+		if (this.delta[index] > 60 * 60 * 1000 || this.delta[index] == 0) {  // check after 1 hour
+			this.timeStamp[index] = +new Date();
 		} else {
-			this.log.debug('skipped battery update, to soon. timestamp delta %s sec', this.delta[deviceId]/1000);
+			this.log.debug('skipped battery update, to soon. timestamp delta %s sec', this.delta[index]/1000);
 			return currentValue;
 		}
 		// add connection state to this call
 		try {
-			this.log.debug('updating battery for valve deviceId ', deviceId);
-			const response = await this.rachioapi.getValve(this.platform.token, deviceId).catch(err => {
+			this.log.debug('updating battery for valve index ', index);
+			const response = await this.rachioapi.getValve(this.platform.token, this.devices[index].subtype).catch(err => {
 				//this.log.error('Failed to get valve', err)
 				throw (`Failed to get valve battery status ${err}`);
 			});

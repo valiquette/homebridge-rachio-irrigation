@@ -1,3 +1,4 @@
+
 import { Service, Characteristic, Logging, PrimitiveTypes } from 'homebridge';
 import RachioPlatform from '../rachioplatform.js';
 import RachioAPI from '../rachioapi.js';

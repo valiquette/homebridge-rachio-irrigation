@@ -2,7 +2,7 @@
 'use strict';
 
 import { API, Characteristic, DynamicPlatformPlugin, HAPStatus, HapStatusError, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
-import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
+import { PLATFORM_NAME, PLUGIN_NAME, BaseStation, Controller, Valve } from './settings.js';
 import axios from 'axios';
 import RachioAPI from './rachioapi.js';
 import RachioUpdate from './rachioupdate.js';
@@ -14,7 +14,7 @@ import skipSwitch from './devices/skipSwitch.js';
 import battery from './devices/battery.js';
 import bridge from './devices/bridge.js';
 
-let deviceState: any;
+let deviceState: { state: { state: string; desiredState: string; firmwareVersion: string; health: string; }; };
 
 export default class RachioPlatform implements DynamicPlatformPlugin{
 	[x: string]: any;
@@ -291,21 +291,21 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 			this.log.info('Getting Location info...');
 			if (personInfo.devices.length > 0) {
 				personInfo.devices
-					.forEach(async (newDevice: { id: string; name: string; status: any; zones: any[]; scheduleRules: any[]; flexScheduleRules: any[]; }) => {
+					.forEach(async (newDevice: Controller) => {
 						try{
 							const device = await this.rachioapi.getDevice(this.token, newDevice.id).catch((err: any) =>{
 								this.log.error('Failed to get location property', err);
 								throw err;
 							});
-							const location = await this.rachioapi.getPropertyEntity(this.token, 'location_id',device.device.locationId).catch((err: any) =>{
+							const property = await this.rachioapi.getPropertyEntity(this.token, 'location_id',device.device.locationId).catch((err: any) =>{
 								this.log.error('Failed to get location property', err);
 								throw err;
 							});
-							this.log.info('Found Location: id = %s address = %s locality = %s', location.property.address.id, location.property.address.lineOne, location.property.address.locality);
-							if (!this.locationAddress || location.property.address.lineOne == this.locationAddress) {
-								this.log.info('Adding controller %s found at the configured location: %s', newDevice.name, location.property.address.lineOne);
+							this.log.info('Found Location: id = %s address = %s locality = %s', property.property.address.id, property.property.address.lineOne, property.property.address.locality);
+							if (!this.locationAddress || property.property.address.lineOne == this.locationAddress) {
+								this.log.info('Adding controller %s found at the configured location: %s', newDevice.name, property.property.address.lineOne);
 							} else {
-								this.log.info('Skipping controller %s at %s, not found at the configured location: %s', newDevice.name, location.property.address.lineOne, this.locationAddress);
+								this.log.info('Skipping controller %s at %s, not found at the configured location: %s', newDevice.name, property.property.address.lineOne, this.locationAddress);
 								return;
 							}
 							//adding devices that met filter criteria
@@ -382,7 +382,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 							});
 
 							if (this.showSchedules) {
-								newDevice.scheduleRules.forEach((schedule: any) => {
+								newDevice.scheduleRules.forEach((schedule) => {
 									this.log.debug('adding schedules %s', schedule.name);
 									let switchService: any = irrigationAccessory.getServiceById(this.Service.Switch, schedule.id);
 									if (switchService) {
@@ -399,7 +399,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 									}
 									irrigationAccessory.getService(this.Service.IrrigationSystem)!.addLinkedService(switchService);
 								});
-								newDevice.flexScheduleRules.forEach((schedule: { name: any; id: any; }) => {
+								newDevice.flexScheduleRules.forEach((schedule) => {
 									this.log.debug('adding flex schedules %s', schedule.name);
 									let switchService: any = irrigationAccessory.getServiceById(this.Service.Switch, schedule.id);
 									if (switchService) {
@@ -558,7 +558,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 				throw err;
 			});
 			this.log.info('Found Account for username %s', personInfo.username);
-			this.log.info('Getting Location info...');
+			this.log.info('Getting Property info...');
 
 			const list = await this.rachioapi.listBaseStations(this.token, personId.id).catch((err: any) =>{
 				this.log.error('Failed to get base station list', err);
@@ -566,37 +566,39 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 			});
 			if (list.baseStations.length > 0) {
 				list.baseStations
-					.forEach(async (baseStation: { id: string; serialNumber: any; reportedState: { firmwareUpgradeAvailable: any; connected: any; }; }) => {
-						let location = await this.rachioapi.getPropertyEntity(this.token, 'base_station_id', baseStation.id).catch((err: any) =>{
+					.forEach(async (baseStation: BaseStation) => {
+						const property = await this.rachioapi.getPropertyEntity(this.token, 'base_station_id', baseStation.id).catch((err: any) =>{
 							this.log.error('Failed to get base station property', err);
 							throw err;
 						});
-						if (!this.locationAddress || location.property.address.lineOne == this.locationAddress) {
-							this.log.info('Found WiFi Hub %s at the configured location: %s', baseStation.serialNumber, location.property.address.lineOne);
+						if (!this.locationAddress || property.property.address.lineOne == this.locationAddress) {
+							this.log.info('Found WiFi Hub %s at the configured location: %s', baseStation.serialNumber, property.property.address.lineOne);
 						} else {
-							this.log.info('Skipping WiFi Hub %s st %s, not found at the configured location: %s', baseStation.serialNumber, location.property.address.lineOne, this.locationAddress);
+							this.log.info('Skipping WiFi Hub %s st %s, not found at the configured location: %s', baseStation.serialNumber, property.property.address.lineOne, this.locationAddress);
 							return;
 						}
 						//pulling bridge location
-						location = await this.rachioapi.getPropertyEntity(this.token, 'base_station_id', baseStation.id).catch((err: any) =>{
+						/*
+						const location = await this.rachioapi.getPropertyEntity(this.token, 'base_station_id', baseStation.id).catch((err: any) =>{
 							this.log.error('Failed to get base station property', err);
 							throw err;
 						});
+						*/
 						if (baseStation.reportedState.firmwareUpgradeAvailable) {
 							this.log.warn('Hub firmware upgrade available');
 						}
 						const index = this.accessories.findIndex(accessory => accessory.UUID === baseStation.id);
-						const bridgeAccessory = this.bridge.createBridgeAccessory(baseStation, location, this.accessories[index]);
+						const bridgeAccessory = this.bridge.createBridgeAccessory(baseStation, property, this.accessories[index]);
 						// check if still required
 						if (this.showBridge) {
 							// Create and configure Bridge
 							this.log.debug('Adding Hub Device');
-							this.log.debug('Found WiFi Hub %s', location.property.address.locality);
+							this.log.debug('Found WiFi Hub %s', property.property.address.locality);
 							this.log.debug('Creating and configuring new Wifi Hub');
 							let bridgeService = bridgeAccessory.getService(this.Service.WiFiTransport);
 							// set current device status
 							if (!bridgeService) {
-								bridgeService = this.bridge.createBridgeService(baseStation, location);
+								bridgeService = this.bridge.createBridgeService(baseStation, property);
 								bridgeAccessory.addService(bridgeService);
 							}
 							this.bridge.configureBridgeService(bridgeService);
@@ -642,7 +644,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 							throw err;
 						});
 						if (valveList.valves.length > 0) {
-							valveList.valves.forEach(async (valve: any, zoneNumber: number) => {
+							valveList.valves.forEach(async (valve: Valve, zoneNumber: number) => {
 								valve.zone = zoneNumber + 1;
 								const index = this.accessories.findIndex(accessory => accessory.UUID === valve.id);
 								this.log.debug('Creating and configuring new valve');
@@ -671,7 +673,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 								this.log.debug('Creating and configuring new valve');
 								//const index = this.accessories.findIndex(accessory => accessory.UUID === baseStation.id)
 								//const index = this.accessories.findIndex(accessory => accessory.UUID === valve.id)
-								const valveAccessory = this.valve.createValveAccessory(baseStation, location.property, valve, this.accessories[index]);
+								const valveAccessory = this.valve.createValveAccessory(baseStation, property, valve, this.accessories[index]);
 								// check if still required
 								if (!this.showValves) {
 									this.log.info('Removing Smart Hose Timer %s', valveAccessory.displayName);
@@ -932,7 +934,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 						this.log.info('Adding program switch %s', skipService.displayName);
 						bridgeAccessory.addService(skipService);
 					}
-					this.skipSwitch.configureSwitchService(run, skipService, baseStation);
+					this.skipSwitch.configureSwitchService(baseStation, skipService);
 					this.log.debug('Updating skip program switches');
 					if (!this.accessories[index]) {
 						this.log.debug('Registering platform accessory');

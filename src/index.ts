@@ -1,3 +1,4 @@
+
 import type { API } from 'homebridge';
 import { PLATFORM_NAME } from './settings.js';
 import RachioPlatform from './rachioplatform.js';

@@ -1,10 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { PlatformAccessory, Service, Characteristic, Logging, PlatformConfig } from 'homebridge';
+
+import { PlatformAccessory, Service, Characteristic, Logging, PlatformConfig, CharacteristicValue } from 'homebridge';
 import RachioPlatform from '../rachioplatform.js';
 import pkg from 'homebridge-rachio-irrigation/package.json' with { type: 'json' };
 import RachioAPI from '../rachioapi.js';
 import listen from '../listener.js';
 import poll from '../polling.js';
+import type { BaseStation, Property, Valve } from '../settings.js';
 
 export default class valve {
 	public readonly Service: typeof Service;
@@ -21,12 +22,12 @@ export default class valve {
 		this.Characteristic = platform.Characteristic;
 	}
 
-	createValveAccessory(base: any, property: any, valve: any, platformAccessory: PlatformAccessory) {
+	createValveAccessory(base: BaseStation, property: Property, valve: Valve, platformAccessory: PlatformAccessory) {
 		if (!platformAccessory) {
 			// Create new Valve System Service
-			this.log.debug('Create valve accessory %s %s', valve.id, property.address.locality +' '+ valve.name);
-			platformAccessory = new this.platform.api.platformAccessory(property.address.locality +' '+ valve.name, valve.id);
-			const valveService: any = platformAccessory.addService(this.Service.Valve, valve.id.replace(/-/g, ''), valve.id);
+			this.log.debug('Create valve accessory %s %s', valve.id, property.property.address.locality +' '+ valve.name);
+			platformAccessory = new this.platform.api.platformAccessory(property.property.address.locality +' '+ valve.name, valve.id);
+			const valveService: Service = platformAccessory.addService(this.Service.Valve, valve.id.replace(/-/g, ''), valve.id);
 			valveService.addCharacteristic(this.Characteristic.SerialNumber); //Use Serial Number to store the zone id
 			valveService.addCharacteristic(this.Characteristic.Model);
 			valveService.addCharacteristic(this.Characteristic.ConfiguredName);
@@ -36,7 +37,7 @@ export default class valve {
 			this.log.debug('Update valve accessory %s %s', valve.id, valve.name);
 		}
 		// Check if the valve is connected
-		const valveService: any = platformAccessory.getService(this.Service.Valve);
+		const valveService: Service = platformAccessory.getService(this.Service.Valve)!;
 		if (valve.state.reportedState.connected == true) {
 			valveService.setCharacteristic(this.Characteristic.StatusFault, this.Characteristic.StatusFault.NO_FAULT);
 		} else {
@@ -45,7 +46,7 @@ export default class valve {
 		}
 		// Create AccessoryInformation Service
 		platformAccessory.getService(this.Service.AccessoryInformation)!
-			.setCharacteristic(this.Characteristic.Name, property.address.locality +' '+ valve.name)
+			.setCharacteristic(this.Characteristic.Name, property.property.address.locality +' '+ valve.name)
 			.setCharacteristic(this.Characteristic.Manufacturer, 'Rachio')
 			.setCharacteristic(this.Characteristic.SerialNumber, base.serialNumber)
 			.setCharacteristic(this.Characteristic.Model, 'SHVK001')
@@ -58,32 +59,32 @@ export default class valve {
 		// Create Valve Service
 
 		this.updateValveService(base, valve, valveService);
-		this.configureValveService(valve, platformAccessory.getService(this.Service.Valve));
+		this.configureValveService(valve, valveService);
 		return platformAccessory;
 	}
 
-	updateValveService(base: any, valve: any, valveService: any) { /// check base changed to device
+	updateValveService(base: BaseStation, valve: Valve, valveService: Service) { /// check base changed to device
 		const pollValves = this.config.pollValves ? this.config.pollValves : false;
 		if (pollValves) {
 			this.log.warn('Polling for Hose Timers is enabled');
 		}
 		let defaultRuntime = this.platform.defaultRuntime;
 		valve.enabled = true; // need rachio valve version of enabled
-		this.log.debug(valve);
+		this.log.debug('valve state %s', valve);
 		try {
 			switch (this.platform.runtimeSource) {
 			case 0:
 				defaultRuntime = this.platform.defaultRuntime;
 				break;
 			case 1:
-				if (base.state.defaultRunTimeSeconds > 0) {
-					defaultRuntime = base.state.desiredState.defaultRuntimeSeconds;
+				if (valve.state.reportedState.defaultRuntimeSeconds > 0) {
+					defaultRuntime = valve.state.desiredState.defaultRuntimeSeconds;
 				}
 				break;
 			case 2:
-				if (valve.flow_data.cycle_run_time_sec > 0) {
-					defaultRuntime = base.state.desiredState.defaultRuntimeSeconds;
-				}
+				//if (valve.flow_data.cycle_run_time_sec > 0) { //can't find json value
+				defaultRuntime = valve.state.desiredState.defaultRuntimeSeconds;
+				//}
 				break;
 			default:
 				defaultRuntime = this.platform.defaultRuntime;
@@ -107,7 +108,7 @@ export default class valve {
 			const duration = valve.state.reportedState.lastWateringAction.durationSeconds;
 			const endTime = new Date(start).getTime() + duration * 1000;
 			const remaining = Math.max(Math.round((endTime - Date.now()) / 1000), 0);
-			this.platform.endTime[valveService.getCharacteristic(this.Characteristic.SerialNumber).value] = endTime;
+			this.platform.endTime[Number(valveService.getCharacteristic(this.Characteristic.SerialNumber).value)] = endTime;
 			valveService
 				.setCharacteristic(this.Characteristic.Active, this.Characteristic.Active.ACTIVE)
 				.setCharacteristic(this.Characteristic.InUse, this.Characteristic.InUse.IN_USE)
@@ -118,7 +119,7 @@ export default class valve {
 			const duration = Math.ceil(defaultRuntime / 60) * 60;
 			const endTime = new Date(start).getTime() + duration * 1000;
 			const remaining = Math.max(Math.round((endTime - Date.now()) / 1000), 0);
-			this.platform.endTime[valveService.getCharacteristic(this.Characteristic.SerialNumber).value] = endTime;
+			this.platform.endTime[Number(valveService.getCharacteristic(this.Characteristic.SerialNumber).value)] = endTime;
 			valveService
 				.setCharacteristic(this.Characteristic.Active, this.Characteristic.Active.INACTIVE)
 				.setCharacteristic(this.Characteristic.InUse, this.Characteristic.InUse.NOT_IN_USE)
@@ -133,32 +134,32 @@ export default class valve {
 		return valveService;
 	}
 
-	configureValveService(device: any, valveService: any) {
+	configureValveService(valve: Valve, valveService: Service) {
 		this.log.info(
 			'Configured zone-%s for %s with %s min runtime',
 			valveService.getCharacteristic(this.Characteristic.ServiceLabelIndex).value,
 			valveService.getCharacteristic(this.Characteristic.Name).value,
-			valveService.getCharacteristic(this.Characteristic.SetDuration).value / 60,
+			Number(valveService.getCharacteristic(this.Characteristic.SetDuration).value) / 60,
 		);
 		valveService.getCharacteristic(this.Characteristic.Active)
 			.onGet(this.getValveValue.bind(this, valveService, 'ValveActive'))
-			.onSet(this.setValveValue.bind(this, device, valveService));
+			.onSet(this.setValveValue.bind(this, valve, valveService));
 		valveService.getCharacteristic(this.Characteristic.InUse)
 			.onGet(this.getValveValue.bind(this, valveService, 'ValveInUse'))
-			.onSet(this.setValveValue.bind(this, device, valveService));
+			.onSet(this.setValveValue.bind(this, valve, valveService));
 		valveService.getCharacteristic(this.Characteristic.SetDuration)
 			.onGet(this.getValveValue.bind(this, valveService, 'ValveSetDuration'))
-			.onSet(this.setValveSetDuration.bind(this, valveService));
+			.onSet(this.setValveSetDuration.bind(this, valve, valveService));
 		valveService.getCharacteristic(this.Characteristic.RemainingDuration)
 			.onGet(this.getValveValue.bind(this, valveService, 'ValveRemainingDuration'));
 	}
 
-	getValveValue(valveService: any, characteristicName: any) {
+	getValveValue(valveService: Service, characteristicName: string) {
 		//this.log.debug('value', valveService.getCharacteristic(this.Characteristic.Name).value, characteristicName)
 		if (valveService.getCharacteristic(this.Characteristic.StatusFault).value == this.Characteristic.StatusFault.GENERAL_FAULT) {
 			throw new this.platform.HapStatusError(this.platform.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
 		}
-		let currentValue;
+		let currentValue = null;
 		const pollValves = this.config.pollValves ? this.config.pollValves : false;
 		switch (characteristicName) {
 		case 'ValveActive':
@@ -176,7 +177,7 @@ export default class valve {
 			break;
 		case 'ValveRemainingDuration': {
 			// Calc remain duration
-			const timeEnding = Date.parse(this.platform.endTime[valveService.subtype]);
+			const timeEnding = Date.parse(this.platform.endTime[Number(valveService.subtype)]);
 			const timeNow = Date.now();
 			let timeRemaining = Math.max(Math.round((timeEnding - timeNow) / 1000), 0);
 			if (isNaN(timeRemaining)) {
@@ -193,7 +194,7 @@ export default class valve {
 		return currentValue;
 	}
 
-	async setValveValue(device: any, valveService: any, value: any) {
+	async setValveValue(valve: Valve, valveService: Service, value: CharacteristicValue) {
 		//this.log.debug('%s - Set Active state to %s', valveService.getCharacteristic(this.Characteristic.Name).value, value)
 		if (value == valveService.getCharacteristic(this.Characteristic.Active).value) {
 			//IOS 17 bug fix for duplicate calls
@@ -201,13 +202,13 @@ export default class valve {
 			return;
 		}
 		// Set homekit state and prepare message for rachio API
-		const runTime = valveService.getCharacteristic(this.Characteristic.SetDuration).value;
+		const runTime = Number(valveService.getCharacteristic(this.Characteristic.SetDuration).value);
 		let response;
 		switch (value) {
 		case this.Characteristic.Active.ACTIVE:
 			// Turn on/idle the valve
 			this.log.info('Starting %s valve for %s mins', valveService.getCharacteristic(this.Characteristic.Name).value, runTime / 60);
-			response = await this.rachioapi.startWatering(this.platform.token, device.id, runTime);
+			response = await this.rachioapi.startWatering(this.platform.token, valve.id, runTime);
 			if (response?.status == 200) {
 				//json start stuff
 				const myJsonStart = {
@@ -220,7 +221,7 @@ export default class valve {
 						runType: 'QUICK_RUN',
 						startTime: new Date().toISOString(),
 					},
-					resourceId: device.id,
+					resourceId: valve.id,
 					resourceType: 'VALVE',
 					timestamp: new Date().toISOString(),
 				};
@@ -229,13 +230,13 @@ export default class valve {
 					eventType: 'VALVE_RUN_END_EVENT',
 					externalId: this.platform.webhook_key_local,
 					payload: {
-						durationSeconds: Math.round(valveService.getCharacteristic(this.Characteristic.SetDuration).value),
+						durationSeconds: Math.round(Number(valveService.getCharacteristic(this.Characteristic.SetDuration).value)),
 						endReason: 'COMPLETED',
 						flowDetected: false,
 						runType: 'QUICK_RUN',
 						startTime: new Date().toISOString(),
 					},
-					resourceId: device.id,
+					resourceId: valve.id,
 					resourceType: 'VALVE',
 					timestamp: new Date().toISOString(),
 				};
@@ -246,7 +247,7 @@ export default class valve {
 				this.listener.localMsg(null, valveService, myJsonStart);
 				this.platform.localWebhook = setTimeout(() => {
 					this.log.debug('Simulating websocket event for %s', myJsonStop.resourceId);
-					this.platform.endTime[valveService.getCharacteristic(this.Characteristic.SerialNumber).value] = new Date(Date.now()).toISOString();
+					this.platform.endTime[Number(valveService.getCharacteristic(this.Characteristic.SerialNumber).value)] = new Date(Date.now()).toISOString();
 					if (this.platform.showWebhookMessages) {
 						this.log.debug('webhook sent from <%s> %s', this.platform.webhook_key_local, JSON.stringify(myJsonStop, null, 2));
 					}
@@ -257,7 +258,7 @@ export default class valve {
 		case this.Characteristic.Active.INACTIVE:
 			// Turn off/stopping the valve
 			this.log.info('Stopping Zone', valveService.getCharacteristic(this.Characteristic.Name).value);
-			response = await this.rachioapi.stopWatering(this.platform.token, device.id);
+			response = await this.rachioapi.stopWatering(this.platform.token, valve.id);
 			if (response?.status == 200) {
 				//json stop stuff
 				const myJsonStop = {
@@ -265,13 +266,13 @@ export default class valve {
 					eventType: 'VALVE_RUN_END_EVENT',
 					externalId: this.platform.webhook_key_local,
 					payload: {
-						durationSeconds: Math.round(valveService.getCharacteristic(this.Characteristic.SetDuration).value - (Date.parse(this.platform.endTime[valveService.subtype]) - Date.now()) / 1000),
+						durationSeconds: Math.round(Number(valveService.getCharacteristic(this.Characteristic.SetDuration).value) - (Date.parse(this.platform.endTime[Number(valveService.subtype)]) - Date.now()) / 1000),
 						endReason: 'COMPLETED',
 						flowDetected: false,
 						runType: 'QUICK_RUN',
 						startTime: new Date().toISOString(),
 					},
-					resourceId: device.id,
+					resourceId: valve.id,
 					resourceType: 'VALVE',
 					timestamp: new Date().toISOString(),
 				};
@@ -289,10 +290,11 @@ export default class valve {
 		return;
 	}
 
-	setValveSetDuration(device: any, valveService: any, value: any) {
+	setValveSetDuration(valve: Valve, valveService: Service, value: CharacteristicValue) {
 		// Set default duration from Homekit value
 		valveService.getCharacteristic(this.Characteristic.SetDuration).updateValue(value);
-		this.log.info('Set %s duration for %s mins', valveService.getCharacteristic(this.Characteristic.Name).value, value / 60);
+		this.log.debug('Set %s duration for %s mins', valve.name, Number(value) / 60);
+		this.log.info('Set %s duration for %s mins', valveService.getCharacteristic(this.Characteristic.Name).value, Number(value) / 60);
 		return;
 	}
 }
