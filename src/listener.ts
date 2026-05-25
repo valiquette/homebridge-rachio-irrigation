@@ -8,11 +8,13 @@ import { createHmac } from 'crypto';
 import { Service, Characteristic, Logging, PlatformAccessory } from 'homebridge';
 import RachioPlatform from './rachioplatform.js';
 import RachioUpdate from './rachioupdate.js';
+import { BinaryLike, KeyObject } from 'node:crypto';
 
 export default class listen {
-	[x: string]: any;
 	public readonly Service: typeof Service;
 	public readonly Characteristic: typeof Characteristic;
+	eventMsg!: (systemService: Service | null, service: Service, myJson: any) => void;
+	listener!: (arg0: Service, arg1: Service, arg2: string) => void;
 	constructor(
 		private readonly platform: RachioPlatform,
 		private readonly log: Logging = platform.log,
@@ -24,7 +26,7 @@ export default class listen {
 	configureListener() {
 		this.webMessage(this.rachio.updateService.bind(this));
 		const server: any = this.platform.useHttps ? https : http;
-		let options: any = {};
+		let options = {};
 		if (server == https) {
 			options = {
 				key: readFileSync(this.platform.key),
@@ -38,7 +40,7 @@ export default class listen {
 				.createServer(options, (request: any, response: any) => {
 					let webhookAuthentication;
 					if (request.method === 'GET' && request.url === '/test') {
-						const jsonBody: any = request.body;
+						const jsonBody = request.body;
 						//check v1 authentication
 						if (request.headers.authorization) {
 							webhookAuthentication = this.checkAuth(request);
@@ -80,7 +82,7 @@ export default class listen {
 							.on('end', () => {
 								try {
 									body = Buffer.concat(body).toString().trim();
-									const jsonBody: any = JSON.parse(body);
+									const jsonBody = JSON.parse(body);
 									//check v1 authentication
 									if (request.headers.authorization) {
 										webhookAuthentication = this.checkAuth(request);
@@ -120,7 +122,6 @@ export default class listen {
 											const index: number = this.platform.accessories.findIndex(accessory => accessory.UUID === jsonBody.resourceId);
 											const irrigationAccessory: PlatformAccessory = this.platform.accessories[index];
 											const irrigationSystemService: Service = irrigationAccessory.getService(this.Service.IrrigationSystem)!;
-											let service: any;
 											if (jsonBody.payload.zoneNumber) {
 												const valveIndex = this.platform.zoneList
 													.filter((check: any) => {
@@ -128,14 +129,14 @@ export default class listen {
 													})
 													.findIndex((zone: any) => zone.zone == jsonBody.payload.zoneNumber);
 												const zoneId = this.platform.zoneList[valveIndex].zoneId;
-												service = irrigationAccessory.getServiceById(this.Service.Valve, zoneId);
-												this.log.debug('Webhook match found for %s will update zone service', service.getCharacteristic(this.Characteristic.Name).value);
-												this.eventMsg(irrigationSystemService, service, jsonBody);
+												const zone = irrigationAccessory.getServiceById(this.Service.Valve, zoneId)!;
+												this.log.debug('Webhook match found for %s will update zone service', zone.getCharacteristic(this.Characteristic.Name).value);
+												this.eventMsg(irrigationSystemService, zone, jsonBody);
 											} else if (jsonBody.payload.scheduleId) {
-												service = irrigationAccessory.getServiceById(this.Service.Switch, jsonBody.payload.scheduleId);
+												const zone = irrigationAccessory.getServiceById(this.Service.Switch, jsonBody.payload.scheduleId)!;
 												if (this.platform.showSchedules) {
-													this.log.debug('Webhook match found for %s will update schedule service', service.getCharacteristic(this.Characteristic.Name).value);
-													this.eventMsg(irrigationSystemService, service, jsonBody);
+													this.log.debug('Webhook match found for %s will update schedule service', zone.getCharacteristic(this.Characteristic.Name).value);
+													this.eventMsg(irrigationSystemService, zone, jsonBody);
 												} else {
 													this.log.debug('Skipping Webhook for %s service, optional schedule switch is not configured', jsonBody.scheduleName);
 												}
@@ -167,16 +168,15 @@ export default class listen {
 											const index = this.platform.accessories.findIndex(accessory => accessory.UUID === jsonBody.resourceId);
 											const irrigationAccessory: PlatformAccessory = this.platform.accessories[index];
 											const irrigationSystemService: Service = irrigationAccessory.getService(this.Service.IrrigationSystem)!;
-											let service: any;
 											if (jsonBody.zoneId) {
-												service = irrigationAccessory.getServiceById(this.Service.Valve, jsonBody.zoneId);
-												this.log.debug('Webhook match found for %s will update zone service', service.getCharacteristic(this.Characteristic.Name).value);
-												this.eventMsg(irrigationSystemService, service, jsonBody);
+												const zone = irrigationAccessory.getServiceById(this.Service.Valve, jsonBody.zoneId)!;
+												this.log.debug('Webhook match found for %s will update zone service', zone.getCharacteristic(this.Characteristic.Name).value);
+												this.eventMsg(irrigationSystemService, zone, jsonBody);
 											} else if (jsonBody.deviceId && jsonBody.subType.includes('SLEEP')) {
-												service = irrigationAccessory.getService(this.Service.IrrigationSystem);
+												const zone = irrigationAccessory.getService(this.Service.IrrigationSystem)!;
 												if (this.platform.showStandby) {
-													this.log.debug('Webhook match found for %s will update irrigation service', service.getCharacteristic(this.Characteristic.Name).value);
-													this.eventMsg(irrigationSystemService, service, jsonBody);
+													this.log.debug('Webhook match found for %s will update irrigation service', zone.getCharacteristic(this.Characteristic.Name).value);
+													this.eventMsg(irrigationSystemService, zone, jsonBody);
 												} else {
 													this.log.debug('Skipping Webhook for %s service, optional standby switch is not configured', jsonBody.deviceName);
 												}
@@ -213,7 +213,7 @@ export default class listen {
 		return;
 	}
 
-	checkKey(secret: any, signature: any, message: any) {
+	checkKey(secret: BinaryLike | KeyObject, signature: string, message: BinaryLike) {
 		let pass = false;
 		const hash = createHmac('sha256', secret)
 			.update(message)
@@ -224,7 +224,7 @@ export default class listen {
 		return pass;
 	}
 
-	checkAuth(message: any) {
+	checkAuth(message: { headers: { authorization: string; }; }) {
 		let pass = false;
 		const b64encoded = Buffer.from(this.platform.user + ':' + this.platform.password, 'utf8').toString('base64');
 		if (message.headers.authorization == 'Basic ' + b64encoded) {
@@ -237,7 +237,7 @@ export default class listen {
 	}
 
 	webMessage(listener: any) {
-		this.eventMsg = (systemService: Service, service: Service, myJson: string) => {
+		this.eventMsg = (systemService, service, myJson) => {
 			listener(systemService, service, myJson);
 		};
 	}

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+//* eslint-disable @typescript-eslint/no-explicit-any */
 'use strict';
 import { Service, Characteristic, Logging, PlatformConfig } from 'homebridge';
 import RachioPlatform from './rachioplatform.js';
@@ -60,7 +60,7 @@ export default class Rachio {
 					activeService.getCharacteristic(this.Characteristic.Active).updateValue(this.Characteristic.Active.ACTIVE);
 					activeService.getCharacteristic(this.Characteristic.InUse).updateValue(this.Characteristic.InUse.IN_USE);
 					activeService.getCharacteristic(this.Characteristic.RemainingDuration).updateValue(jsonBody.payload.durationSeconds);
-					this.platform.endTime[activeService.subtype] = jsonBody.payload.endTime;
+					this.platform.endTime[activeService.subtype] = jsonBody.payload.endTime; ///need to change to find index
 					break;
 				case 'DEVICE_ZONE_RUN_STOPPED_EVENT':
 					if (jsonBody.payload.durationSeconds < 60) {

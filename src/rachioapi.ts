@@ -16,7 +16,7 @@ export default class RachioAPI {
 		private readonly log: Logging = platform.log,
 	) {}
 
-	async getPersonInfo(token: any) {
+	async getPersonInfo(token: string) {
 		try {
 			this.log.debug('Retrieving Person Info');
 			const response = await axios({
@@ -49,7 +49,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async getPersonId(token: any, personId: any) {
+	async getPersonId(token: string, personId: string) {
 		try {
 			this.log.debug('Retrieving Person ID');
 			const response = await axios({
@@ -82,7 +82,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async getPropertyEntity(token: any, resource: any, id: any) {
+	async getPropertyEntity(token: string, resource: string, id: string) {
 		try {
 			this.log.debug('Getting Property info');
 			const response = await axios({
@@ -117,7 +117,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async getDevice(token: any, device: any) {
+	async getDevice(token: string, device: string) {
 		try {
 			this.log.debug('Getting current device', device);
 			const response = await axios({
@@ -150,7 +150,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async getDeviceState(token: any, device: any) {
+	async getDeviceState(token: string, device: string) {
 		try {
 			this.log.debug('Getting current device state', device);
 			const response = await axios({
@@ -183,7 +183,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async getDeviceDetails(token: any, device: any) {
+	async getDeviceDetails(token: string, device: string) {
 		try {
 			this.log.debug('Getting current device state', device);
 			const response = await axios({
@@ -216,7 +216,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async getDeviceInfo(token: any, device: any) {
+	async getDeviceInfo(token: string, device: string) {
 		try {
 			this.log.debug('Getting current device state', device);
 			const response = await axios({
@@ -249,7 +249,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async getLocationList(token: any) {
+	async getLocationList(token: string) {
 		try {
 			this.log.debug('Getting Location List');
 			const response = await axios({
@@ -282,7 +282,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async currentSchedule(token: any, device: any) {
+	async currentSchedule(token: string, device: string) {
 		try {
 			this.log.debug('Getting current schedule', device);
 			const response = await axios({
@@ -315,7 +315,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async deviceStandby(token: any, device: { id: any; }, state: string) {
+	async deviceStandby(token: string, device: { id: string; }, state: string) {
 		try {
 			this.log.debug('Setting Standby Mode on', device.id);
 			const response = await axios({
@@ -343,7 +343,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async startZone(token: any, zone: any, runtime: any) {
+	async startZone(token: string, zone: any, runtime: number) {
 		try {
 			this.log.debug('Starting Zone', zone);
 			const response = await axios({
@@ -372,7 +372,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async startSchedule(token: any, schedule: any) {
+	async startSchedule(token: string, schedule: any) {
 		try {
 			this.log.debug('Starting Schedule', schedule);
 			const response = await axios({
@@ -400,7 +400,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async stopDevice(token: any, deviceId: any) {
+	async stopDevice(token: string, deviceId: string) {
 		try {
 			this.log.debug('Stopping', deviceId);
 			const response = await axios({
@@ -428,7 +428,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async startMultipleZone(token: any, zones: any[], duration: any) {
+	async startMultipleZone(token: string, zones: any[], duration: number) {
 		try {
 			const body: { name: any; id: any; duration: any; sortOrder: any; }[] = [];
 			//this.log.debug('Starting Multiple Zones', zones)
@@ -468,7 +468,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async listBaseStations(token: any, userid: any) {
+	async listBaseStations(token: string, userid: string) {
 		try {
 			this.log.debug('Getting Base Stations List');
 			const response = await axios({
@@ -500,7 +500,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async getBaseStation(token: any, baseStationId: any) {
+	async getBaseStation(token: string, baseStationId: string) {
 		try {
 			this.log.debug('Getting Base Station');
 			const response = await axios({
@@ -532,7 +532,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async getValveDayViews(token: any, baseStationId: any) {
+	async getValveDayViews(token: string, baseStationId: string) {
 		try {
 			this.log.debug('Getting Base Station');
 			const response = await axios({
@@ -584,7 +584,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async createSkip(token: any, runId: any) {
+	async createSkip(token: string, runId: string) {
 		try {
 			this.log.debug('Creating Skip Event');
 			const response = await axios({
@@ -624,7 +624,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async deleteSkip(token: any, runId: any) {
+	async deleteSkip(token: string, runId: string) {
 		try {
 			this.log.debug('Deleting Skip Event');
 			const response = await axios({
@@ -664,7 +664,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async listValves(token: any, baseStationId: any) {
+	async listValves(token: string, baseStationId: string) {
 		try {
 			this.log.debug('Getting valves List');
 			const response = await axios({
@@ -696,7 +696,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async getValve(token: any, valveId: any) {
+	async getValve(token: string, valveId: any) {
 		try {
 			this.log.debug('Getting Valve');
 			const response = await axios({
@@ -734,7 +734,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async startWatering(token: any, valveId: any, runtime: any) {
+	async startWatering(token: string, valveId: any, runtime: number) {
 		try {
 			this.log.debug('Start Watering', valveId);
 			const response = await axios({
@@ -763,7 +763,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async stopWatering(token: any, valveId: any) {
+	async stopWatering(token: string, valveId: any) {
 		try {
 			this.log.debug('Stop Watering', valveId);
 			const response = await axios({
@@ -791,7 +791,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async setDefaultRuntime(token: any, valveId: any, defaultRuntime: any) {
+	async setDefaultRuntime(token: string, valveId: any, defaultRuntime: number) {
 		try {
 			this.log.debug('Set Default Runtime', valveId);
 			const response = await axios({
@@ -820,7 +820,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async listPrograms(token: any, valveId: any) {
+	async listPrograms(token: string, valveId: any) {
 		try {
 			this.log.debug('Set Default Runtime', valveId);
 			const response = await axios({
@@ -845,7 +845,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async configureWebhooks(token: any, external_webhook_address: string, delete_webhooks: any, device_id: string, device_name: any, webhook_key: any) {
+	async configureWebhooks(token: string, external_webhook_address: string, delete_webhooks: boolean, device_id: string, device_name: string, webhook_key: string) {
 		try {
 			/*********************************************
 			Event Type options from get events
@@ -1035,7 +1035,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async configureWebhooksv2(token: any, external_webhook_address: string, delete_webhooks: any, device_id: any, device_name: any, webhook_key: any, type: string) {
+	async configureWebhooksv2(token: string, external_webhook_address: string, delete_webhooks: any, device_id: string, device_name: string, webhook_key: string, type: string) {
 		try {
 			/*********************************************
 					Event Type options from webhook info

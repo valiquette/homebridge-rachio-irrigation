@@ -4,9 +4,10 @@ import RachioPlatform from './rachioplatform.js';
 import RachioAPI from './rachioapi.js';
 
 export default class poll {
-	[x: string]: any;
 	public readonly Service: typeof Service;
 	public readonly Characteristic: typeof Characteristic;
+	lastInterval: number[];
+	timeStamp: number[];
 	constructor(
 		private readonly platform: RachioPlatform,
 		private readonly log: Logging = platform.log,
@@ -26,13 +27,13 @@ export default class poll {
 		const delta: any = [];
 		const interval: any = [];
 		const valveId: any = valveService.subtype;
-		delta[valveId] = new Date().valueOf() - this.timeStamp[valveId];
+		delta[valveId] = new Date().valueOf() - this.timeStamp[valveId]; ///need to change to find index
 		if (delta[valveId] > 500 || delta[valveId] == 0) {
 			//calls within 1/2 sec will be skipped as duplicate
-			this.timeStamp[valveId] = new Date();
+			this.timeStamp[valveId] = +new Date();
 		} else {
 			this.log.debug('Skipped new live update due to duplicate call, timestamp delta %s ms', delta[valveId]);
-			this.timeStamp[valveId] = new Date();
+			this.timeStamp[valveId] = +new Date();
 			return;
 		}
 		clearInterval(this.lastInterval[valveId]);

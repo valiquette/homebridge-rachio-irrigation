@@ -1,4 +1,4 @@
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import pkg from 'homebridge-rachio-irrigation/package.json' with { type: 'json' };
 import { PlatformAccessory, Service, Characteristic, Logging, CharacteristicValue } from 'homebridge';
 import RachioPlatform from '../rachioplatform.js';

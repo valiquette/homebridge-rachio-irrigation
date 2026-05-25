@@ -36,8 +36,8 @@ export default class skipSwitch {
 	}
 
 	configureSwitchService(baseStation: BaseStation, switchService: Service) {
-		this.log.debug('Configured switch for %s', switchService.getCharacteristic(this.Characteristic.Name).value)
-			this.devices.push(switchService)
+		this.log.debug('Configured switch for %s', switchService.getCharacteristic(this.Characteristic.Name).value);
+		this.devices.push(switchService);
 		switchService.getCharacteristic(this.Characteristic.On)
 			.onGet(this.getSwitchValue.bind(this, baseStation, switchService))
 			.onSet(this.setSwitchValue.bind(this, baseStation, switchService));
@@ -47,7 +47,7 @@ export default class skipSwitch {
 		if (switchService.getCharacteristic(this.Characteristic.StatusFault).value == this.Characteristic.StatusFault.GENERAL_FAULT) {
 			throw new this.platform.HapStatusError(this.platform.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
 		}
-		this.log.warn('set',baseStation.id)
+		this.log.warn('set',baseStation.id);
 		this.log.debug('toggle skip switch state %s', switchService.getCharacteristic(this.Characteristic.Name).value);
 		const programs = await this.rachioapi.getValveDayViews(this.platform.token, baseStation.id).catch(err => {
 			this.log.error('Failed to get daily view', err);

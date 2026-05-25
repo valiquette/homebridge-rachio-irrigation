@@ -280,7 +280,8 @@ export default class valve {
 				if (this.platform.showWebhookMessages) {
 					this.log.debug('webhook sent from <%s> %s', this.platform.webhook_key_local, JSON.stringify(myJsonStop, null, 2));
 				}
-				this.listener.localMsg(null, valveService, myJsonStop);
+				//this.listener.localMsg(null, valveService, myJsonStop);
+				this.listener.eventMsg(null, valveService, myJsonStop);
 				clearTimeout(this.platform.localWebhook);
 			} else {
 				this.log.info('Failed to stop valve');

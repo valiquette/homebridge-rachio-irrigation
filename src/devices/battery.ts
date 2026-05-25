@@ -53,7 +53,7 @@ export default class battery {
 
 	configureBatteryService(batteryStatus: Service) {
 		this.log.debug('configured battery service for %s', batteryStatus.getCharacteristic(this.Characteristic.Name).value);
-		this.devices.push(batteryStatus)
+		this.devices.push(batteryStatus);
 		batteryStatus.getCharacteristic(this.Characteristic.StatusLowBattery)
 			.onGet(this.getStatusLowBattery.bind(this, batteryStatus));
 	}
