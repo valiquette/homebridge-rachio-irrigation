@@ -243,7 +243,7 @@ export default class listen {
 	}
 
 
-	localMsg(msg: ((systemService: Service, service: Service, myJson: string) => void) | null, service?: any, myJson?: any) {
+	localMsg(msg: ((systemService: Service, service: Service, myJson: string) => void) | null, service?: Service, myJson?: any) {
 		msg = (systemService, service, myJson) => {
 			this.listener(systemService, service, myJson);
 		};
@@ -254,4 +254,5 @@ export default class listen {
 			this.listener(systemService, service, myJson);
 		};
 	}
+	
 }

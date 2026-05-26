@@ -23,6 +23,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 	public readonly HAPStatus!: typeof HAPStatus;
 	public readonly HapStatusError: typeof HapStatusError;
 	public readonly accessories: PlatformAccessory[] = [];
+	public readonly valveServices: Service[] = [];
 	constructor(
 		public readonly log: Logging,
 		public readonly config: PlatformConfig,
@@ -70,6 +71,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 		this.showSchedules = config.show_schedules;
 		this.locationAddress = config.location_address;
 		this.accessories = [];
+		this.valveServices = [];
 		this.zoneList = [];
 		this.foundLocations= null;
 		this.useHttps = config.https ? config.https : false;

@@ -10,6 +10,7 @@ import type { BaseStation, Property, Valve } from '../settings.js';
 export default class valve {
 	public readonly Service: typeof Service;
 	public readonly Characteristic: typeof Characteristic;
+	valves: Service[];
 	constructor(
 		private readonly platform: RachioPlatform,
 		private readonly log: Logging = platform.log,
@@ -20,6 +21,7 @@ export default class valve {
 	) {
 		this.Service = platform.Service;
 		this.Characteristic = platform.Characteristic;
+		this.valves = [];
 	}
 
 	createValveAccessory(base: BaseStation, property: Property, valve: Valve, platformAccessory: PlatformAccessory) {
@@ -63,7 +65,7 @@ export default class valve {
 		return platformAccessory;
 	}
 
-	updateValveService(base: BaseStation, valve: Valve, valveService: Service) { /// check base changed to device
+	updateValveService(base: BaseStation, valve: Valve, valveService: Service) {
 		const pollValves = this.config.pollValves ? this.config.pollValves : false;
 		if (pollValves) {
 			this.log.warn('Polling for Hose Timers is enabled');
@@ -141,6 +143,7 @@ export default class valve {
 			valveService.getCharacteristic(this.Characteristic.Name).value,
 			Number(valveService.getCharacteristic(this.Characteristic.SetDuration).value) / 60,
 		);
+		this.platform.valveServices.push(valveService);
 		valveService.getCharacteristic(this.Characteristic.Active)
 			.onGet(this.getValveValue.bind(this, valveService, 'ValveActive'))
 			.onSet(this.setValveValue.bind(this, valve, valveService));
@@ -163,7 +166,6 @@ export default class valve {
 		const pollValves = this.config.pollValves ? this.config.pollValves : false;
 		switch (characteristicName) {
 		case 'ValveActive':
-			//this.polling.startLiveUpdate(valveService) ///disabled for webhooks
 			if (pollValves) {
 				this.polling.startLiveUpdate(valveService);
 			}
@@ -177,7 +179,8 @@ export default class valve {
 			break;
 		case 'ValveRemainingDuration': {
 			// Calc remain duration
-			const timeEnding = Date.parse(this.platform.endTime[Number(valveService.subtype)]);
+			const index = this.platform.valveServices.findIndex(valve => valve.subtype === valveService.subtype);
+			const timeEnding = Date.parse(this.platform.endTime[index]);
 			const timeNow = Date.now();
 			let timeRemaining = Math.max(Math.round((timeEnding - timeNow) / 1000), 0);
 			if (isNaN(timeRemaining)) {

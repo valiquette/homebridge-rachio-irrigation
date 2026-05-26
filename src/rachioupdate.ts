@@ -1,4 +1,4 @@
-//* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use strict';
 import { Service, Characteristic, Logging, PlatformConfig } from 'homebridge';
 import RachioPlatform from './rachioplatform.js';
@@ -15,10 +15,8 @@ export default class Rachio {
 		this.Characteristic = platform.Characteristic;
 	}
 
-
-
-
-	async updateService(irrigationSystemService: Service, activeService: any, jsonBody: any) {
+	async updateService(irrigationSystemService: Service, activeService: Service, jsonBody: any) {
+		const index = this.platform.valveServices.findIndex(valve => valve.subtype === activeService.subtype);
 		if (jsonBody.resourceType == 'IRRIGATION_CONTROLLER' || jsonBody.resourceType == 'VALVE') {
 			//webhook v2 message
 			/***********************************************************
@@ -60,7 +58,7 @@ export default class Rachio {
 					activeService.getCharacteristic(this.Characteristic.Active).updateValue(this.Characteristic.Active.ACTIVE);
 					activeService.getCharacteristic(this.Characteristic.InUse).updateValue(this.Characteristic.InUse.IN_USE);
 					activeService.getCharacteristic(this.Characteristic.RemainingDuration).updateValue(jsonBody.payload.durationSeconds);
-					this.platform.endTime[activeService.subtype] = jsonBody.payload.endTime; ///need to change to find index
+					this.platform.endTime[index] = jsonBody.payload.endTime;
 					break;
 				case 'DEVICE_ZONE_RUN_STOPPED_EVENT':
 					if (jsonBody.payload.durationSeconds < 60) {
@@ -76,7 +74,7 @@ export default class Rachio {
 					break;
 				case 'DEVICE_ZONE_RUN_PAUSED_EVENT': {
 					clearTimeout(this.platform.localWebhook);
-					const pauseDuration = Math.round((Date.parse(jsonBody.payload.endTime) - Date.now() - (Date.parse(this.platform.endTime[activeService.subtype]) - Date.now())) / 1000);
+					const pauseDuration = Math.round((Date.parse(jsonBody.payload.endTime) - Date.now() - (Date.parse(this.platform.endTime[index]) - Date.now())) / 1000);
 					const pauseDurationInMinutes = Math.round(jsonBody.payload.durationSeconds / 60);
 					this.log.info('<%s> %s, paused for duration %s minutes.', jsonBody.externalId, jsonBody.eventType, pauseDurationInMinutes);
 					//this.log.debug(jsonBody.summary)
@@ -84,7 +82,7 @@ export default class Rachio {
 					activeService.getCharacteristic(this.Characteristic.Active).updateValue(this.Characteristic.Active.ACTIVE);
 					activeService.getCharacteristic(this.Characteristic.InUse).updateValue(this.Characteristic.InUse.NOT_IN_USE);
 					activeService.getCharacteristic(this.Characteristic.RemainingDuration).updateValue(pauseDuration);
-					this.platform.endTime[activeService.subtype] = jsonBody.payload.endTime;
+					this.platform.endTime[index] = jsonBody.payload.endTime;
 				}
 					break;
 				case 'DEVICE_ZONE_RUN_COMPLETED_EVENT': {
@@ -132,7 +130,7 @@ export default class Rachio {
 					activeService.getCharacteristic(this.Characteristic.Active).updateValue(this.Characteristic.Active.ACTIVE);
 					activeService.getCharacteristic(this.Characteristic.InUse).updateValue(this.Characteristic.InUse.IN_USE);
 					activeService.getCharacteristic(this.Characteristic.RemainingDuration).updateValue(jsonBody.payload.durationSeconds);
-					this.platform.endTime[activeService.subtype] = jsonBody.payload.endTime;
+					this.platform.endTime[index] = jsonBody.payload.endTime;
 					break;
 				case 'VALVE_RUN_END_EVENT':
 					jsonBody.payload.endTime = new Date(Date.parse(jsonBody.payload.startTime) + jsonBody.payload.durationSeconds * 1000); // need to add to json, missing jsonBody.payload.endTime
@@ -211,7 +209,7 @@ export default class Rachio {
 						activeService.getCharacteristic(this.Characteristic.Active).updateValue(this.Characteristic.Active.ACTIVE);
 						activeService.getCharacteristic(this.Characteristic.InUse).updateValue(this.Characteristic.InUse.IN_USE);
 						activeService.getCharacteristic(this.Characteristic.RemainingDuration).updateValue(jsonBody.duration);
-						this.platform.endTime[activeService.subtype] = jsonBody.endTime;
+						this.platform.endTime[index] = jsonBody.endTime;
 						break;
 					case 'ZONE_STOPPED':
 						if (jsonBody.duration < 60) {
@@ -224,11 +222,11 @@ export default class Rachio {
 						activeService.getCharacteristic(this.Characteristic.Active).updateValue(this.Characteristic.Active.INACTIVE);
 						activeService.getCharacteristic(this.Characteristic.InUse).updateValue(this.Characteristic.InUse.NOT_IN_USE);
 						activeService.getCharacteristic(this.Characteristic.RemainingDuration).updateValue(jsonBody.duration);
-						this.platform.endTime[activeService.subtype] = jsonBody.endTime;
+						this.platform.endTime[index] = jsonBody.endTime;
 						break;
 					case 'ZONE_PAUSED': {
 						clearTimeout(this.platform.localWebhook);
-						const pauseDuration = Math.round((Date.parse(jsonBody.endTime) - Date.now() - (Date.parse(this.platform.endTime[activeService.subtype]) - Date.now())) / 1000);
+						const pauseDuration = Math.round((Date.parse(jsonBody.endTime) - Date.now() - (Date.parse(this.platform.endTime[index]) - Date.now())) / 1000);
 						const pauseDurationInMinutes = Math.round(pauseDuration / 60);
 						this.log('<%s> %s, paused for duration %s minutes.', jsonBody.externalId, jsonBody.title, pauseDurationInMinutes);
 						this.log.debug(jsonBody.summary);
@@ -236,7 +234,7 @@ export default class Rachio {
 						activeService.getCharacteristic(this.Characteristic.Active).updateValue(this.Characteristic.Active.ACTIVE);
 						activeService.getCharacteristic(this.Characteristic.InUse).updateValue(this.Characteristic.InUse.NOT_IN_USE);
 						activeService.getCharacteristic(this.Characteristic.RemainingDuration).updateValue(pauseDuration);
-						this.platform.endTime[activeService.subtype] = jsonBody.endTime;
+						this.platform.endTime[index] = jsonBody.endTime;
 					}
 						break;
 					case 'ZONE_CYCLING':
@@ -247,7 +245,7 @@ export default class Rachio {
 						activeService.getCharacteristic(this.Characteristic.Active).updateValue(this.Characteristic.Active.ACTIVE);
 						activeService.getCharacteristic(this.Characteristic.InUse).updateValue(this.Characteristic.InUse.NOT_IN_USE);
 						activeService.getCharacteristic(this.Characteristic.RemainingDuration).updateValue(jsonBody.duration);
-						this.platform.endTime[activeService.subtype] = jsonBody.endTime;
+						this.platform.endTime[index] = jsonBody.endTime;
 						break;
 					case 'ZONE_COMPLETED':
 						this.log('<%s> %s, completed after %s minutes.', jsonBody.externalId, jsonBody.title, jsonBody.durationInMinutes);

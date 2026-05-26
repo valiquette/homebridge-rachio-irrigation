@@ -151,6 +151,7 @@ export default class irrigation {
 			valveService.getCharacteristic(this.Characteristic.Name).value,
 			Number(valveService.getCharacteristic(this.Characteristic.SetDuration).value) / 60,
 		);
+		this.platform.valveServices.push(valveService);
 		// Configure Valve Service
 		valveService.getCharacteristic(this.Characteristic.Active)
 			.onGet(this.getValveValue.bind(this, valveService, 'ValveActive'))
@@ -245,7 +246,8 @@ export default class irrigation {
 			break;
 		case 'ValveRemainingDuration': {
 			// Calc remain duration
-			const timeEnding = Date.parse(this.platform.endTime[Number(valveService.subtype)]);
+			const index = this.platform.valveServices.findIndex(valve => valve.subtype === valveService.subtype);
+			const timeEnding = Date.parse(this.platform.endTime[index]);
 			const timeNow = Date.now();
 			let timeRemaining = Math.max(Math.round((timeEnding - timeNow) / 1000), 0);
 			if (isNaN(timeRemaining)) {
