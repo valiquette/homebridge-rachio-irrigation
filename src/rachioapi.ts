@@ -2,7 +2,7 @@
 //// Public API info https://rachio.readme.io/v2.0/docs
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-useless-catch */
-'use strict';
+
 import axios from 'axios';
 import { Logging } from 'homebridge';
 import RachioPlatform from './rachioplatform.js';
@@ -617,7 +617,7 @@ export default class RachioAPI {
 				if (this.platform.showAPIMessages) {
 					this.log.debug('Create skip response', JSON.stringify(response.data, null, 2));
 				}
-				return response.data;
+				return response;
 			}
 		} catch (err) {
 			this.log.error('Error creating skip event \n%s', err);
@@ -657,7 +657,7 @@ export default class RachioAPI {
 				if (this.platform.showAPIMessages) {
 					this.log.debug('Delete skip response', JSON.stringify(response.data, null, 2));
 				}
-				return response.data;
+				return response;
 			}
 		} catch (err) {
 			this.log.error('Error deleting skip event \n%s', err);

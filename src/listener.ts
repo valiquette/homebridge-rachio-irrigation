@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import http from 'http';
 import https from 'https';
@@ -14,7 +13,6 @@ export default class listen {
 	public readonly Service: typeof Service;
 	public readonly Characteristic: typeof Characteristic;
 	eventMsg!: (systemService: Service | null, service: Service, myJson: any) => void;
-	listener!: (arg0: Service, arg1: Service, arg2: string) => void;
 	constructor(
 		private readonly platform: RachioPlatform,
 		private readonly log: Logging = platform.log,
@@ -25,6 +23,7 @@ export default class listen {
 	}
 	configureListener() {
 		this.webMessage(this.rachio.updateService.bind(this));
+		//this.localMessage(this.rachio.updateService.bind(this));
 		const server: any = this.platform.useHttps ? https : http;
 		let options = {};
 		if (server == https) {
@@ -133,10 +132,10 @@ export default class listen {
 												this.log.debug('Webhook match found for %s will update zone service', zone.getCharacteristic(this.Characteristic.Name).value);
 												this.eventMsg(irrigationSystemService, zone, jsonBody);
 											} else if (jsonBody.payload.scheduleId) {
-												const zone = irrigationAccessory.getServiceById(this.Service.Switch, jsonBody.payload.scheduleId)!;
+												const schedule = irrigationAccessory.getServiceById(this.Service.Switch, jsonBody.payload.scheduleId)!;
 												if (this.platform.showSchedules) {
-													this.log.debug('Webhook match found for %s will update schedule service', zone.getCharacteristic(this.Characteristic.Name).value);
-													this.eventMsg(irrigationSystemService, zone, jsonBody);
+													this.log.debug('Webhook match found for %s will update schedule service', schedule.getCharacteristic(this.Characteristic.Name).value);
+													this.eventMsg(irrigationSystemService, schedule, jsonBody);
 												} else {
 													this.log.debug('Skipping Webhook for %s service, optional schedule switch is not configured', jsonBody.scheduleName);
 												}
@@ -173,10 +172,10 @@ export default class listen {
 												this.log.debug('Webhook match found for %s will update zone service', zone.getCharacteristic(this.Characteristic.Name).value);
 												this.eventMsg(irrigationSystemService, zone, jsonBody);
 											} else if (jsonBody.deviceId && jsonBody.subType.includes('SLEEP')) {
-												const zone = irrigationAccessory.getService(this.Service.IrrigationSystem)!;
 												if (this.platform.showStandby) {
-													this.log.debug('Webhook match found for %s will update irrigation service', zone.getCharacteristic(this.Characteristic.Name).value);
-													this.eventMsg(irrigationSystemService, zone, jsonBody);
+													const switchService = irrigationAccessory.getServiceById(this.Service.Switch, this.platform.genUUID(jsonBody.deviceName + ' Standby'))!;
+													this.log.debug('Webhook match found for %s will update irrigation service', irrigationSystemService.getCharacteristic(this.Characteristic.Name).value);
+													this.eventMsg(irrigationSystemService, switchService, jsonBody);
 												} else {
 													this.log.debug('Skipping Webhook for %s service, optional standby switch is not configured', jsonBody.deviceName);
 												}
@@ -242,17 +241,10 @@ export default class listen {
 		};
 	}
 
-
-	localMsg(msg: ((systemService: Service, service: Service, myJson: string) => void) | null, service?: Service, myJson?: any) {
-		msg = (systemService, service, myJson) => {
-			this.listener(systemService, service, myJson);
-		};
+	localMessage(systemService:Service | null, service: Service, myJson: any) {
+		if (this.platform.showWebhookMessages) {
+			this.log.debug('webhook recieved from <%s> %s', this.platform.webhook_key_local, JSON.stringify(myJson, null, 2));
+		}
+		this.rachio.updateService(systemService, service, myJson);
 	}
-
-	localMsg2(systemService: Service | undefined, service: Service, msg: ((systemService: Service, service: Service, myJson: any) => void)) {
-		msg = (systemService, service, myJson) => {
-			this.listener(systemService, service, myJson);
-		};
-	}
-	
 }

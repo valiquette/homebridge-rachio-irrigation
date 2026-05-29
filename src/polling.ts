@@ -61,7 +61,7 @@ export default class poll {
 		const index = this.platform.valveServices.findIndex(valve => valve.subtype === valveService.subtype);
 		try {
 			this.log.debug('updating valve Id', index);
-			const response = await this.rachioapi.getValve(this.platform.token, index).catch((err: string) => {
+			const response = await this.rachioapi.getValve(this.platform.token, valveService.subtype).catch((err: string) => {
 				this.log.error('Failed to get valve', err);
 			});
 

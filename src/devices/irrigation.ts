@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import pkg from 'homebridge-rachio-irrigation/package.json' with { type: 'json' };
 import { PlatformAccessory, Service, Characteristic, Logging, CharacteristicValue } from 'homebridge';
 import RachioPlatform from '../rachioplatform.js';
@@ -275,7 +275,7 @@ export default class irrigation {
 		}
 		const index: number = this.platform.accessories.findIndex(accessory => accessory.UUID === device.id);
 		const irrigationAccessory: PlatformAccessory = this.platform.accessories[index];
-		const irrigationSystemService = irrigationAccessory.getService(this.Service.IrrigationSystem);
+		const irrigationSystemService = irrigationAccessory.getService(this.Service.IrrigationSystem)!;
 		// Set homekit state and prepare message for Rachio API
 		const runTime = Number(valveService.getCharacteristic(this.Characteristic.SetDuration).value);
 		let response;
@@ -284,7 +284,7 @@ export default class irrigation {
 			this.log.info('Starting zone-%s %s for %s mins', valveService.getCharacteristic(this.Characteristic.ServiceLabelIndex).value, valveService.getCharacteristic(this.Characteristic.Name).value, runTime / 60);
 			response = await this.rachioapi.startZone(this.platform.token, valveService.getCharacteristic(this.Characteristic.SerialNumber).value, runTime);
 			if (response?.status == 204) {
-				const myZoneStart: any = {
+				const myZoneStart = {
 					eventId: 'f2d29dab-811c-34d4-8979-b464f38380a3',
 					eventType: 'DEVICE_ZONE_RUN_STARTED_EVENT',
 					externalId: this.platform.webhook_key_local,
@@ -298,9 +298,9 @@ export default class irrigation {
 					},
 					resourceId: device.id,
 					resourceType: 'IRRIGATION_CONTROLLER',
-					timestamp: new Date().toLocaleTimeString(),
+					timestamp: new Date().toISOString().split('.')[0] + 'Z',
 				};
-				const myZoneStop: any = {
+				const myZoneStop = {
 					eventId: 'c55fe382-9aad-310d-beb4-652542deea89',
 					eventType: 'DEVICE_ZONE_RUN_COMPLETED_EVENT',
 					externalId: this.platform.webhook_key_local,
@@ -314,19 +314,13 @@ export default class irrigation {
 					},
 					resourceId: device.id,
 					resourceType: 'IRRIGATION_CONTROLLER',
-					timestamp: new Date().toISOString(),
+					timestamp: new Date().toISOString().split('.')[0] + 'Z',
 				};
 				this.log.debug('Simulating webhook for zone %s will update services', myZoneStart.payload.zoneNumber);
-				if (this.platform.showWebhookMessages) {
-					this.log.debug('webhook sent from <%s> %s', this.platform.webhook_key_local, JSON.stringify(myZoneStart, null, 2));
-				}
-				this.listener.localMsg2(irrigationSystemService, valveService, myZoneStart);
+				this.listener.localMessage(irrigationSystemService,valveService, myZoneStart );
 				this.platform.localWebhook = setTimeout(() => {
 					this.log.debug('Simulating webhook for zone %s will update services', myZoneStop.payload.zoneNumber);
-					if (this.platform.showWebhookMessages) {
-						this.log.debug('webhook sent from <%s> %s', this.platform.webhook_key_local, JSON.stringify(myZoneStop, null, 2));
-					}
-					this.listener.localMsg2(irrigationSystemService, valveService, myZoneStop);
+					this.listener.localMessage(irrigationSystemService, valveService, myZoneStop );
 				}, runTime * 1000);
 			} else {
 				this.log.info('Failed to start valve');
@@ -337,7 +331,7 @@ export default class irrigation {
 			this.log.info('Stopping zone-%s %s', valveService.getCharacteristic(this.Characteristic.ServiceLabelIndex).value, valveService.getCharacteristic(this.Characteristic.Name).value);
 			response = await this.rachioapi.stopDevice(this.platform.token, device.id);
 			if (response?.status == 204) {
-				const myZoneStop: any = {
+				const myZoneStop = {
 					eventId: 'c55fe382-9aad-310d-beb4-652542deea89',
 					eventType: 'DEVICE_ZONE_RUN_STOPPED_EVENT',
 					externalId: this.platform.webhook_key_local,
@@ -351,13 +345,10 @@ export default class irrigation {
 					},
 					resourceId: device.id,
 					resourceType: 'IRRIGATION_CONTROLLER',
-					timestamp: new Date().toISOString(),
+					timestamp: new Date().toISOString().split('.')[0] + 'Z',
 				};
 				this.log.debug('Simulating webhook for zone %s will update services', myZoneStop.payload.zoneNumber);
-				if (this.platform.showWebhookMessages) {
-					this.log.debug('webhook sent from <%s> %s', this.platform.webhook_key_local, JSON.stringify(myZoneStop, null, 2));
-				}
-				this.listener.localMsg2(irrigationSystemService, valveService, myZoneStop);
+				this.listener.localMessage(irrigationSystemService, valveService, myZoneStop );
 				clearTimeout(this.platform.localWebhook);
 			} else {
 				this.log.info('Failed to stop zone');

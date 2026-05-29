@@ -58,20 +58,23 @@ export default class skipSwitch {
 				run.valveRunSummaries.forEach(async summary => {
 					if(switchService.subtype == run.programId){
 						if(summary.skip?.manualOverrideTrigger == undefined){
-							this.log.info('Add skip for program % valve ',run.programName, summary.valveName);
 							if (run.plannedRunId) {
 								const response = await this.rachioapi.createSkip(this.platform.token, run.plannedRunId);
 								if (response?.status == 200) {
+									this.log.info('Added skip for program %s valve ',run.programName, summary.valveName);
 									switchService.getCharacteristic(this.Characteristic.On).updateValue(true);
 								} else {
 									switchService.getCharacteristic(this.Characteristic.On).updateValue(false);
 								}
+							} else {
+								this.log.info('No upcoming planned program scheduled')
+								switchService.getCharacteristic(this.Characteristic.On).updateValue(false)
 							}
 						} else {
-							this.log.info('Remove skip for program % valve ',run.programName, summary.valveName);
 							if (run.plannedRunId) {
 								const response = await this.rachioapi.deleteSkip(this.platform.token, run.plannedRunId);
 								if (response?.status == 200) {
+									this.log.info('Removed skip for program %s valve ',run.programName, summary.valveName);
 									switchService.getCharacteristic(this.Characteristic.On).updateValue(false);
 								} else {
 									switchService.getCharacteristic(this.Characteristic.On).updateValue(true);
@@ -94,7 +97,7 @@ export default class skipSwitch {
 		}
 		//check for duplicate call
 		this.delta[index] = new Date().valueOf() - this.timeStamp[index];
-		if (this.delta[index] > 60 * 60 * 1000 || this.delta[index] == 0) {  // check after 1 hour
+		if (this.delta[index] > 0 * 60 * 1000 || this.delta[index] == 0) {  // check after 1 hour
 			this.timeStamp[index] = +new Date();
 		} else {
 			this.log.debug('skipped program update, to soon. timestamp delta %s sec', this.delta[index]/1000);
@@ -111,7 +114,7 @@ export default class skipSwitch {
 			programs.valveDayViews.forEach((day: { valveProgramRunSummaries: { valveRunSummaries: { skip: { manualOverrideTrigger: string; }; valveName: string; }[]; programId: string; programName: string; plannedRunId: string; }[]; }) => {
 				day.valveProgramRunSummaries.forEach(run => {
 					run.valveRunSummaries.forEach(summary => {
-						if(switchService.subtype == run.programId){
+						if (switchService.subtype == run.programId) {
 							if (summary.skip?.manualOverrideTrigger == undefined){
 								currentValue = false;
 							} else {

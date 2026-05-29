@@ -4,6 +4,7 @@
 Refatored
 -  Code cleanup
 -  refacored in Typescript
+-  fixed minor bugs
 -  Bumped dependencies
 
 

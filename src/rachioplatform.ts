@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-'use strict';
 
 import { API, Characteristic, DynamicPlatformPlugin, HAPStatus, HapStatusError, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
 import { PLATFORM_NAME, PLUGIN_NAME, BaseStation, Controller, Valve } from './settings.js';
@@ -41,6 +40,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 		this.rachio = new RachioUpdate(this);
 		this.listener = new listen(this);
 		this.switches = new switches(this);
+		this.irrigation = new irrigation(this);
 		this.valve = new valve(this);
 		this.skipSwitch = new skipSwitch(this);
 		this.battery = new battery(this);
@@ -330,7 +330,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 							// Create and configure Irrigation
 							this.log.debug('Creating and configuring new device');
 							const index = this.accessories.findIndex(accessory => accessory.UUID === newDevice.id);
-							const irrigationAccessory: PlatformAccessory = new irrigation(this).createIrrigationAccessory(newDevice, deviceState, this.accessories[index]);
+							const irrigationAccessory: PlatformAccessory = this.irrigation.createIrrigationAccessory(newDevice, deviceState, this.accessories[index]);
 							// check if still required
 							if (!this.showControllers) {
 								this.log.info('Removing Smart Sprinker Controller %s', irrigationAccessory.displayName);
@@ -365,7 +365,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 									const valveService = irrigationAccessory.getServiceById(this.Service.Valve, zone.id);
 									if (!valveService) {
 										//add new
-										const valveService = new irrigation(this).createValveService(newDevice, zone);
+										const valveService = this.irrigation.createValveService(newDevice, zone);
 										irrigationAccessory.addService(valveService);
 										this.api.updatePlatformAccessories([irrigationAccessory]);
 										if (this.useIrrigationDisplay) {
@@ -376,8 +376,8 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 											this.log.debug('Using separate tiles');
 										}
 									} else {
-										new irrigation(this).updateValveService(newDevice, zone, valveService);
-										new irrigation(this).configureValveService(newDevice, valveService);
+										this.irrigation.updateValveService(newDevice, zone, valveService);
+										this.irrigation.configureValveService(newDevice, valveService);
 										this.api.updatePlatformAccessories([irrigationAccessory]);
 									}
 								}
@@ -807,7 +807,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 			const irrigationSystemService = irrigationAccessory.getService(this.Service.IrrigationSystem);
 			const service = irrigationAccessory.getService(this.Service.IrrigationSystem);
 			this.log.debug('Updating device status');
-			this.listener.localMsg(irrigationSystemService, service, myJson);
+			this.listener.localMessage(irrigationSystemService, service, myJson );
 		}
 	}
 
@@ -849,8 +849,9 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 			const index = this.accessories.findIndex(accessory => accessory.UUID === myJson.deviceId);
 			const irrigationAccessory = this.accessories[index];
 			const irrigationSystemService = irrigationAccessory.getService(this.Service.IrrigationSystem);
+			const switchService = irrigationAccessory.getServiceById(this.Service.Switch, this.platform.genUUID(myJson.deviceName + ' Standby'))!;
 			this.log.debug('Updating standby switch state');
-			this.listener.localMsg(irrigationSystemService, irrigationSystemService, myJson);
+			this.listener.localMessage(irrigationSystemService, switchService, myJson );
 		}
 	}
 
@@ -885,7 +886,8 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 			const irrigationSystemService = irrigationAccessory.getService(this.Service.IrrigationSystem);
 			const service = irrigationAccessory.getServiceById(this.Service.Valve, myJson.zoneId);
 			this.log.debug('Zone running match found for zone-%s on start will update services', myJson.zoneNumber);
-			this.listener.localMsg(irrigationSystemService, service, myJson);
+			this.listener.localMessage(irrigationSystemService, service, myJson );
+
 		}
 		if (response.status == 'PROCESSING' && this.showSchedules && response.scheduleId != undefined) {
 			this.log.debug('Found schedule %s running', response.scheduleId);
@@ -912,7 +914,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 			const irrigationSystemService = irrigationAccessory.getService(this.Service.IrrigationSystem);
 			const service = irrigationAccessory.getServiceById(this.Service.Switch, myJson.scheduleId);
 			this.log.debug('Schedule running match found for schedule %s on start will update services', myJson.scheduleName);
-			this.listener.localMsg(irrigationSystemService, service, myJson);
+			this.listener.localMessage( irrigationSystemService, service, myJson );
 		}
 	}
 

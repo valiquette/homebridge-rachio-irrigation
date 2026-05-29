@@ -68,7 +68,7 @@ export default class valve {
 	updateValveService(base: BaseStation, valve: Valve, valveService: Service) {
 		const pollValves = this.config.pollValves ? this.config.pollValves : false;
 		if (pollValves) {
-			this.log.warn('Polling for Hose Timers is enabled');
+			this.log.warn('Polling for Hose Timers is enabled, try using webhooks');
 		}
 		let defaultRuntime = this.platform.defaultRuntime;
 		valve.enabled = true; // need rachio valve version of enabled
@@ -222,11 +222,11 @@ export default class valve {
 						durationSeconds: valveService.getCharacteristic(this.Characteristic.SetDuration).value,
 						flowDetected: false,
 						runType: 'QUICK_RUN',
-						startTime: new Date().toISOString(),
+						startTime:  new Date().toISOString().split('.')[0] + 'Z',
 					},
 					resourceId: valve.id,
 					resourceType: 'VALVE',
-					timestamp: new Date().toISOString(),
+					timestamp: new Date().toISOString().split('.')[0] + 'Z',
 				};
 				const myJsonStop = {
 					eventId: '6defa6ff-a169-3477-aa57-3c028455387d',
@@ -237,24 +237,18 @@ export default class valve {
 						endReason: 'COMPLETED',
 						flowDetected: false,
 						runType: 'QUICK_RUN',
-						startTime: new Date().toISOString(),
+						startTime: new Date().toISOString().split('.')[0] + 'Z',
 					},
 					resourceId: valve.id,
 					resourceType: 'VALVE',
-					timestamp: new Date().toISOString(),
+					timestamp: new Date().toISOString().split('.')[0] + 'Z',
 				};
 				this.log.debug('Simulating websocket event for %s', myJsonStart.resourceId);
-				if (this.platform.showWebhookMessages) {
-					this.log.debug('webhook sent from <%s> %s', this.platform.webhook_key_local, JSON.stringify(myJsonStart, null, 2));
-				}
-				this.listener.localMsg(null, valveService, myJsonStart);
+				this.listener.localMessage(null, valveService, myJsonStart );
 				this.platform.localWebhook = setTimeout(() => {
 					this.log.debug('Simulating websocket event for %s', myJsonStop.resourceId);
 					this.platform.endTime[Number(valveService.getCharacteristic(this.Characteristic.SerialNumber).value)] = new Date(Date.now()).toISOString();
-					if (this.platform.showWebhookMessages) {
-						this.log.debug('webhook sent from <%s> %s', this.platform.webhook_key_local, JSON.stringify(myJsonStop, null, 2));
-					}
-					this.listener.localMsg(null, valveService, myJsonStop);
+					this.listener.localMessage(null, valveService, myJsonStop );
 				}, runTime * 1000);
 			}
 			break;
@@ -273,18 +267,14 @@ export default class valve {
 						endReason: 'COMPLETED',
 						flowDetected: false,
 						runType: 'QUICK_RUN',
-						startTime: new Date().toISOString(),
+						startTime:  new Date().toISOString().split('.')[0] + 'Z',
 					},
 					resourceId: valve.id,
 					resourceType: 'VALVE',
-					timestamp: new Date().toISOString(),
+					timestamp: new Date().toISOString().split('.')[0] + 'Z',
 				};
 				this.log.debug('Simulating websocket event for %s', myJsonStop.resourceId);
-				if (this.platform.showWebhookMessages) {
-					this.log.debug('webhook sent from <%s> %s', this.platform.webhook_key_local, JSON.stringify(myJsonStop, null, 2));
-				}
-				//this.listener.localMsg(null, valveService, myJsonStop);
-				this.listener.eventMsg(null, valveService, myJsonStop);
+				this.listener.localMessage(null, valveService, myJsonStop );
 				clearTimeout(this.platform.localWebhook);
 			} else {
 				this.log.info('Failed to stop valve');
