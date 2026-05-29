@@ -67,8 +67,8 @@ export default class skipSwitch {
 									switchService.getCharacteristic(this.Characteristic.On).updateValue(false);
 								}
 							} else {
-								this.log.info('No upcoming planned program scheduled')
-								switchService.getCharacteristic(this.Characteristic.On).updateValue(false)
+								this.log.info('No upcoming planned program scheduled');
+								switchService.getCharacteristic(this.Characteristic.On).updateValue(false);
 							}
 						} else {
 							if (run.plannedRunId) {
