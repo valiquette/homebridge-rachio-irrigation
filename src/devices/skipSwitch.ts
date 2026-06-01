@@ -91,7 +91,6 @@ export default class skipSwitch {
 	async getSwitchValue(baseStation: BaseStation, switchService: Service) {
 		const index = this.devices.findIndex(device => device.subtype === switchService.subtype);
 		let currentValue = switchService.getCharacteristic(this.Characteristic.On).value;
-
 		if(!this.timeStamp[index]) {
 			this.timeStamp[index] = +new Date();
 		}
@@ -103,27 +102,29 @@ export default class skipSwitch {
 			this.log.debug('skipped program update, to soon. timestamp delta %s sec', this.delta[index]/1000);
 			return currentValue;
 		}
-
-		if (switchService.getCharacteristic(this.Characteristic.StatusFault).value == this.Characteristic.StatusFault.GENERAL_FAULT) {
-			throw new this.platform.HapStatusError(this.platform.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
-		} else {
-			const programs = await this.rachioapi.getValveDayViews(this.platform.token, baseStation.id).catch(err => {
-			//this.log.error('Failed to get daily view', err)
-				throw (`Failed to get daily view ${err}`);
-			});
-			programs.valveDayViews.forEach((day: { valveProgramRunSummaries: { valveRunSummaries: { skip: { manualOverrideTrigger: string; }; valveName: string; }[]; programId: string; programName: string; plannedRunId: string; }[]; }) => {
-				day.valveProgramRunSummaries.forEach(run => {
-					run.valveRunSummaries.forEach(summary => {
-						if (switchService.subtype == run.programId) {
-							if (summary.skip?.manualOverrideTrigger == undefined){
-								currentValue = false;
-							} else {
-								currentValue = true;
+		try{
+			if (switchService.getCharacteristic(this.Characteristic.StatusFault).value == this.Characteristic.StatusFault.GENERAL_FAULT) {
+				throw new this.platform.HapStatusError(this.platform.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+			} else {
+				const programs = await this.rachioapi.getValveDayViews(this.platform.token, baseStation.id).catch(err => {
+					throw (`Failed to get daily view ${err}`);
+				});
+				programs.valveDayViews.forEach((day: { valveProgramRunSummaries: { valveRunSummaries: { skip: { manualOverrideTrigger: string; }; valveName: string; }[]; programId: string; programName: string; plannedRunId: string; }[]; }) => {
+					day.valveProgramRunSummaries.forEach(run => {
+						run.valveRunSummaries.forEach(summary => {
+							if (switchService.subtype == run.programId) {
+								if (summary.skip?.manualOverrideTrigger == undefined){
+									currentValue = false;
+								} else {
+									currentValue = true;
+								}
 							}
-						}
+						});
 					});
 				});
-			});
+			}
+		} catch (err) {
+			this.log.error('Error trying to update skip switch', err);
 		}
 		return currentValue;
 	}

@@ -107,7 +107,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 			this.api.on(
 				'didFinishLaunching',
 				async () => {
-					let x: any;
+					let x: boolean | void;
 					if (this.showControllers || this.showValves) {
 						//Get info to configure webhooks
 						await this.getWebhookInfo();
@@ -116,7 +116,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 					}
 					//Get controllers
 					this.log.info('Setting up Controller devices');
-					x = await this.getRachioDevices().catch((err: any) => {
+					x = await this.getRachioDevices().catch((err) => {
 						this.log.error('Failure launching plugin, controller');
 						this.log.debug(err);
 					});
@@ -130,7 +130,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 
 					//Get valves
 					this.log.info('Setting up Wifi hub devices');
-					x = await this.getRachioValves().catch((err: any) =>{
+					x = await this.getRachioValves().catch((err) =>{
 						this.log.error('Failure launching plugin, hose timers');
 						this.log.debug(err);
 					});
@@ -207,7 +207,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 						}
 						this.log.debug(`using IPv4 webhook external address ${this.external_IP_address}`);
 					})
-					.catch((err: any) =>{
+					.catch((err) =>{
 						this.log.error('Failed to get current external IP', err.cause);
 					});
 				this.setWebhookURL();
@@ -229,7 +229,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 						}
 						this.log.debug(`using IPv6 webhook external address ${this.external_IP_address}`);
 					})
-					.catch((err: any) =>{
+					.catch((err) =>{
 						this.log.error('Failed to get current external IP', err.cause);
 					});
 				this.external_IP_address = '[' + this.external_IP_address + ']';
@@ -243,7 +243,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 		}
 	}
 
-	checkIPaddress(inputText: any, ipformat: any) {
+	checkIPaddress(inputText: string, ipformat: RegExp) {
 		try {
 			if (inputText.match(ipformat)) {
 				return true;
@@ -278,14 +278,14 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 			// getting account info
 			this.log.debug('Fetching build info for Smart Sprinkler Controllers...');
 			this.log.info('Getting Person info...');
-			const personId = await this.rachioapi.getPersonInfo(this.token).catch((err: any) =>{
+			const personId = await this.rachioapi.getPersonInfo(this.token).catch((err: unknown) =>{
 				this.log.error('Failed to get info for build', err);
 				throw err;
 			});
 			this.log('Found Person ID %s', personId.id);
 
 			this.log.info('Getting Person ID info...');
-			const personInfo = await this.rachioapi.getPersonId(this.token, personId.id).catch((err: any) =>{
+			const personInfo = await this.rachioapi.getPersonId(this.token, personId.id).catch((err: unknown) =>{
 				this.log.error('Failed to get person info for build', err);
 				throw err;
 			});
@@ -295,11 +295,11 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 				personInfo.devices
 					.forEach(async (newDevice: Controller) => {
 						try{
-							const device = await this.rachioapi.getDevice(this.token, newDevice.id).catch((err: any) =>{
+							const device = await this.rachioapi.getDevice(this.token, newDevice.id).catch((err: unknown) =>{
 								this.log.error('Failed to get location property', err);
 								throw err;
 							});
-							const property = await this.rachioapi.getPropertyEntity(this.token, 'location_id',device.device.locationId).catch((err: any) =>{
+							const property = await this.rachioapi.getPropertyEntity(this.token, 'location_id',device.device.locationId).catch((err: unknown) =>{
 								this.log.error('Failed to get location property', err);
 								throw err;
 							});
@@ -313,7 +313,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 							//adding devices that met filter criteria
 							this.log.info('Found Controller %s status %s', newDevice.name, newDevice.status);
 							this.log.info('Getting device state info...');
-							deviceState = await this.rachioapi.getDeviceState(this.token, newDevice.id).catch((err: any) =>{
+							deviceState = await this.rachioapi.getDeviceState(this.token, newDevice.id).catch((err: unknown) =>{
 								this.log.error('Failed to get device state', err);
 								throw err;
 							});
@@ -386,7 +386,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 							if (this.showSchedules) {
 								newDevice.scheduleRules.forEach((schedule) => {
 									this.log.debug('adding schedules %s', schedule.name);
-									let switchService: any = irrigationAccessory.getServiceById(this.Service.Switch, schedule.id);
+									let switchService: Service = irrigationAccessory.getServiceById(this.Service.Switch, schedule.id)!;
 									if (switchService) {
 										//update
 										switchService.setCharacteristic(this.Characteristic.On, false).setCharacteristic(this.Characteristic.Name, schedule.name).setCharacteristic(this.Characteristic.StatusFault, this.Characteristic.StatusFault.NO_FAULT);
@@ -403,7 +403,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 								});
 								newDevice.flexScheduleRules.forEach((schedule) => {
 									this.log.debug('adding flex schedules %s', schedule.name);
-									let switchService: any = irrigationAccessory.getServiceById(this.Service.Switch, schedule.id);
+									let switchService: Service = irrigationAccessory.getServiceById(this.Service.Switch, schedule.id)!;
 									if (switchService) {
 										//update
 										switchService.setCharacteristic(this.Characteristic.On, false).setCharacteristic(this.Characteristic.Name, schedule.name).setCharacteristic(this.Characteristic.StatusFault, this.Characteristic.StatusFault.NO_FAULT);
@@ -420,7 +420,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 								});
 							} else {
 								//remove
-								newDevice.scheduleRules.forEach((schedule: { id: any; }) => {
+								newDevice.scheduleRules.forEach((schedule: { id: string; }) => {
 									this.log.debug('removed schedule switch');
 									const switchService = irrigationAccessory.getServiceById(this.Service.Switch, schedule.id);
 									if (switchService) {
@@ -428,7 +428,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 										this.api.updatePlatformAccessories([irrigationAccessory]);
 									}
 								});
-								newDevice.flexScheduleRules.forEach((schedule: { id: any; }) => {
+								newDevice.flexScheduleRules.forEach((schedule: { id: string; }) => {
 									this.log.debug('removed flex schedule switch');
 									const switchService = irrigationAccessory.getServiceById(this.Service.Switch, schedule.id);
 									if (switchService) {
@@ -443,7 +443,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 								const switchType = 'Standby';
 								const switchName = newDevice.name + ' ' + switchType;
 								const uuid = this.genUUID(switchName);
-								let switchService: any = irrigationAccessory.getServiceById(this.Service.Switch, uuid);
+								let switchService: Service = irrigationAccessory.getServiceById(this.Service.Switch, uuid)!;
 								if (switchService) {
 									//update
 									switchService.setCharacteristic(this.Characteristic.On, false).setCharacteristic(this.Characteristic.Name, switchName).setCharacteristic(this.Characteristic.StatusFault, this.Characteristic.StatusFault.NO_FAULT);
@@ -476,7 +476,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 								const switchType = 'Quick Run All';
 								const switchName = newDevice.name + ' ' + switchType;
 								const uuid = this.genUUID(switchName);
-								let switchService: any = irrigationAccessory.getServiceById(this.Service.Switch, uuid);
+								let switchService: Service = irrigationAccessory.getServiceById(this.Service.Switch, uuid)!;
 								if (switchService) {
 									//update
 									switchService.setCharacteristic(this.Characteristic.On, false).setCharacteristic(this.Characteristic.Name, switchName).setCharacteristic(this.Characteristic.StatusFault, this.Characteristic.StatusFault.NO_FAULT);
@@ -503,7 +503,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 								}
 							}
 							//find any running zone and set its state
-							const schedule = await this.rachioapi.currentSchedule(this.token, newDevice.id).catch((err: any) =>{
+							const schedule = await this.rachioapi.currentSchedule(this.token, newDevice.id).catch((err: unknown) =>{
 								this.log.error('Failed to get current schedule', err);
 								throw err;
 							});
@@ -548,28 +548,28 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 			// getting account info
 			this.log.debug('Fetching build info for Smart Hose Timers...');
 			this.log.info('Getting Person info...');
-			const personId = await this.rachioapi.getPersonInfo(this.token).catch((err: any) =>{
+			const personId = await this.rachioapi.getPersonInfo(this.token).catch((err: unknown) =>{
 				this.log.error('Failed to get info for build', err);
 				throw err;
 			});
 			this.log('Found Person ID %s', personId.id);
 
 			this.log.info('Getting Person ID info...');
-			const personInfo = await this.rachioapi.getPersonId(this.token, personId.id).catch((err: any) =>{
+			const personInfo = await this.rachioapi.getPersonId(this.token, personId.id).catch((err: unknown) =>{
 				this.log.error('Failed to get person info for build', err);
 				throw err;
 			});
 			this.log.info('Found Account for username %s', personInfo.username);
 			this.log.info('Getting Property info...');
 
-			const list = await this.rachioapi.listBaseStations(this.token, personId.id).catch((err: any) =>{
+			const list = await this.rachioapi.listBaseStations(this.token, personId.id).catch((err: unknown) =>{
 				this.log.error('Failed to get base station list', err);
 				throw err;
 			});
 			if (list.baseStations.length > 0) {
 				list.baseStations
 					.forEach(async (baseStation: BaseStation) => {
-						const property = await this.rachioapi.getPropertyEntity(this.token, 'base_station_id', baseStation.id).catch((err: any) =>{
+						const property = await this.rachioapi.getPropertyEntity(this.token, 'base_station_id', baseStation.id).catch((err: unknown) =>{
 							this.log.error('Failed to get base station property', err);
 							throw err;
 						});
@@ -579,13 +579,6 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 							this.log.info('Skipping WiFi Hub %s st %s, not found at the configured location: %s', baseStation.serialNumber, property.property.address.lineOne, this.locationAddress);
 							return;
 						}
-						//pulling bridge location
-						/*
-						const location = await this.rachioapi.getPropertyEntity(this.token, 'base_station_id', baseStation.id).catch((err: any) =>{
-							this.log.error('Failed to get base station property', err);
-							throw err;
-						});
-						*/
 						if (baseStation.reportedState.firmwareUpgradeAvailable) {
 							this.log.warn('Hub firmware upgrade available');
 						}
@@ -641,7 +634,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 							//this.log(new Date(midnight.getTime() - now.getTime()).toISOString().slice(11, 16))
 						}
 
-						const valveList = await this.rachioapi.listValves(this.token, baseStation.id).catch((err: any) =>{
+						const valveList = await this.rachioapi.listValves(this.token, baseStation.id).catch((err: unknown) =>{
 							this.log.error('Failed to get valve list', err);
 							throw err;
 						});
@@ -740,7 +733,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 									}
 								}
 								//find any running zone and set its state
-								const programs = await this.rachioapi.listPrograms(this.token, valve.id).catch((err: any) =>{
+								const programs = await this.rachioapi.listPrograms(this.token, valve.id).catch((err: unknown) =>{
 									this.log.error('Failed to get current programs', err);
 									throw err;
 								});
@@ -773,7 +766,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 		}
 	}
 
-	setOnlineStatus(newDevice: { status: string; id: any; }) {
+	setOnlineStatus(newDevice: { status: string; id: string; }) {
 		//set current device status
 		//create a fake webhook response
 		if (newDevice.status) {
@@ -811,7 +804,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 		}
 	}
 
-	setDeviceStatus(newDevice: { id: any; name: any; }) {
+	setDeviceStatus(newDevice: { id: string; name: string; }) {
 		//set current device state
 		//create a fake webhook response
 		if (deviceState.state.health == 'GOOD') {
@@ -855,13 +848,13 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 		}
 	}
 
-	setValveStatus(response: { status: string; zoneNumber: any; deviceId: any; zoneDuration: number; zoneId: any; zoneStartDate: number; scheduleId: undefined; name: any; }) {
+	setValveStatus(response: { status: string; zoneNumber: number; deviceId: string; zoneDuration: number; zoneId: string; zoneStartDate: number; scheduleId: string; name: string; }) {
 		//set current valve status
 		//create a fake webhook response
 		if (response.status == 'PROCESSING') {
 			//create a fake webhook response
 			this.log.debug('Found zone-%s running', response.zoneNumber);
-			const myJson: any = {
+			const myJson = {
 				type: 'ZONE_STATUS',
 				title: 'Zone Started',
 				deviceId: response.deviceId,
@@ -879,7 +872,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 				resourceType: 'DEVICE',
 			};
 			if (this.showAPIMessages) {
-				this.log.debug(myJson);
+				this.log.debug(myJson.toString());
 			}
 			const index = this.accessories.findIndex(accessory => accessory.UUID === myJson.deviceId);
 			const irrigationAccessory = this.accessories[index];
@@ -891,7 +884,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 		}
 		if (response.status == 'PROCESSING' && this.showSchedules && response.scheduleId != undefined) {
 			this.log.debug('Found schedule %s running', response.scheduleId);
-			const myJson: any = {
+			const myJson = {
 				type: 'SCHEDULE_STATUS',
 				title: 'Schedule Manually Started',
 				deviceId: response.deviceId,
@@ -907,7 +900,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 				resourceType: 'DEVICE',
 			};
 			if (this.showAPIMessages) {
-				this.log.debug(myJson);
+				this.log.debug(myJson.toString());
 			}
 			const index = this.accessories.findIndex(accessory => accessory.UUID === myJson.deviceId);
 			const irrigationAccessory = this.accessories[index];
@@ -922,16 +915,16 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 		try {
 			//create schedule to get planned runs for the day
 			//and or remove new switches for the day
-			const programs = await this.rachioapi.getValveDayViews(this.token, baseStation.id).catch((err: any) =>{
+			const programs = await this.rachioapi.getValveDayViews(this.token, baseStation.id).catch((err: unknown) =>{
 				throw (`Failed to get base station list ${err}`);
 			});
-			const activePrograms: any[] = [];
+			const activePrograms: string[] = [];
 			const index = this.accessories.findIndex(accessory => accessory.UUID === baseStation.id);
 			const bridgeAccessory = this.accessories[index];
-			programs.valveDayViews.forEach((day: { valveProgramRunSummaries: any[]; }) => {
+			programs.valveDayViews.forEach((day: { valveProgramRunSummaries: { programId: string; programName: string; }[]; }) => {
 				day.valveProgramRunSummaries.forEach((run: { programId: string; programName: string; }) => {
 					activePrograms.push(run.programId);
-					this.log.info('Updating Program %s', run.programName);
+					this.log.info('Updating program %s', run.programName);
 					let skipService = bridgeAccessory.getServiceById(this.Service.Switch, run.programId)!;
 					if (!skipService) {
 						skipService = this.skipSwitch.createSwitchService('Skip ' + run.programName, run.programId);
@@ -947,11 +940,11 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 					}
 				});
 				//logic to remove old switch
-				bridgeAccessory.services.forEach((service: any) => {
+				bridgeAccessory.services.forEach((service: Service) => {
 					if(service.constructor.name == 'Switch'){
 						const found = activePrograms.find((element) => element == service.subtype);
 						if (!found) {
-							const skipService = bridgeAccessory.getServiceById(this.Service.Switch, service.subtype);
+							const skipService = bridgeAccessory.getServiceById(this.Service.Switch, service.subtype!);
 							if (skipService) {
 								this.log.info('Removing unused program switch %s', service.displayName);
 								bridgeAccessory.removeService(skipService);
