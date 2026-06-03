@@ -372,8 +372,7 @@ export default class RachioAPI {
 		}
 	}
 
-	async startSchedule(token: string, schedule: any
-	) {
+	async startSchedule(token: string, schedule: any) {
 		try {
 			this.log.debug('Starting Schedule', schedule);
 			const response = await axios({

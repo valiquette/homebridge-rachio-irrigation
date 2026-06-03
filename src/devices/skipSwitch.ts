@@ -99,7 +99,7 @@ export default class skipSwitch {
 		if (this.delta[index] > 0 * 60 * 1000 || this.delta[index] == 0) {  // check after 1 hour
 			this.timeStamp[index] = +new Date();
 		} else {
-			this.log.debug(`skipped program update, to soon. timestamp delta ${this.delta[index]/1000} sec`, );
+			this.log.debug(`skipped program update, to soon. timestamp delta ${this.delta[index]/1000} sec` );
 			return currentValue;
 		}
 		try{

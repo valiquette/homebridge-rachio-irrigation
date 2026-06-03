@@ -189,14 +189,14 @@ export default class valve {
 			break;
 		 }
 		default:
-			this.log.debug(`Unknown Valve Characteristic Name called`, characteristicName);
+			this.log.debug('Unknown Valve Characteristic Name called', characteristicName);
 			break;
 		}
 		return currentValue;
 	}
 
 	async setValveValue(valve: Valve, valveService: Service, value: CharacteristicValue) {
-		this.log.debug(`${valveService.getCharacteristic(this.Characteristic.Name).value} - Set Active state to ${value}`)
+		this.log.debug(`${valveService.getCharacteristic(this.Characteristic.Name).value} - Set Active state to ${value}`);
 		if (value == valveService.getCharacteristic(this.Characteristic.Active).value) {
 			//IOS 17 bug fix for duplicate calls
 			this.log.debug(`supressed duplicate call from IOS for ${valveService.getCharacteristic(this.Characteristic.Name).value}, current value ${value}, new value ${valveService.getCharacteristic(this.Characteristic.Active).value}`);
