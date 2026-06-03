@@ -36,7 +36,7 @@ export default class skipSwitch {
 	}
 
 	configureSwitchService(baseStation: BaseStation, switchService: Service) {
-		this.log.debug('Configured switch for %s', switchService.getCharacteristic(this.Characteristic.Name).value);
+		this.log.debug(`Configured switch for ${switchService.getCharacteristic(this.Characteristic.Name).value}`);
 		this.devices.push(switchService);
 		switchService.getCharacteristic(this.Characteristic.On)
 			.onGet(this.getSwitchValue.bind(this, baseStation, switchService))
@@ -47,9 +47,9 @@ export default class skipSwitch {
 		if (switchService.getCharacteristic(this.Characteristic.StatusFault).value == this.Characteristic.StatusFault.GENERAL_FAULT) {
 			throw new this.platform.HapStatusError(this.platform.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
 		}
-		this.log.debug('toggle skip switch state %s', switchService.getCharacteristic(this.Characteristic.Name).value);
+		this.log.debug(`toggle skip switch state ${switchService.getCharacteristic(this.Characteristic.Name).value}`);
 		const programs = await this.rachioapi.getValveDayViews(this.platform.token, baseStation.id).catch(err => {
-			this.log.error('Failed to get daily view', err);
+			this.log.error(`Failed to get daily view ${err}`);
 			throw err;
 		});
 
@@ -61,7 +61,7 @@ export default class skipSwitch {
 							if (run.plannedRunId) {
 								const response = await this.rachioapi.createSkip(this.platform.token, run.plannedRunId);
 								if (response?.status == 200) {
-									this.log.info('Added skip for program %s valve ',run.programName, summary.valveName);
+									this.log.info(`Added skip for program ${run.programName} valve ${summary.valveName}`);
 									switchService.getCharacteristic(this.Characteristic.On).updateValue(true);
 								} else {
 									switchService.getCharacteristic(this.Characteristic.On).updateValue(false);
@@ -74,7 +74,7 @@ export default class skipSwitch {
 							if (run.plannedRunId) {
 								const response = await this.rachioapi.deleteSkip(this.platform.token, run.plannedRunId);
 								if (response?.status == 200) {
-									this.log.info('Removed skip for program %s valve ',run.programName, summary.valveName);
+									this.log.info(`Removed skip for program ${run.programName} valve ${summary.valveName}`);
 									switchService.getCharacteristic(this.Characteristic.On).updateValue(false);
 								} else {
 									switchService.getCharacteristic(this.Characteristic.On).updateValue(true);
@@ -99,7 +99,7 @@ export default class skipSwitch {
 		if (this.delta[index] > 0 * 60 * 1000 || this.delta[index] == 0) {  // check after 1 hour
 			this.timeStamp[index] = +new Date();
 		} else {
-			this.log.debug('skipped program update, to soon. timestamp delta %s sec', this.delta[index]/1000);
+			this.log.debug(`skipped program update, to soon. timestamp delta ${this.delta[index]/1000} sec`, );
 			return currentValue;
 		}
 		try{
@@ -124,7 +124,7 @@ export default class skipSwitch {
 				});
 			}
 		} catch (err) {
-			this.log.error('Error trying to update skip switch', err);
+			this.log.error(`Error trying to update skip switch ${err}`);
 		}
 		return currentValue;
 	}

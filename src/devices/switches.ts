@@ -18,7 +18,7 @@ export default class switches {
 
 	createScheduleSwitchService(schedule: Schedule) {
 		// Create Valve Service
-		this.log.debug('Created service for %s with id %s', schedule.name, schedule.id);
+		this.log.debug(`Created service for ${schedule.name} with id ${schedule.id}`);
 		const switchService: Service = new this.Service.Switch(schedule.name, schedule.id);
 		switchService.addCharacteristic(this.Characteristic.ConfiguredName);
 		switchService.addCharacteristic(this.Characteristic.SerialNumber);
@@ -46,7 +46,7 @@ export default class switches {
 
 	configureSwitchService(device: Controller, switchService: Service) {
 		// Configure Valve Service
-		this.log.info('Configured switch for %s', switchService.getCharacteristic(this.Characteristic.Name).value);
+		this.log.info(`Configured switch for ${switchService.getCharacteristic(this.Characteristic.Name).value}`);
 		switchService.getCharacteristic(this.Characteristic.On)
 			.onGet(this.getSwitchValue.bind(this, switchService))
 			.onSet(this.setSwitchValue.bind(this, device, switchService));
@@ -56,7 +56,7 @@ export default class switches {
 		if (switchService.getCharacteristic(this.Characteristic.StatusFault).value == this.Characteristic.StatusFault.GENERAL_FAULT) {
 			throw new this.platform.HapStatusError(this.platform.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
 		}
-		this.log.debug('toggle switch state %s', switchService.getCharacteristic(this.Characteristic.Name).value);
+		this.log.debug(`toggle switch state ${switchService.getCharacteristic(this.Characteristic.Name).value}`);
 		let response;
 		switch (switchService.getCharacteristic(this.Characteristic.Name).value) {
 		case device.name + ' Standby':
@@ -84,7 +84,7 @@ export default class switches {
 				clearTimeout(x);
 				x = setTimeout(() => { // eslint-disable-line no-useless-assignment
 					switchService.getCharacteristic(this.Characteristic.On).updateValue(false);
-					this.log.info('Quick Run All finished, completed after %s minutes', completeRun/60);
+					this.log.info(`Quick Run All finished, completed after ${completeRun/60} minutes`);
 				}, completeRun*1000);
 
 				response = await this.rachioapi.startMultipleZone(this.platform.token, device.zones, this.platform.defaultRuntime);

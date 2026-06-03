@@ -17,10 +17,10 @@ export default class bridge {
 
 	createBridgeAccessory(device: BaseStation, property: Property, platformAccessory: PlatformAccessory) {
 		if (!platformAccessory) {
-			this.log.debug('Create Bridge Accessory %s %s', device.id, property.property.address.locality);
+			this.log.debug(`Create Bridge Accessory ${device.id} ${property.property.address.locality}`);
 			platformAccessory = new this.platform.api.platformAccessory(String(property.property.address.locality), device.id);
 		} else {
-			this.log.debug('Update Bridge Accessory %s %s', device.id, property.property.address.locality);
+			this.log.debug(`Update Bridge Accessory ${device.id} ${property.property.address.locality}`);
 		}
 
 		platformAccessory.getService(this.Service.AccessoryInformation)!
@@ -36,14 +36,14 @@ export default class bridge {
 	}
 
 	createBridgeService(device: BaseStation, property: Property) {
-		this.log.debug('create bridge service for %s', property.property.address.locality);
+		this.log.debug(`create bridge service for ${property.property.address.locality}`);
 		const bridgeService: Service = new this.Service.WiFiTransport(String(property.property.address.locality), device.id);
 		bridgeService.setCharacteristic(this.Characteristic.CurrentTransport, device.reportedState.connected);
 		return bridgeService;
 	}
 
 	configureBridgeService(bridgeService: Service) {
-		this.log.debug('configured bridge for %s', bridgeService.getCharacteristic(this.Characteristic.Name).value);
+		this.log.debug(`configured bridge for ${bridgeService.getCharacteristic(this.Characteristic.Name).value}`);
 		bridgeService.getCharacteristic(this.Characteristic.CurrentTransport);
 	}
 }

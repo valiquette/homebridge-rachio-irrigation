@@ -372,7 +372,8 @@ export default class RachioAPI {
 		}
 	}
 
-	async startSchedule(token: string, schedule: any) {
+	async startSchedule(token: string, schedule: any
+	) {
 		try {
 			this.log.debug('Starting Schedule', schedule);
 			const response = await axios({
@@ -430,9 +431,9 @@ export default class RachioAPI {
 
 	async startMultipleZone(token: string, zones: any[], duration: number) {
 		try {
-			const body: { name: any; id: any; duration: any; sortOrder: any; }[] = [];
+			const body: { name: string; id: string; duration: number; sortOrder: number; }[] = [];
 			//this.log.debug('Starting Multiple Zones', zones)
-			zones.forEach((zone: { enabled: any; name: any; id: any; }, index: any) => {
+			zones.forEach((zone: { enabled: boolean; name: string; id: string; }, index: number) => {
 				if (zone.enabled) {
 					body.push({
 						name: zone.name,
@@ -1270,7 +1271,7 @@ export default class RachioAPI {
 			}
 			const test_webhook_url = external_webhook_address + '/test';
 			if (response.status == 200) {
-				this.log.success('Successfully configured webhook SHT for device id %s with external id "%s" ', device_name, webhook_key);
+				this.log.success('Successfully configured webhook SHT for %s with external id "%s" ', device_name, webhook_key);
 				this.log.info(
 					'To test Webhook setup, navigate to %s to ensure port forwarding is configured correctly. ' +
 						'\nNote: For local config this will not work from this server, you cannot be connected to the same router doing the fowarding. ' +

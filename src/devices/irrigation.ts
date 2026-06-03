@@ -22,12 +22,12 @@ export default class irrigation {
 	createIrrigationAccessory(device: Controller, deviceState: { state: { state: string; desiredState: string; firmwareVersion: string; health: string; }; }, platformAccessory: PlatformAccessory) {
 		if (!platformAccessory) {
 			// Create new Irrigation System Service
-			this.log.debug('Create Irrigation device %s', device.id, device.name);
+			this.log.debug(`Create Irrigation device ${device.id} ${device.name}`);
 			platformAccessory = new this.platform.api.platformAccessory(device.name, device.id);
 			platformAccessory.addService(this.Service.IrrigationSystem, device.name);
 		} else {
 			// Update Irrigation System Service
-			this.log.debug('Update Irrigation device %s %s', device.id, device.name);
+			this.log.debug(`Update Irrigation device ${device.id} ${device.name}`);
 		}
 		// Check if the device is connected
 		const irrigationSystemService: Service = platformAccessory.getService(this.Service.IrrigationSystem)!;
@@ -51,7 +51,7 @@ export default class irrigation {
 	}
 
 	configureIrrigationService(device: Controller, irrigationSystemService: Service) {
-		this.log.info('Configure Irrigation system for %s', irrigationSystemService.getCharacteristic(this.Characteristic.Name).value);
+		this.log.info(`Configure Irrigation system for ${irrigationSystemService.getCharacteristic(this.Characteristic.Name).value}`);
 		// Configure IrrigationSystem Service
 		irrigationSystemService
 			.setCharacteristic(this.Characteristic.Active, this.Characteristic.Active.ACTIVE)
@@ -78,7 +78,7 @@ export default class irrigation {
 			irrigationSystemService.setCharacteristic(this.Characteristic.ProgramMode, this.Characteristic.ProgramMode.PROGRAM_SCHEDULED_MANUAL_MODE);
 			break;
 		default:
-			this.log.info('Failed to retrieve program mode setting a default value. Retrieved-', device.scheduleModeType);
+			this.log.info(`Failed to retrieve program mode setting a default value. Retrieved-${device.scheduleModeType}`);
 			irrigationSystemService.setCharacteristic(this.Characteristic.ProgramMode, this.Characteristic.ProgramMode.PROGRAM_SCHEDULED_MANUAL_MODE);
 			break;
 		}
@@ -110,7 +110,7 @@ export default class irrigation {
 		} catch (err) {
 			this.log.debug('no smart runtime found, using default runtime');
 		}
-		this.log.debug('Created controller valve service for %s with id %s with %s min runtime', zone.name, zone.id, Math.round(defaultRuntime / 60));
+		this.log.debug(`Created controller valve service for ${zone.name} with id ${zone.id} with ${Math.round(defaultRuntime / 60)} min runtime`);
 		valve.addCharacteristic(this.Characteristic.SerialNumber); //Use Serial Number to store the zone id
 		valve.addCharacteristic(this.Characteristic.Model);
 		valve.addCharacteristic(this.Characteristic.ConfiguredName);
@@ -145,12 +145,10 @@ export default class irrigation {
 	}
 
 	configureValveService(device: Controller, valveService: Service) {
-		this.log.info(
-			'Configured irrigation zone-%s for %s with %s min runtime',
-			valveService.getCharacteristic(this.Characteristic.ServiceLabelIndex).value,
-			valveService.getCharacteristic(this.Characteristic.Name).value,
-			Number(valveService.getCharacteristic(this.Characteristic.SetDuration).value) / 60,
-		);
+		const zone_Number = valveService.getCharacteristic(this.Characteristic.ServiceLabelIndex).value;
+		const zone_Name = valveService.getCharacteristic(this.Characteristic.Name).value;
+		const zone_Runtime = Number(valveService.getCharacteristic(this.Characteristic.SetDuration).value) / 60;
+		this.log.info(`Configured irrigation zone-${zone_Number} for ${zone_Name} with ${zone_Runtime} min runtime`);
 		this.platform.valveServices.push(valveService);
 		// Configure Valve Service
 		valveService.getCharacteristic(this.Characteristic.Active)
@@ -188,7 +186,7 @@ export default class irrigation {
 			} catch (err) {
 				this.log.debug('no smart runtime found, using default runtime');
 			}
-			this.log.debug('Created valve service for %s with %s sec runtime (%s min)', device.name, defaultRuntime, Math.round(defaultRuntime / 60));
+			this.log.debug(`Created valve service for ${device.name} with ${defaultRuntime} sec runtime (${Math.round(defaultRuntime / 60)} min)`);
 			valveService
 				.setCharacteristic(this.Characteristic.Active, this.Characteristic.Active.INACTIVE)
 				.setCharacteristic(this.Characteristic.InUse, this.Characteristic.InUse.NOT_IN_USE)
@@ -223,7 +221,7 @@ export default class irrigation {
 			currentValue = irrigationSystemService.getCharacteristic(this.Characteristic.ProgramMode).value;
 			break;
 		default:
-			this.log.debug('Unknown Device CharacteristicName called', characteristicName);
+			this.log.debug(`Unknown Device CharacteristicName called ${characteristicName}`);
 			break;
 		}
 		return currentValue;
@@ -257,20 +255,20 @@ export default class irrigation {
 			break;
 		}
 		default:
-			this.log.debug('Unknown CharacteristicName called', characteristicName);
+			this.log.debug(`Unknown CharacteristicName called ${characteristicName}`);
 			break;
 		}
 		return currentValue;
 	}
 
 	async setValveValue(device: Controller, valveService: Service, value: CharacteristicValue) {
-		//this.log.debug('%s - Set Active state to %s', valveService.getCharacteristic(this.Characteristic.Name).value, value)
+		//this.log.debug(`${valveService.getCharacteristic(this.Characteristic.Name).value} - Set Active state to ${value}`)
 		if (valveService.getCharacteristic(this.Characteristic.StatusFault).value == this.Characteristic.StatusFault.GENERAL_FAULT) {
 			throw new this.platform.HapStatusError(this.platform.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
 		}
 		if (value == valveService.getCharacteristic(this.Characteristic.Active).value) {
 			//IOS 17 bug fix for duplicate calls
-			this.log.debug('supressed duplicate call from IOS for %s, current value %s, new value %s', valveService.getCharacteristic(this.Characteristic.Name).value, value, valveService.getCharacteristic(this.Characteristic.Active).value);
+			this.log.debug(`supressed duplicate call from IOS for ${valveService.getCharacteristic(this.Characteristic.Name).value}, current value ${value}, new value ${valveService.getCharacteristic(this.Characteristic.Active).value}`);
 			return;
 		}
 		const index: number = this.platform.accessories.findIndex(accessory => accessory.UUID === device.id);
@@ -281,7 +279,7 @@ export default class irrigation {
 		let response;
 		switch (value) {
 		case this.Characteristic.Active.ACTIVE:
-			this.log.info('Starting zone-%s %s for %s mins', valveService.getCharacteristic(this.Characteristic.ServiceLabelIndex).value, valveService.getCharacteristic(this.Characteristic.Name).value, runTime / 60);
+			this.log.info(`Starting zone-${valveService.getCharacteristic(this.Characteristic.ServiceLabelIndex).value} ${valveService.getCharacteristic(this.Characteristic.Name).value} for ${runTime / 60} mins`);
 			response = await this.rachioapi.startZone(this.platform.token, valveService.getCharacteristic(this.Characteristic.SerialNumber).value, runTime);
 			if (response?.status == 204) {
 				const myZoneStart = {
@@ -316,10 +314,10 @@ export default class irrigation {
 					resourceType: 'IRRIGATION_CONTROLLER',
 					timestamp: new Date().toISOString().split('.')[0] + 'Z',
 				};
-				this.log.debug('Simulating webhook for zone %s will update services', myZoneStart.payload.zoneNumber);
+				this.log.debug(`Simulating webhook for zone ${myZoneStart.payload.zoneNumber} will update services`);
 				this.listener.localMessage(irrigationSystemService,valveService, myZoneStart );
 				this.platform.localWebhook = setTimeout(() => {
-					this.log.debug('Simulating webhook for zone %s will update services', myZoneStop.payload.zoneNumber);
+					this.log.debug(`Simulating webhook for zone ${myZoneStop.payload.zoneNumber} will update services`);
 					this.listener.localMessage(irrigationSystemService, valveService, myZoneStop );
 				}, runTime * 1000);
 			} else {
@@ -328,7 +326,7 @@ export default class irrigation {
 			break;
 		case this.Characteristic.Active.INACTIVE:
 			// Turn off/stopping the valve
-			this.log.info('Stopping zone-%s %s', valveService.getCharacteristic(this.Characteristic.ServiceLabelIndex).value, valveService.getCharacteristic(this.Characteristic.Name).value);
+			this.log.info(`Stopping zone-${valveService.getCharacteristic(this.Characteristic.ServiceLabelIndex).value} ${valveService.getCharacteristic(this.Characteristic.Name).value}`);
 			response = await this.rachioapi.stopDevice(this.platform.token, device.id);
 			if (response?.status == 204) {
 				const myZoneStop = {
@@ -347,7 +345,7 @@ export default class irrigation {
 					resourceType: 'IRRIGATION_CONTROLLER',
 					timestamp: new Date().toISOString().split('.')[0] + 'Z',
 				};
-				this.log.debug('Simulating webhook for zone %s will update services', myZoneStop.payload.zoneNumber);
+				this.log.debug(`Simulating webhook for zone ${myZoneStop.payload.zoneNumber} will update services`);
 				this.listener.localMessage(irrigationSystemService, valveService, myZoneStop );
 				clearTimeout(this.platform.localWebhook);
 			} else {
@@ -361,8 +359,8 @@ export default class irrigation {
 	setValveSetDuration(device: Controller, valveService: Service, value: CharacteristicValue) {
 		// Set default duration from Homekit value
 		valveService.getCharacteristic(this.Characteristic.SetDuration).updateValue(value);
-		this.log.debug('Set %s duration for %s mins', device.name, Number(value) / 60);
-		this.log.info('Set %s duration for %s mins', valveService.getCharacteristic(this.Characteristic.Name).value, Number(value) / 60);
+		this.log.debug(`Set ${device.name} duration for ${Number(value) / 60} mins`);
+		this.log.info(`Set ${valveService.getCharacteristic(this.Characteristic.Name).value} duration for ${Number(value) / 60} mins`);
 		return;
 	}
 }

@@ -32,7 +32,7 @@ export default class poll {
 			//calls within 1/2 sec will be skipped as duplicate
 			this.timeStamp[index] = +new Date();
 		} else {
-			this.log.debug('Skipped new live update due to duplicate call, timestamp delta %s ms', delta[index]);
+			this.log.debug(`Skipped new live update due to duplicate call, timestamp delta ${delta[index]} ms`);
 			this.timeStamp[index] = +new Date();
 			return;
 		}
@@ -60,9 +60,9 @@ export default class poll {
 		const pause = (delay: number) => new Promise(resolve => setTimeout(resolve, delay));
 		const index = this.platform.valveServices.findIndex(valve => valve.subtype === valveService.subtype);
 		try {
-			this.log.debug('updating valve Id', index);
-			const response = await this.rachioapi.getValve(this.platform.token, valveService.subtype).catch((err: string) => {
-				this.log.error('Failed to get valve', err);
+			this.log.debug(`updating valve Id ${index}`);
+			const response = await this.rachioapi.getValve(this.platform.token, valveService.subtype).catch((err) => {
+				this.log.error(`Failed to get valve ${err}`);
 			});
 
 			if (response?.status == 429) {
@@ -98,7 +98,7 @@ export default class poll {
 				return;
 			}
 		} catch (err) {
-			this.log.error('error trying to update valve status', err);
+			this.log.error(`error trying to update valve status${err}`);
 		}
 	}
 }
