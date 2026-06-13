@@ -98,7 +98,7 @@ export default class poll {
 				return;
 			}
 		} catch (err) {
-			this.log.error(`error trying to update valve status${err}`);
+			this.log.error(`Error trying to update valve status${err}`);
 		}
 	}
 }

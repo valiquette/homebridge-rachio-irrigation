@@ -55,7 +55,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 		this.internal_IP_address = config.internal_IP_address;
 		this.internal_webhook_port = config.internal_webhook_port;
 		this.relay_address = config.relay_address;
-		this.webhook_key = 'homebridge-' + config.name;
+		this.webhook_key = `homebridge-${config.name}`;
 		this.webhook_key_local = 'local-webhook';
 		this.localWebhook =null;
 		this.endTime = [];
@@ -175,7 +175,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 		if (this.relay_address) {
 			if (this.useBasicAuth && this.user && this.password) {
 				const destination = (this.relay_address.split('//'));
-				this.external_webhook_address = destination[0] + '//' + this.user + ':' + this.password + '@' + destination[1];
+				this.external_webhook_address = `${destination[0]}//${this.user}:${this.password}@${destination[1]}`;
 			} else {
 				this.external_webhook_address = this.relay_address;
 			}
@@ -236,7 +236,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 					.catch((err) => {
 						this.log.error('Failed to get current external IP', err.cause);
 					});
-				this.external_IP_address = '[' + this.external_IP_address + ']';
+				this.external_IP_address = `[${this.external_IP_address}]`;
 				this.setWebhookURL();
 			} else if (fqdn) {
 				this.log.debug(`using FQDN for webhook external destination ${this.external_IP_address}`);
@@ -261,14 +261,14 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 
 	setWebhookURL() {
 		const destination = this.useHttps ? 'https://' : 'http://';
-		const port = this.external_webhook_port ? ':' + this.external_webhook_port : '';
+		const port = this.external_webhook_port ? `:${this.external_webhook_port}` : '';
 
 		if (this.useBasicAuth && this.user && this.password) {
-			this.external_webhook_address = destination + this.user + ':' + this.password + '@' + this.external_IP_address + port;
-			this.external_webhook_addressv2 = destination + this.external_IP_address + port;
+			this.external_webhook_address = `${destination}${this.user}:${this.password}@${this.external_IP_address}${port}`;
+			this.external_webhook_addressv2 = `${destination}${this.external_IP_address}${port}`;
 		} else {
-			this.external_webhook_address = destination + this.external_IP_address + port;
-			this.external_webhook_addressv2 = destination + this.external_IP_address + port;
+			this.external_webhook_address = `${destination}${this.external_IP_address}${port}`;
+			this.external_webhook_addressv2 = `${destination}${this.external_IP_address}${port} `;
 
 		}
 		if (!this.external_webhook_address) {
@@ -446,7 +446,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 						if (this.showStandby) {
 							this.log.debug('adding new standby switch');
 							const switchType = 'Standby';
-							const switchName = newDevice.name + ' ' + switchType;
+							const switchName = `${newDevice.name} ${switchType}`;
 							const uuid = this.genUUID(switchName);
 							let switchService: Service = irrigationAccessory.getServiceById(this.Service.Switch, uuid)!;
 							if (switchService) {
@@ -467,7 +467,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 							//remove
 							this.log.debug('removed standby switch');
 							const switchType = 'Standby';
-							const switchName = newDevice.name + ' ' + switchType;
+							const switchName = `${newDevice.name} ${switchType}`;
 							const uuid = this.genUUID(switchName);
 							const switchService = irrigationAccessory.getServiceById(this.Service.Switch, uuid);
 							if (switchService) {
@@ -479,7 +479,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 						if (this.showRunAll) {
 							this.log.debug('adding new run all switch');
 							const switchType = 'Quick Run All';
-							const switchName = newDevice.name + ' ' + switchType;
+							const switchName = `${newDevice.name} ${switchType}`;
 							const uuid = this.genUUID(switchName);
 							let switchService: Service = irrigationAccessory.getServiceById(this.Service.Switch, uuid)!;
 							if (switchService) {
@@ -500,7 +500,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 							//remove
 							const switchType = 'Quick Run All';
 							this.log.debug('removed Quick Run All');
-							const uuid = this.genUUID(newDevice.name + ' ' + switchType);
+							const uuid = this.genUUID(`${newDevice.name} ${switchType}`);
 							const switchService = irrigationAccessory.getServiceById(this.Service.Switch, uuid);
 							if (switchService) {
 								irrigationAccessory.removeService(switchService);
@@ -527,7 +527,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 						const reset = new Date(schedule.headers['x-ratelimit-reset'].replace(/\[...]/, '')).toString();
 						this.log.info(`API rate limiting; call limit of ${remaining} remaining out of ${limit} until reset at ${reset}`);
 					} catch (err) {
-						this.log.warn(`error ${err}`);
+						this.log.warn(`Error ${err}`);
 					}
 				});
 				return true;
@@ -537,7 +537,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 		} catch (err) {
 			if (this.retryAttempt < this.retryMax) {
 				this.retryAttempt++;
-				this.log.warn(`error ${err}`);
+				this.log.warn(`Error ${err}`);
 				this.log.error(`Failed to get devices. Retry attempt ${this.retryAttempt} of ${this.retryMax} in ${this.retryWait} seconds`);
 				setTimeout(async () => {
 					this.getRachioDevices();
@@ -750,7 +750,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 								const reset = new Date(programs.headers['x-ratelimit-reset'].replace(/\[...]/, '')).toString();
 								this.log.info(`API rate limiting; call limit of ${remaining} remaining out of ${limit} until reset at ${reset}`);
 							}catch (err) {
-								this.log.warn(`error ${err}`);
+								this.log.warn(`Error ${err}`);
 							}
 						});
 					}
@@ -848,7 +848,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 			const index = this.accessories.findIndex(accessory => accessory.UUID === myJson.deviceId);
 			const irrigationAccessory = this.accessories[index];
 			const irrigationSystemService = irrigationAccessory.getService(this.Service.IrrigationSystem);
-			const switchService = irrigationAccessory.getServiceById(this.Service.Switch, this.platform.genUUID(myJson.deviceName + ' Standby'))!;
+			const switchService = irrigationAccessory.getServiceById(this.Service.Switch, this.platform.genUUID(`${myJson.deviceName} Standby`))!;
 			this.log.debug('Updating standby switch state');
 			this.listener.localMessage(irrigationSystemService, switchService, myJson );
 		}
@@ -934,7 +934,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 					this.log.info(`Updating program ${run.programName}`);
 					let skipService = bridgeAccessory.getServiceById(this.Service.Switch, run.programId)!;
 					if (!skipService) {
-						skipService = this.skipSwitch.createSwitchService('Skip ' + run.programName, run.programId);
+						skipService = this.skipSwitch.createSwitchService(`Skip ${run.programName}`, run.programId);
 						this.log.info(`Adding program switch ${skipService.displayName}`);
 						bridgeAccessory.addService(skipService);
 					}
@@ -962,7 +962,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 				});
 			});
 		} catch (err) {
-			this.log.error(`error ${err}`);
+			this.log.error(`Error ${err}`);
 		}
 	}
 

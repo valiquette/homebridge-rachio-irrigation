@@ -96,7 +96,7 @@ export default class skipSwitch {
 		}
 		//check for duplicate call
 		this.delta[index] = new Date().valueOf() - this.timeStamp[index];
-		if (this.delta[index] > 0 * 60 * 1000 || this.delta[index] == 0) {  // check after 1 hour
+		if (this.delta[index] > 1 * 60 * 1000 || this.delta[index] == 0) {  // check after 1 minute
 			this.timeStamp[index] = +new Date();
 		} else {
 			this.log.debug(`skipped program update, to soon. timestamp delta ${this.delta[index]/1000} sec` );

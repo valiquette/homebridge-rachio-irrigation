@@ -103,7 +103,7 @@ export default class battery {
 				currentValue = batteryStatus.getCharacteristic(this.Characteristic.StatusLowBattery).value;
 			}
 		} catch (err) {
-			this.log.error(`error trying to update battery status ${err}`);
+			this.log.error(`Error trying to update battery status ${err}`);
 		}
 		return currentValue;
 	}

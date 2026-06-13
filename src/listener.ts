@@ -56,6 +56,7 @@ export default class listen {
 						}
 					}
 					//check for basic auth enabled
+					/*
 					if (this.platform.useBasicAuth && !request.headers.authorization && !request.headers['x-signature']) {
 						webhookAuthentication = false;
 						this.log.debug(`Webhook Authentication ${webhookAuthentication ? 'passed' : 'failed'}`);
@@ -63,12 +64,13 @@ export default class listen {
 							this.log.warn('Webhook Authentication failed');
 						}
 					}
+					*/
 					this.log.info(`Test received on Rachio listener. Webhooks are configured correctly! Authorization ${webhookAuthentication ? 'passed' : 'failed'}`);
 					response.writeHead(200);
 					const x = `${new Date().toTimeString()} \nWebhooks are configured correctly! \nAuthorization ${webhookAuthentication ? 'passed' : 'failed'}`;
 					response.write(x);
 					if (this.platform.useBasicAuth) {
-						response.write('\nHTTP basic authentication is enabled and failing authorization in this test is expected.');
+						response.write('\nHTTP basic authentication is enabled, failing authorization is expected with this test.');
 					}
 					return response.end();
 				} else if (request.method === 'POST' && request.url === '/') {

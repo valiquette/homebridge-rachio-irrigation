@@ -93,7 +93,7 @@ export default class valve {
 				break;
 			}
 		} catch (err) {
-			this.log.debug('error setting runtime, using default runtime');
+			this.log.debug('Error setting runtime, using default runtime');
 		}
 		this.log.debug(`Created valve service for ${valve.name} with ${defaultRuntime} sec runtime (${Math.round(defaultRuntime / 60)} min)`);
 		valveService

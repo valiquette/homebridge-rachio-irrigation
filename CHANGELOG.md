@@ -7,7 +7,6 @@ Refatored
 -  fixed minor bugs
 -  Bumped dependencies
 
-
 ## 1.5.1
 Enhancement
 -  Added Valve Program switch to allow manual skip overrides
