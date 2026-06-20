@@ -115,12 +115,10 @@ export default class switches {
 	}
 
 	getSwitchValue(switchService: Service) {
-		let currentValue;
 		if (switchService.getCharacteristic(this.Characteristic.StatusFault).value == this.Characteristic.StatusFault.GENERAL_FAULT) {
 			throw new this.platform.HapStatusError(this.platform.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
-		} else {
-			currentValue = switchService.getCharacteristic(this.Characteristic.On).value;
 		}
+		const currentValue = switchService.getCharacteristic(this.Characteristic.On).value;
 		return currentValue;
 	}
 }

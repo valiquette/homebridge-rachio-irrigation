@@ -3,9 +3,11 @@
 ## 1.5.2
 Refatored
 -  Code cleanup
--  refacored in Typescript
--  fixed minor bugs
+-  Improved logging
+-  Refacored in Typescript
+-  Fixed minor bugs
 -  Bumped dependencies
+-  Supports node 26
 
 ## 1.5.1
 Enhancement
