@@ -57,7 +57,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 		this.relay_address = config.relay_address;
 		this.webhook_key = `homebridge-${config.name}`;
 		this.webhook_key_local = 'local-webhook';
-		this.localWebhook =null;
+		this.localWebhook = null;
 		this.endTime = [];
 		this.delete_webhooks = config.delete_webhooks;
 		this.useBasicAuth = config.use_basic_auth;
@@ -73,6 +73,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 		this.accessories = [];
 		this.valveServices = [];
 		this.zoneList = [];
+		this.valveList = [];
 		this.foundLocations= null;
 		this.useHttps = config.https ? config.https : false;
 		this.key = config.key;
@@ -104,49 +105,93 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 		//** Platforms should wait until the "didFinishLaunching" event has fired before registering any new accessories.
 		//**
 		if (this.api) {
-			this.api.on(
-				'didFinishLaunching',
-				async () => {
-					let x: boolean | void;
-					if (this.showControllers || this.showValves) {
-						//Get info to configure webhooks
-						await this.getWebhookInfo();
-						//Configure listerner for webhook messages
-						await this.listener.configureListener();
-					}
-					//Get controllers
-					x = await this.getRachioDevices().catch((err) => {
-						this.log.error('Failure setting up Controller');
-						this.log.debug(err);
-					});
-					if (this.showControllers) {
-						this.log.info('Setting up Controller devices');
-						setTimeout(() => {
+			this.api.on('didFinishLaunching', async() => {
+				let x: boolean | void;
+				let webhook: any;
+				if (this.showControllers || this.showValves) {
+					//Get info to configure webhooks
+					await this.getWebhookInfo();
+					//Configure listerner for webhook messages
+					await this.listener.configureListener();
+				}
+				//Get controllers
+				x = await this.getRachioDevices().catch((err) => {
+					this.log.error('Failure setting up Controller');
+					this.log.debug(err);
+				});
+				if (this.showControllers) {
+					this.log.info('Setting up Controller devices');
+					setTimeout(async () => {
+						try {
+							webhook = await this.rachioapi.listControllerWebhooks(this.token, this.zoneList[0].deviceId);
 							if (x) {
 								this.log.success('Rachio Platform finished loading Smart Sprinkler Controller');
 							} else {
 								this.log.warn('No Smart Sprinkler Controllers found');
 							}
-						}, 1000);
-					}
-
-					//Get valves
-					x = await this.getRachioValves().catch((err) => {
-						this.log.error('Failure setting up hose timers');
-						this.log.debug(err);
-					});
-					if (this.showValves) {
-						this.log.info('Setting up Wifi hub devices');
-						setTimeout(() => {
+						} catch (err: any) {
+							this.log.debug(err);
+							this.log.error(err.message);
+						}
+					}, 1000);
+				}
+				//Get valves
+				x = await this.getRachioValves().catch((err) => {
+					this.log.error('Failure setting up hose timers');
+					this.log.debug(err);
+				});
+				if (this.showValves) {
+					this.log.info('Setting up Smart Hose Timers');
+					setTimeout(async () => {
+						try {
+							webhook = await this.rachioapi.listValveWebhooks(this.token, this.valveList[0].valveId);
 							if (x) {
 								this.log.success('Rachio Platform finished loading Smart Hose Timers');
 							} else {
 								this.log.warn('No Smart Hose Timers found');
 							}
-						}, 1000);
-					}
-				},
-			);
+						} catch (err: any) {
+							this.log.debug(err);
+							this.log.error(err.message);
+						}
+					}, 1000);
+				}
+				//Get bridge
+				x = await this.getRachioBridges().catch((err) => {
+					this.log.error('Failure setting up WiFi Hub');
+					this.log.debug(err);
+				});
+				if (this.showBridge) {
+					this.log.info('Setting up Wifi hub');
+					setTimeout(() => {
+						if (x) {
+							this.log.success('Rachio Platform finished loading WiFi Hub');
+						} else {
+							this.log.warn('No Wifi Hub found');
+						}
+					}, 1000);
+				}
+				setTimeout(() => {
+					if (webhook) {
+						const remaining = webhook.headers.get('x-ratelimit-remaining');
+						const limit = webhook.headers.get('x-ratelimit-limit');
+						const reset = new Date(webhook.headers.get('x-ratelimit-reset')!.replace(/\[...]/, '')).toString(); //remove [UTC] for valid date regex= /\[...]/
+						if (remaining / limit < 0.50) {
+							this.log.warn(`API rate limiting; call limit of ${remaining} remaining out of ${limit} until reset at ${reset}`);
+						} else {
+							this.log.info(`API rate limiting; call limit of ${remaining} remaining out of ${limit} until reset at ${reset}`);
+						}
+						webhook.data.webhooks.forEach((webhook: any) => {
+							if (webhook.externalId == this.webhook_key) {
+								this.log.info(
+									`To test Webhook setup: Navigate to ${webhook.url}/test to ensure port forwarding is configured correctly.\n` +
+									'	Note: For local config this will not work from this server, you cannot be connected to the same router doing the fowarding. The best way to test this is from a cell phone, with WiFi off.',
+								);
+							}
+						});
+					};
+				}, 1000);
+			});
 		}
 	}
 
@@ -305,12 +350,14 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 							this.log.error(`Failed to get location property ${err}`);
 							throw err;
 						});
-						this.log.info(`Found Location: id = ${property.property.address.id} address = ${property.property.address.lineOne} locality = ${property.property.address.locality}`);
-						if (!this.locationAddress || property.property.address.lineOne == this.locationAddress) {
-							this.log.info(`Adding controller ${newDevice.name} found at the configured location: ${property.property.address.lineOne}`);
-						} else {
-							this.log.info(`Skipping controller ${newDevice.name} at ${property.property.address.lineOne}, not found at the configured location: ${this.locationAddress}`);
-							return;
+						this.log.info(`Found Location: id ${property.property.address.id}, at address ${property.property.address.lineOne}, in locality ${property.property.address.locality}`);
+						if (this.showController) {
+							if (!this.locationAddress || property.property.address.lineOne == this.locationAddress) {
+								this.log.info(`Adding controller ${newDevice.name} found at the configured location: ${property.property.address.lineOne}`);
+							} else {
+								this.log.info(`Skipping controller ${newDevice.name} at ${property.property.address.lineOne}, not found at the configured location: ${this.locationAddress}`);
+								return;
+							}
 						}
 						const index = this.accessories.findIndex(accessory => accessory.UUID === newDevice.id);
 						// check if still required
@@ -322,7 +369,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 								this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [irrigationAccessory]);
 								this.accessories.splice(index, 1);
 							}
-							return;
+							return false;
 						}
 						//adding devices that met filter criteria
 						this.log.info(`Found ${newDevice.status.toLowerCase()} Controller ${newDevice.name}`);
@@ -336,12 +383,12 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 						}
 						this.log.info(`Retrieved device state ${deviceState.state.state.toLowerCase()} for ${newDevice.name} with a ${deviceState.state.desiredState.toLowerCase()} state, running firmware ${deviceState.state.firmwareVersion}`);
 						if (this.external_webhook_address) {
-							//v1 still used for device status
-							this.rachioapi.configureWebhooks(this.token, this.external_webhook_address, this.delete_webhooks, newDevice.id, newDevice.name, this.webhook_key, 'irrigation_controller_id');
+							this.rachioapi.configureWebhooks(this.token, this.external_webhook_address, this.delete_webhooks, newDevice.id, newDevice.name, this.webhook_key, 'irrigation_controller_id'); //v1 still used for device status
 							this.rachioapi.configureWebhooksv2(this.token, this.external_webhook_addressv2, this.delete_webhooks, newDevice.id, newDevice.name, this.webhook_key, 'irrigation_controller_id');
 						}
 
 						// Create and configure Irrigation
+						this.log.debug(`Found Controller ${newDevice.name}`);
 						this.log.debug('Creating and configuring new device');
 						const irrigationAccessory: PlatformAccessory = this.irrigation.createIrrigationAccessory(newDevice, deviceState, this.accessories[index]);
 						// Register platform accessory
@@ -520,12 +567,6 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 						if (this.showStandby) {
 							this.setDeviceStatus(newDevice);
 						}
-
-						//remove [UTC] for valid date regex= /\[...]/
-						const remaining = schedule.headers['x-ratelimit-remaining'];
-						const limit = schedule.headers['x-ratelimit-limit'];
-						const reset = new Date(schedule.headers['x-ratelimit-reset'].replace(/\[...]/, '')).toString();
-						this.log.info(`API rate limiting; call limit of ${remaining} remaining out of ${limit} until reset at ${reset}`);
 					} catch (err) {
 						this.log.warn(`Error ${err}`);
 					}
@@ -576,66 +617,6 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 						this.log.error(`Failed to get base station property ${err}`);
 						throw err;
 					});
-					if (!this.locationAddress || property.property.address.lineOne == this.locationAddress) {
-						this.log.info(`Found WiFi Hub ${baseStation.serialNumber} at the configured location: ${property.property.address.lineOne}`);
-					} else {
-						this.log.info(`Skipping WiFi Hub ${baseStation.serialNumber} at ${property.property.address.lineOne}, not found at the configured location: ${this.locationAddress}`);
-						return;
-					}
-					if (baseStation.reportedState.firmwareUpgradeAvailable) {
-						this.log.warn('Hub firmware upgrade available');
-					}
-					const index = this.accessories.findIndex(accessory => accessory.UUID === baseStation.id);
-					const bridgeAccessory = this.bridge.createBridgeAccessory(baseStation, property, this.accessories[index]);
-					// check if still required
-					if (this.showBridge) {
-						// Create and configure Bridge
-						this.log.debug(`Found WiFi Hub ${property.property.address.locality}`);
-						this.log.debug('Creating and configuring new Wifi Hub');
-						let bridgeService = bridgeAccessory.getService(this.Service.WiFiTransport);
-						// set current device status
-						if (!bridgeService) {
-							bridgeService = this.bridge.createBridgeService(baseStation, property);
-							bridgeAccessory.addService(bridgeService);
-						}
-						this.bridge.configureBridgeService(bridgeService);
-						bridgeService.getCharacteristic(this.Characteristic.StatusFault).updateValue(baseStation.reportedState.connected);
-						this.log.info('Adding WiFi Hub');
-						if (!this.accessories[index]) {
-							this.log.debug('Registering platform accessory');
-							this.accessories.push(bridgeAccessory);
-							this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [bridgeAccessory]);
-						}
-					} else {
-						this.log.info(`Skipping WiFi Hub ${this.locationAddress} based on config for`);
-						if (this.accessories[index]) {
-							this.log.info(`Removing Smart Hose Bridge ${bridgeAccessory.displayName}`);
-							this.log.debug(`Removing Smart Hose Bridge ${bridgeAccessory.UUID}`);
-							this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [this.accessories[index]]);
-							this.accessories.splice(index, 1);
-						}
-					}
-
-					if (this.showSkip) {
-						// Create and configure skip switch
-						this.log.debug('Adding Skip Program Switches');
-						this.log.debug('Creating and configuring switch to toggle manual skip');
-						this.setSkip(baseStation);
-						//set loop here
-
-						const now = new Date();
-						const midnight = new Date();
-						midnight.setHours(24, 1, 0, 0); // Sets to 00:01:00
-						setTimeout(() => {
-							setInterval(() => {
-								this.log.info('Checking for programs chnages');
-								this.setSkip(baseStation);
-							}, 24 * 60 * 60 * 1000); // every 24 hours
-							this.setSkip(baseStation);
-						}, midnight.getTime() - now.getTime()); //to next midnight
-						//this.log.info(new Date(midnight.getTime() - now.getTime()).toISOString().slice(11, 16))
-					}
-
 					this.log.debug('Getting Valve list info...');
 					const valveList = await this.rachioapi.listValves(this.token, baseStation.id).catch((err: unknown) => {
 						this.log.error('Failed to get valve list', err);
@@ -645,16 +626,12 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 						valveList.valves.forEach(async (valve: Valve, zoneNumber: number) => {
 							try {
 								valve.zone = zoneNumber + 1;
+								this.valveList.push({
+									valveId: valve.id,
+									name: valve.name,
+									zone: valve.zone,
+								});
 								const index = this.accessories.findIndex(accessory => accessory.UUID === valve.id);
-								this.log.debug('Creating and configuring new valve');
-								if (this.accessories[index]) {
-									// Check if accessory changed
-									if (this.accessories[index].getService(this.Service.AccessoryInformation)!.getCharacteristic(this.Characteristic.ProductData).value != 'Valve') {
-										this.log.warn('Changing from Irrigation to Valve, check room assignments in Homekit');
-										this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [this.accessories[index]]);
-										this.accessories.splice(index, 1);
-									}
-								}
 								// check if still required
 								if (!this.showValves) {
 									if (index >= 0) {
@@ -665,6 +642,14 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 										this.accessories.splice(index, 1);
 									}
 									return false;
+								}
+								// Check if accessory changed
+								if (index >= 0) {
+									if (this.accessories[index].getService(this.Service.AccessoryInformation)!.getCharacteristic(this.Characteristic.ProductData).value != 'Valve') {
+										this.log.warn('Changing from Irrigation to Valve, check room assignments in Homekit');
+										this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [this.accessories[index]]);
+										this.accessories.splice(index, 1);
+									}
 								}
 								//adding devices that met filter criteria
 								this.log.info(`Found Smart Hose Timer ${valve.name} connected: ${valve.state.reportedState.connected}`);
@@ -738,17 +723,16 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 									}
 								}
 								//find any running zone and set its state
+								/*
+								future effort
 								this.log.debug('Finding any running zones...');
 								const programs = await this.rachioapi.listPrograms(this.token, valve.id).catch((err: unknown) => {
 									this.log.error('Failed to get current programs', err);
 									throw err;
 								});
 								this.log.debug('Check current programs');
-								//remove [UTC] for valid date regex= /\[...]/
-								const remaining = programs.headers['x-ratelimit-remaining'];
-								const limit = programs.headers['x-ratelimit-limit'];
-								const reset = new Date(programs.headers['x-ratelimit-reset'].replace(/\[...]/, '')).toString();
-								this.log.info(`API rate limiting; call limit of ${remaining} remaining out of ${limit} until reset at ${reset}`);
+								//this.setValveStatus(programs.data)
+								*/
 							}catch (err) {
 								this.log.warn(`Error ${err}`);
 							}
@@ -765,6 +749,117 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 				this.log.error(`Failed to get valves. Retry attempt ${this.retryAttempt} of ${this.retryMax} in ${this.retryWait} seconds`);
 				setTimeout(async () => {
 					this.getRachioValves();
+				}, this.retryWait * 1000);
+			} else {
+				this.log.error(`Failed to get devices\n${err}`);
+			}
+		}
+	}
+
+	async getRachioBridges() {
+		try {
+			// getting account info
+			this.log.debug('Fetching build info for WiFi Hub...');
+			this.log.debug('Getting Person info...');
+			const personId = await this.rachioapi.getPersonInfo(this.token).catch((err: unknown) => {
+				this.log.error(`Failed to get info for build ${err}`);
+				throw err;
+			});
+			this.log.info(`Found Person ID ${personId.id}`);
+			this.log.debug('Getting Person ID info...');
+			const personInfo = await this.rachioapi.getPersonId(this.token, personId.id).catch((err: unknown) => {
+				this.log.error(`Failed to get person info for build ${err}`);
+				throw err;
+			});
+			this.log.info(`Found Account for username ${personInfo.username}`);
+			this.log.debug('Getting Base Station info...');
+			const list = await this.rachioapi.listBaseStations(this.token, personId.id).catch((err: unknown) => {
+				this.log.error(`Failed to get base station list ${err}`);
+				throw err;
+			});
+			if (list.baseStations.length > 0) {
+				list.baseStations.forEach(async (baseStation: BaseStation) => {
+					this.log.debug('Getting Property info...');
+					const property = await this.rachioapi.getPropertyEntity(this.token, 'base_station_id', baseStation.id).catch((err: unknown) => {
+						this.log.error(`Failed to get base station property ${err}`);
+						throw err;
+					});
+					if (this.showBridge) {
+						if (!this.locationAddress || property.property.address.lineOne == this.locationAddress) {
+							this.log.info(`Found WiFi Hub ${baseStation.serialNumber} at the configured location: ${property.property.address.lineOne}`);
+						} else {
+							this.log.info(`Skipping WiFi Hub ${baseStation.serialNumber} at ${property.property.address.lineOne}, not found at the configured location: ${this.locationAddress}`);
+							return;
+						}
+					}
+					if (baseStation.reportedState.firmwareUpgradeAvailable) {
+						this.log.warn('Hub firmware upgrade available');
+					}
+					const index = this.accessories.findIndex(accessory => accessory.UUID === baseStation.id);
+					// check if still required
+					if (!this.showBridge) {
+						if (index >= 0) {
+							const bridgeAccessory = this.bridge.createBridgeAccessory(baseStation, property, this.accessories[index]);
+							this.log.info(`Removing Smart Hose Bridge ${bridgeAccessory.displayName}`);
+							this.log.debug(`Removing Smart Hose Bridge ${bridgeAccessory.UUID}`);
+							this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [this.accessories[index]]);
+							this.accessories.splice(index, 1);
+						}
+						return false;
+					}
+
+					// Create and configure Bridge
+					this.log.debug(`Found WiFi Hub ${property.property.address.locality}`);
+					this.log.debug('Creating and configuring new Wifi Hub');
+					const bridgeAccessory = this.bridge.createBridgeAccessory(baseStation, property, this.accessories[index]);
+					// Register platform accessory
+					if (!this.accessories[index]) {
+						this.log.debug('Registering platform accessory');
+						this.log.info('Adding WiFi Hub');
+						this.accessories.push(bridgeAccessory);
+						this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [bridgeAccessory]);
+					} else {
+						this.log.debug('Accessory exists, refreshing');
+					}
+					// Create and configure Bridge service
+					let bridgeService = bridgeAccessory.getService(this.Service.WiFiTransport);
+					// set current device status
+					if (!bridgeService) {
+						bridgeService = this.bridge.createBridgeService(baseStation, property);
+						bridgeAccessory.addService(bridgeService);
+					}
+					this.bridge.configureBridgeService(bridgeService);
+					bridgeService.getCharacteristic(this.Characteristic.CurrentTransport).updateValue(baseStation.reportedState.connected);
+					if (this.showSkip) {
+						// Create and configure skip switch
+						this.log.debug('Adding Skip Program Switches');
+						this.log.debug('Creating and configuring switch to toggle manual skip');
+						this.setSkip(baseStation);
+						//set loop here
+
+						const now = new Date();
+						const midnight = new Date();
+						midnight.setHours(24, 1, 0, 0); // Sets to 00:01:00
+						setTimeout(() => {
+							setInterval(() => {
+								this.log.info('Checking for programs chnages');
+								this.setSkip(baseStation);
+							}, 24 * 60 * 60 * 1000); // every 24 hours
+							this.setSkip(baseStation);
+						}, midnight.getTime() - now.getTime()); //to next midnight
+						//this.log.info(new Date(midnight.getTime() - now.getTime()).toISOString().slice(11, 16))
+					}
+				});
+				return true;
+			} else {
+				return false;
+			}
+		} catch (err) {
+			if (this.retryAttempt < this.retryMax) {
+				this.retryAttempt++;
+				this.log.error(`Failed to get valves. Retry attempt ${this.retryAttempt} of ${this.retryMax} in ${this.retryWait} seconds`);
+				setTimeout(async () => {
+					this.getRachioBridges();
 				}, this.retryWait * 1000);
 			} else {
 				this.log.error(`Failed to get devices\n${err}`);

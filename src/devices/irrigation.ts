@@ -89,7 +89,7 @@ export default class irrigation {
 
 	createValveService(device: Controller, zone: Zone ) {
 		// Create Valve Service
-		const valve: Service = new this.Service.Valve(zone.name, zone.id);
+		const valveService: Service = new this.Service.Valve(zone.name, zone.id);
 		let defaultRuntime = this.platform.defaultRuntime;
 		try {
 			switch (this.platform.runtimeSource) {
@@ -111,18 +111,18 @@ export default class irrigation {
 			this.log.debug('no smart runtime found, using default runtime');
 		}
 		this.log.debug(`Created controller valve service for ${zone.name} with id ${zone.id} with ${Math.round(defaultRuntime / 60)} min runtime`);
-		valve.addCharacteristic(this.Characteristic.SerialNumber); //Use Serial Number to store the zone id
-		valve.addCharacteristic(this.Characteristic.Model);
-		valve.addCharacteristic(this.Characteristic.ConfiguredName);
-		valve.getCharacteristic(this.Characteristic.SetDuration).setProps({
+		valveService.addCharacteristic(this.Characteristic.SerialNumber); //Use Serial Number to store the zone id
+		valveService.addCharacteristic(this.Characteristic.Model);
+		valveService.addCharacteristic(this.Characteristic.ConfiguredName);
+		valveService.getCharacteristic(this.Characteristic.SetDuration).setProps({
 			minValue: 0,
 			maxValue: 64800,
 		});
-		valve.getCharacteristic(this.Characteristic.RemainingDuration).setProps({
+		valveService.getCharacteristic(this.Characteristic.RemainingDuration).setProps({
 			minValue: 0,
 			maxValue: 64800,
 		});
-		valve
+		valveService
 			.setCharacteristic(this.Characteristic.Active, this.Characteristic.Active.INACTIVE)
 			.setCharacteristic(this.Characteristic.InUse, this.Characteristic.InUse.NOT_IN_USE)
 			.setCharacteristic(this.Characteristic.ValveType, this.Characteristic.ValveType.IRRIGATION)
@@ -135,20 +135,20 @@ export default class irrigation {
 			.setCharacteristic(this.Characteristic.ConfiguredName, zone.name)
 			.setCharacteristic(this.Characteristic.Model, zone.customNozzle.name);
 		if (zone.enabled) {
-			valve.setCharacteristic(this.Characteristic.IsConfigured, this.Characteristic.IsConfigured.CONFIGURED);
+			valveService.setCharacteristic(this.Characteristic.IsConfigured, this.Characteristic.IsConfigured.CONFIGURED);
 		} else {
-			valve.setCharacteristic(this.Characteristic.IsConfigured, this.Characteristic.IsConfigured.NOT_CONFIGURED);
+			valveService.setCharacteristic(this.Characteristic.IsConfigured, this.Characteristic.IsConfigured.NOT_CONFIGURED);
 		}
-		this.updateValveService(device, zone, valve);
-		this.configureValveService(device, valve);
-		return valve;
+		this.updateValveService(device, zone, valveService);
+		this.configureValveService(device, valveService);
+		return valveService;
 	}
 
 	configureValveService(device: Controller, valveService: Service) {
 		const zone_Number = valveService.getCharacteristic(this.Characteristic.ServiceLabelIndex).value;
 		const zone_Name = valveService.getCharacteristic(this.Characteristic.Name).value;
 		const zone_Runtime = Number(valveService.getCharacteristic(this.Characteristic.SetDuration).value) / 60;
-		this.log.info(`Configured irrigation zone-${zone_Number} for ${zone_Name} with ${zone_Runtime} min runtime`);
+		this.log.info(`Configured Irrigation zone-${zone_Number} for ${zone_Name} with ${zone_Runtime} min runtime`);
 		this.platform.valveServices.push(valveService);
 		// Configure Valve Service
 		valveService.getCharacteristic(this.Characteristic.Active)

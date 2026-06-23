@@ -17,7 +17,7 @@ export default class Rachio {
 
 	async updateService(irrigationSystemService: Service | null, activeService: Service, jsonBody: any) {
 		const index = this.platform.valveServices.findIndex(valve => valve.subtype === activeService.subtype);
-		if (jsonBody.resourceType == 'IRRIGATION_CONTROLLER' || jsonBody.resourceType == 'VALVE') {
+		if (jsonBody.resourceType == 'IRRIGATION_CONTROLLER' || jsonBody.resourceType == 'VALVE' || jsonBody.resourceType == 'PROGRAM') {
 			//webhook v2 messages
 			/***********************************************************
 			Event Type options from webhook info
@@ -52,7 +52,7 @@ export default class Rachio {
 						******************************/
 				switch (jsonBody.eventType) {
 				case 'DEVICE_ZONE_RUN_STARTED_EVENT':
-					this.log.info(`<${jsonBody.externalId}> ${jsonBody.eventType}, started for duration ${Math.round(jsonBody.payload.durationSeconds / 60)} minutes.`);
+					this.log.info(`<${jsonBody.externalId}> ${jsonBody.eventType}, started for a duration of ${Math.round(jsonBody.payload.durationSeconds / 60)} minutes.`);
 					this.log.debug(`${activeService.getCharacteristic(this.Characteristic.Name).value} started watering at ${new Date(jsonBody.payload.startTime).toLocaleTimeString()}`);
 					irrigationSystemService!.getCharacteristic(this.Characteristic.InUse).updateValue(this.Characteristic.InUse.IN_USE);
 					activeService.getCharacteristic(this.Characteristic.Active).updateValue(this.Characteristic.Active.ACTIVE);
@@ -76,7 +76,7 @@ export default class Rachio {
 					clearTimeout(this.platform.localWebhook);
 					const pauseDuration = Math.round((Date.parse(jsonBody.payload.endTime) - Date.now() - (Date.parse(this.platform.endTime[index]) - Date.now())) / 1000);
 					const pauseDurationInMinutes = Math.round(jsonBody.payload.durationSeconds / 60);
-					this.log.info(`<${jsonBody.externalId}> ${jsonBody.eventType}, paused for duration ${pauseDurationInMinutes} minutes.`);
+					this.log.info(`<${jsonBody.externalId}> ${jsonBody.eventType}, paused for a duration of ${pauseDurationInMinutes} minutes.`);
 					irrigationSystemService!.getCharacteristic(this.Characteristic.InUse).updateValue(this.Characteristic.InUse.IN_USE);
 					activeService.getCharacteristic(this.Characteristic.Active).updateValue(this.Characteristic.Active.ACTIVE);
 					activeService.getCharacteristic(this.Characteristic.InUse).updateValue(this.Characteristic.InUse.NOT_IN_USE);
@@ -90,7 +90,7 @@ export default class Rachio {
 					} else {
 						this.log.info(`<${jsonBody.externalId}> ${jsonBody.eventType}, completed after ${Math.round(jsonBody.payload.durationSeconds / 60)} minutes.`);
 					}
-					this.log.debug(activeService.getCharacteristic(this.Characteristic.Name).value + ' completed watering at ' + new Date().toLocaleTimeString() + ' after ' + Math.round(jsonBody.payload.durationSeconds / 60) + ' minutes');
+					this.log.debug(`${activeService.getCharacteristic(this.Characteristic.Name).value} completed watering at ${new Date(jsonBody.payload.endTime).toLocaleTimeString()} after ${Math.round(jsonBody.payload.durationSeconds / 60)} minutes`);
 					irrigationSystemService!.getCharacteristic(this.Characteristic.InUse).updateValue(this.Characteristic.InUse.NOT_IN_USE);
 					activeService.getCharacteristic(this.Characteristic.Active).updateValue(this.Characteristic.Active.INACTIVE);
 					activeService.getCharacteristic(this.Characteristic.InUse).updateValue(this.Characteristic.InUse.NOT_IN_USE);
@@ -123,7 +123,7 @@ export default class Rachio {
 
 				case 'VALVE_RUN_START_EVENT':
 					jsonBody.payload.endTime = new Date(Date.parse(jsonBody.payload.startTime) + jsonBody.payload.durationSeconds * 1000); // need to add to json, missing jsonBody.payload.endTime
-					this.log.info(`<${jsonBody.externalId}> ${jsonBody.eventType}, started for duration ${Math.round(jsonBody.payload.durationSeconds / 60)} minutes.`);
+					this.log.info(`<${jsonBody.externalId}> ${jsonBody.eventType}, started for a duration of ${Math.round(jsonBody.payload.durationSeconds / 60)} minutes.`);
 					this.log.debug(`${activeService.getCharacteristic(this.Characteristic.Name).value} started watering at ${new Date(jsonBody.payload.startTime).toLocaleTimeString()}`);
 					//valveSystemService.getCharacteristic(this.Characteristic.InUse).updateValue(this.Characteristic.InUse.IN_USE)
 					activeService.getCharacteristic(this.Characteristic.Active).updateValue(this.Characteristic.Active.ACTIVE);
@@ -142,6 +142,15 @@ export default class Rachio {
 					//valveSystemService.getCharacteristic(this.Characteristic.InUse).updateValue(this.Characteristic.InUse.NOT_IN_USE)
 					activeService.getCharacteristic(this.Characteristic.Active).updateValue(this.Characteristic.Active.INACTIVE);
 					activeService.getCharacteristic(this.Characteristic.InUse).updateValue(this.Characteristic.InUse.NOT_IN_USE);
+					break;
+
+				case 'PROGRAM_RAIN_SKIP_CREATED_EVENT':
+					this.log.info(`<${jsonBody.externalId}> ${jsonBody.eventType}`);
+					activeService.getCharacteristic(this.Characteristic.On).updateValue(true);
+					break;
+				case 'PROGRAM_RAIN_SKIP_CANCELED_EVENT':
+					this.log.info(`<${jsonBody.externalId}> ${jsonBody.eventType}`);
+					activeService.getCharacteristic(this.Characteristic.On).updateValue(false);
 					break;
 				}
 			} catch (err) {
@@ -203,7 +212,7 @@ export default class Rachio {
 						******************************/
 					switch (jsonBody.subType) {
 					case 'ZONE_STARTED':
-						this.log.info(`<${jsonBody.externalId}> ${jsonBody.title}, started for duration ${jsonBody.durationInMinutes} minutes.`);
+						this.log.info(`<${jsonBody.externalId}> ${jsonBody.title}, started for a duration of ${jsonBody.durationInMinutes} minutes.`);
 						this.log.debug(jsonBody.summary);
 						irrigationSystemService!.getCharacteristic(this.Characteristic.InUse).updateValue(this.Characteristic.InUse.IN_USE);
 						activeService.getCharacteristic(this.Characteristic.Active).updateValue(this.Characteristic.Active.ACTIVE);
@@ -228,7 +237,7 @@ export default class Rachio {
 						clearTimeout(this.platform.localWebhook);
 						const pauseDuration = Math.round((Date.parse(jsonBody.endTime) - Date.now() - (Date.parse(this.platform.endTime[index]) - Date.now())) / 1000);
 						const pauseDurationInMinutes = Math.round(pauseDuration / 60);
-						this.log.info(`<${jsonBody.externalId}> ${jsonBody.title}, paused for duration ${pauseDurationInMinutes} minutes.`);
+						this.log.info(`<${jsonBody.externalId}> ${jsonBody.title}, paused for a duration of ${pauseDurationInMinutes} minutes.`);
 						this.log.debug(jsonBody.summary);
 						irrigationSystemService!.getCharacteristic(this.Characteristic.InUse).updateValue(this.Characteristic.InUse.IN_USE);
 						activeService.getCharacteristic(this.Characteristic.Active).updateValue(this.Characteristic.Active.ACTIVE);

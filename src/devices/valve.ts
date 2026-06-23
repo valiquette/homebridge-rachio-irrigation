@@ -27,12 +27,21 @@ export default class valve {
 	createValveAccessory(base: BaseStation, property: Property, valve: Valve, platformAccessory: PlatformAccessory) {
 		if (!platformAccessory) {
 			// Create new Valve System Service
-			this.log.debug(`Create valve accessory ${valve.id} ${property.property.address.locality +' '+ valve.name}`);
-			platformAccessory = new this.platform.api.platformAccessory(property.property.address.locality +' '+ valve.name, valve.id);
-			const valveService: Service = platformAccessory.addService(this.Service.Valve, valve.id.replace(/-/g, ''), valve.id);
+			this.log.debug(`Create valve accessory ${valve.id} ${property.property.address.locality} ${valve.name}`);
+			platformAccessory = new this.platform.api.platformAccessory(`${property.property.address.locality} ${valve.name}`, valve.id);
+			//const valveService: Service = platformAccessory.addService(this.Service.Valve, valve.id.replace(/-/g, ''), valve.id);
+			const valveService: Service = platformAccessory.addService(this.Service.Valve, valve.name, valve.id);
 			valveService.addCharacteristic(this.Characteristic.SerialNumber); //Use Serial Number to store the zone id
 			valveService.addCharacteristic(this.Characteristic.Model);
 			valveService.addCharacteristic(this.Characteristic.ConfiguredName);
+			valveService.getCharacteristic(this.Characteristic.SetDuration).setProps({
+				minValue: 0,
+				maxValue: 64800,
+			});
+			valveService.getCharacteristic(this.Characteristic.RemainingDuration).setProps({
+				minValue: 0,
+				maxValue: 64800,
+			});
 			valveService.addCharacteristic(this.Characteristic.ProgramMode);
 		} else {
 			// Update Valve System Service
@@ -48,7 +57,7 @@ export default class valve {
 		}
 		// Create AccessoryInformation Service
 		platformAccessory.getService(this.Service.AccessoryInformation)!
-			.setCharacteristic(this.Characteristic.Name, property.property.address.locality +' '+ valve.name)
+			.setCharacteristic(this.Characteristic.Name, `${property.property.address.locality} ${valve.name}`)
 			.setCharacteristic(this.Characteristic.Manufacturer, 'Rachio')
 			.setCharacteristic(this.Characteristic.SerialNumber, base.serialNumber)
 			.setCharacteristic(this.Characteristic.Model, 'SHVK001')
@@ -63,6 +72,24 @@ export default class valve {
 		this.updateValveService(base, valve, valveService);
 		this.configureValveService(valve, valveService);
 		return platformAccessory;
+	}
+
+	configureValveService(valve: Valve, valveService: Service) {
+		const zone_Name = valveService.getCharacteristic(this.Characteristic.Name).value;
+		const zone_Runtime = Number(valveService.getCharacteristic(this.Characteristic.SetDuration).value) / 60;
+		this.log.info(`Configured Hose Timer ${zone_Name} with ${zone_Runtime} min runtime`);
+		this.platform.valveServices.push(valveService);
+		valveService.getCharacteristic(this.Characteristic.Active)
+			.onGet(this.getValveValue.bind(this, valveService, 'ValveActive'))
+			.onSet(this.setValveValue.bind(this, valve, valveService));
+		valveService.getCharacteristic(this.Characteristic.InUse)
+			.onGet(this.getValveValue.bind(this, valveService, 'ValveInUse'))
+			.onSet(this.setValveValue.bind(this, valve, valveService));
+		valveService.getCharacteristic(this.Characteristic.SetDuration)
+			.onGet(this.getValveValue.bind(this, valveService, 'ValveSetDuration'))
+			.onSet(this.setValveSetDuration.bind(this, valve, valveService));
+		valveService.getCharacteristic(this.Characteristic.RemainingDuration)
+			.onGet(this.getValveValue.bind(this, valveService, 'ValveRemainingDuration'));
 	}
 
 	updateValveService(base: BaseStation, valve: Valve, valveService: Service) {
@@ -98,7 +125,6 @@ export default class valve {
 		this.log.debug(`Created valve service for ${valve.name} with ${defaultRuntime} sec runtime (${Math.round(defaultRuntime / 60)} min)`);
 		valveService
 			.setCharacteristic(this.Characteristic.ValveType, this.platform.valveType)
-			.setCharacteristic(this.Characteristic.IsConfigured, this.Characteristic.IsConfigured.CONFIGURED)
 			.setCharacteristic(this.Characteristic.ServiceLabelIndex, valve.zone)
 			.setCharacteristic(this.Characteristic.StatusFault, !valve.state.reportedState.connected)
 			.setCharacteristic(this.Characteristic.SerialNumber, valve.id)
@@ -134,25 +160,6 @@ export default class valve {
 			valveService.setCharacteristic(this.Characteristic.IsConfigured, this.Characteristic.IsConfigured.NOT_CONFIGURED);
 		}
 		return valveService;
-	}
-
-	configureValveService(valve: Valve, valveService: Service) {
-		const zone_Number = valveService.getCharacteristic(this.Characteristic.ServiceLabelIndex).value;
-		const zone_Name = valveService.getCharacteristic(this.Characteristic.Name).value;
-		const zone_Runtime = Number(valveService.getCharacteristic(this.Characteristic.SetDuration).value) / 60;
-		this.log.info(`Configured zone-${zone_Number} for ${zone_Name} with ${zone_Runtime} min runtime`);
-		this.platform.valveServices.push(valveService);
-		valveService.getCharacteristic(this.Characteristic.Active)
-			.onGet(this.getValveValue.bind(this, valveService, 'ValveActive'))
-			.onSet(this.setValveValue.bind(this, valve, valveService));
-		valveService.getCharacteristic(this.Characteristic.InUse)
-			.onGet(this.getValveValue.bind(this, valveService, 'ValveInUse'))
-			.onSet(this.setValveValue.bind(this, valve, valveService));
-		valveService.getCharacteristic(this.Characteristic.SetDuration)
-			.onGet(this.getValveValue.bind(this, valveService, 'ValveSetDuration'))
-			.onSet(this.setValveSetDuration.bind(this, valve, valveService));
-		valveService.getCharacteristic(this.Characteristic.RemainingDuration)
-			.onGet(this.getValveValue.bind(this, valveService, 'ValveRemainingDuration'));
 	}
 
 	getValveValue(valveService: Service, characteristicName: string) {

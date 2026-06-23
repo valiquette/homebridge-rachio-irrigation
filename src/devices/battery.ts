@@ -61,7 +61,8 @@ export default class battery {
 	async getStatusLowBattery(batteryStatus: Service) {
 		const index = this.devices.findIndex(device => device.subtype === batteryStatus.subtype);
 		let currentValue = batteryStatus.getCharacteristic(this.Characteristic.StatusLowBattery).value;
-		if(!this.timeStamp[index]) {
+		//set new timestamp
+		if (!this.timeStamp[index]) {
 			this.timeStamp[index] = +new Date();
 		}
 		//check for duplicate call
@@ -72,9 +73,9 @@ export default class battery {
 			this.log.debug(`skipped battery update, to soon. timestamp delta ${this.delta[index]/1000} sec`);
 			return currentValue;
 		}
-		// add connection state to this call
+		// add charging state and level to this call
 		try {
-			this.log.debug('updating battery for valve index ', index);
+			this.log.debug(`updating battery for valve index ${index}`);
 			const response = await this.rachioapi.getValve(this.platform.token, this.devices[index].subtype).catch(err => {
 				throw (`Failed to get valve battery status ${err}`);
 			});
