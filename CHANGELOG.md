@@ -5,9 +5,11 @@ Refatored
 -  Code cleanup
 -  Improved logging
 -  Refacored in Typescript
+-  Addressed condition where webhook port was in use, error EADDRINUSE following homebridge UI updates
 -  Fixed minor bugs
 -  Bumped dependencies
--  Supports node 26
+-  Deprecated node 20 support
+-  Added support for node 26
 
 ## 1.5.1
 Enhancement

@@ -14,7 +14,7 @@ export default class RachioAPI {
 	constructor(
 		private readonly platform: RachioPlatform,
 		private readonly log: Logging = platform.log,
-	) {}
+	) { }
 
 	async getPersonInfo(token: string) {
 		try {
@@ -548,12 +548,12 @@ export default class RachioAPI {
 				data: {
 					'start': {
 						'year': new Date().getFullYear(),
-						'month': new Date().getMonth()+1,
+						'month': new Date().getMonth() + 1,
 						'day': new Date().getDate(),
 					},
 					'end': {
 						'year': new Date().getFullYear(),
-						'month': new Date().getMonth()+1,
+						'month': new Date().getMonth() + 1,
 						'day': new Date().getDate(),
 					},
 					'resourceId': {
@@ -570,7 +570,7 @@ export default class RachioAPI {
 				} else {
 					this.log.warn(`Error ${err.name}`);
 				}
-				throw err?.code?? err;
+				throw err?.code ?? err;
 			});
 			if (response.status == 200) {
 				if (this.platform.showAPIMessages) {
@@ -600,7 +600,7 @@ export default class RachioAPI {
 				data: {
 					'date': {
 						'year': new Date().getFullYear(),
-						'month': new Date().getMonth()+1,
+						'month': new Date().getMonth() + 1,
 						'day': new Date().getDate(),
 					},
 					'plannedRunId': runId,
@@ -640,7 +640,7 @@ export default class RachioAPI {
 				data: {
 					'date': {
 						'year': new Date().getFullYear(),
-						'month': new Date().getMonth()+1,
+						'month': new Date().getMonth() + 1,
 						'day': new Date().getDate(),
 					},
 					'plannedRunId': runId,
@@ -719,7 +719,7 @@ export default class RachioAPI {
 				} else {
 					this.log.warn(`Error ${err.name}`);
 				}
-				throw err?.code?? err;
+				throw err?.code ?? err;
 			});
 			if (response.status == 200) {
 				if (this.platform.showAPIMessages) {
@@ -845,6 +845,56 @@ export default class RachioAPI {
 		}
 	}
 
+	async listControllerWebhooks(token: string, id: string ){
+		try {
+			this.log.debug(`Get webhook ${id}`);
+			const response = await axios({
+				method: 'get',
+				baseURL: alt_api_endpoint,
+				url: `webhook/listWebhooks?resource_id.irrigation_controller_id=${id}`,
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PLUGIN_NAME}/${PLUGIN_VERSION}`,
+				},
+				responseType: 'json',
+			}).catch(err => {
+				this.log.error(`Error getting webhooks ${err.message}`);
+				this.log.warn(JSON.stringify(err.response.data, null, 2));
+				this.log.debug(JSON.stringify(err, null, 2));
+			});
+			this.log.debug('get webhooks', response?.status);
+			return response;
+		} catch (err) {
+			this.log.error(`Error getting webhooks \n${err}`);
+		}
+	}
+
+	async listValveWebhooks(token: string, id: string ){
+		try {
+			this.log.debug(`Get webhook ${id}`);
+			const response = await axios({
+				method: 'get',
+				baseURL: alt_api_endpoint,
+				url: `webhook/listWebhooks?resource_id.valve_id=${id}`,
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PLUGIN_NAME}/${PLUGIN_VERSION}`,
+				},
+				responseType: 'json',
+			}).catch(err => {
+				this.log.error(`Error getting webhooks ${err.message}`);
+				this.log.warn(JSON.stringify(err.response.data, null, 2));
+				this.log.debug(JSON.stringify(err, null, 2));
+			});
+			this.log.debug('get webhooks', response?.status);
+			return response;
+		} catch (err) {
+			this.log.error(`Error getting webhooks \n${err}`);
+		}
+	}
+
 	async configureWebhooks(token: string, external_webhook_address: string, delete_webhooks: boolean, device_id: string, device_name: string, webhook_key: string) {
 		try {
 			/*********************************************
@@ -861,7 +911,10 @@ export default class RachioAPI {
 							"id": 14="DELTA"
 			**********************************************/
 
-			const events = [{ id: 5 }, { id: 6 }];   //eventTypes: [{id: 5}, {id: 10}, {id: 6}, {id: 7}, {id: 9}]
+			const events = [
+				{ id: 5 },
+				{ id: 6 }
+			];
 
 			this.log.info(`Configuring Rachio webhooks for controller ID ${device_id}`);
 			const response = await axios({
@@ -984,10 +1037,10 @@ export default class RachioAPI {
 					throw err.code;
 				});
 				if (response.status == 204) {
-					this.log.debug(`Successfully updated webhook v1 ${response}`);
+					this.log.debug(`Successfully updated webhook ${response}`);
 				}
 			} else {
-				this.log.info('Creating Webhook for ' + external_webhook_address);
+				this.log.info('Creating webhook for ' + external_webhook_address);
 				const response = await axios({
 					method: 'post',
 					baseURL: api_endpoint,
@@ -1013,21 +1066,14 @@ export default class RachioAPI {
 					throw err.code;
 				});
 				if (response.status == 204) {
-					this.log.debug(`Successfully created webhook v1 ${response}`);
+					this.log.debug(`Successfully created webhook ${response}`);
 				}
 			}
 			if (this.platform.showAPIMessages) {
-				this.log.debug('create/update webhooks v1 response', JSON.stringify(response.data, null, 2));
+				this.log.debug('create/update webhook response', JSON.stringify(response.data, null, 2));
 			}
-			const test_webhook_url = `${external_webhook_address}/test`;
 			if (response.status == 200) {
-				this.log.success(`Successfully configured webhook v1 for ${device_name} with external id "${webhook_key}"`);
-				this.log.info(
-					'To test Webhook v1 setup:\n' +
-					`				Navigate to ${test_webhook_url} to ensure port forwarding is configured correctly.\n` +
-					'				Note: For local config this will not work from this server, you cannot be connected to the same router doing the fowarding.\n' +
-					'				The best way to test this is from a cell phone, with WiFi off.',
-				);
+				this.log.success(`Successfully configured webhook for ${device_name} with external id "${webhook_key}"`);
 			}
 			return;
 		} catch (err) {
@@ -1109,7 +1155,7 @@ export default class RachioAPI {
 				};
 			}
 
-			this.log.debug(`Configuring Rachio webhooks v2 for controller ID ${device_id}`);
+			this.log.debug(`Configuring Rachio SHT webhooks for device ID ${device_id}`);
 			const response = await axios({
 				method: 'get',
 				baseURL: alt_api_endpoint,
@@ -1123,7 +1169,7 @@ export default class RachioAPI {
 				responseType: 'json',
 			}).catch(err => {
 				this.log.debug(JSON.stringify(err, null, 2));
-				this.log.error(`Error retrieving webhooks ${err.message}`);
+				this.log.error(`Error retrieving SHT webhooks ${err.message}`);
 				if(err.response){
 					this.log.warn(JSON.stringify(err.response.data, null, 2));
 				}
@@ -1131,16 +1177,17 @@ export default class RachioAPI {
 			});
 			if (response.status == 200) {
 				if (this.platform.showAPIMessages) {
-					this.log.debug('configured webhooks v2 response', JSON.stringify(response.data, null, 2));
+					this.log.debug('configured SHT webhooks response', JSON.stringify(response.data, null, 2));
 				}
 			}
 			const webhooks = response.data.webhooks;
 			if (this.platform.showAPIMessages) {
-				this.log.debug('configured webhooks v2 response', JSON.stringify(response.data, null, 2));
+				this.log.debug('configured SHT webhooks response', JSON.stringify(response.data, null, 2));
 			}
 			if (!webhooks || !Array.isArray(webhooks)) {
 				return;
 			}
+
 			if (delete_webhooks) {
 				//delete exsisting webhooks
 				webhooks.forEach(async webhook => {
@@ -1159,14 +1206,14 @@ export default class RachioAPI {
 						responseType: 'json',
 					}).catch(err => {
 						this.log.debug(JSON.stringify(err, null, 2));
-						this.log.error(`Error deleting old webhook ${webhook.id} error ${err.message}`);
+						this.log.error(`Error deleting old SHT webhook ${webhook.id} error ${err.message}`);
 						if(err.response){
 							this.log.warn(JSON.stringify(err.response.data, null, 2));
 						}
 						throw err.code;
 					});
 					if (response.status == 204) {
-						this.log.debug(`Successfully deleted old v2 webhook ${webhook.id}`);
+						this.log.debug(`Successfully deleted old SHT webhook ${webhook.id}`);
 					}
 				});
 			}
@@ -1192,7 +1239,7 @@ export default class RachioAPI {
 						responseType: 'json',
 					}).catch(err => {
 						this.log.debug(JSON.stringify(err, null, 2));
-						this.log.error(`Error deleting old v2 webhook ${webhook.id} error ${err.message}`);
+						this.log.error(`Error deleting old SHT webhook ${webhook.id} error ${err.message}`);
 						if(err.response){
 							this.log.warn(JSON.stringify(err.response.data, null, 2));
 						}
@@ -1226,14 +1273,14 @@ export default class RachioAPI {
 					},
 				}).catch(err => {
 					this.log.debug(JSON.stringify(err, null, 2));
-					this.log.error(`Error updating exsisting v2 webhook ${updateWebhook.id} error ${err.message}`);
+					this.log.error(`Error updating exsisting SHT webhook ${updateWebhook.id} error ${err.message}`);
 					if(err.response){
 						this.log.warn(JSON.stringify(err.response.data, null, 2));
 					}
 					throw err.code;
 				});
 				if (response.status == 204) {
-					this.log.debug(`Successfully update webhook v2 ${response}`);
+					this.log.debug(`Successfully update SHT webhook ${response}`);
 				}
 			} else {
 				this.log.info('Creating Webhook for ' + external_webhook_address);
@@ -1255,32 +1302,25 @@ export default class RachioAPI {
 					},
 				}).catch(err => {
 					this.log.info(JSON.stringify(err, null, 2));
-					this.log.error(`Error configuring new v2 webhook ${updateWebhook.id} error ${err.message}`);
+					this.log.error(`Error configuring new SHT webhook ${updateWebhook.id} error ${err.message}`);
 					if(err.response){
 						this.log.warn(JSON.stringify(err.response.data, null, 2));
 					}
 					throw err.code;
 				});
 				if (response.status == 204) { //check this
-					this.log.debug(`Successfully created webhook v2 ${response}`);
+					this.log.debug(`Successfully created SHT webhook ${response}`);
 				}
 			}
 			if (this.platform.showAPIMessages) {
-				this.log.debug('create/update webhooks v2 response', JSON.stringify(response.data, null, 2));
+				this.log.debug('create/update SHT webhooks response', JSON.stringify(response.data, null, 2));
 			}
-			const test_webhook_url = `${external_webhook_address}/test`;
 			if (response.status == 200) {
-				this.log.success(`Successfully configured webhook SHT for ${device_name} with external id "${webhook_key}"`);
-				this.log.info(
-					'To test Webhook SHT setup\n' +
-					`				Navigate to ${test_webhook_url} to ensure port forwarding is configured correctly.\n` +
-					'				Note: For local config this will not work from this server, you cannot be connected to the same router doing the fowarding.\n' +
-					'				The best way to test this is from a cell phone, with WiFi off.',
-				);
+				this.log.success(`Successfully configured SHT webhook for ${device_name} with external id "${webhook_key}"`);
 			}
 			return;
 		} catch (err) {
-			this.log.error(`Error configuring webhook for device id ${device_name} \n${err}`);
+			this.log.error(`Error configuring SHT webhook for device id ${device_name} \n${err}`);
 		}
 	}
 

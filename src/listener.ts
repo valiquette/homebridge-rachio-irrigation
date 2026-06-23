@@ -55,23 +55,12 @@ export default class listen {
 							this.log.warn('Webhook v2 Authentication failed unknown sender');
 						}
 					}
-					//check for basic auth enabled
-					/*
-					if (this.platform.useBasicAuth && !request.headers.authorization && !request.headers['x-signature']) {
-						webhookAuthentication = false;
-						this.log.debug(`Webhook Authentication ${webhookAuthentication ? 'passed' : 'failed'}`);
-						if (!webhookAuthentication) {
-							this.log.warn('Webhook Authentication failed');
-						}
-					}
-					*/
+
 					this.log.info(`Test received on Rachio listener. Webhooks are configured correctly! Authorization ${webhookAuthentication ? 'passed' : 'failed'}`);
 					response.writeHead(200);
 					const x = `${new Date().toTimeString()} \nWebhooks are configured correctly! \nAuthorization ${webhookAuthentication ? 'passed' : 'failed'}`;
 					response.write(x);
-					if (this.platform.useBasicAuth) {
-						response.write('\nHTTP basic authentication is enabled, failing authorization is expected with this test.');
-					}
+					response.write('\nFailing authorization is expected with this test.');
 					return response.end();
 				} else if (request.method === 'POST' && request.url === '/') {
 					let body: any = [];
@@ -160,6 +149,22 @@ export default class listen {
 									response.writeHead(404);
 									return response.end();
 								}
+
+							case 'PROGRAM':
+								if (jsonBody.externalId === this.platform.webhook_key) {
+									const index: number = this.platform.accessories.findIndex(accessory => accessory.UUID === jsonBody.resourceId);
+									const valveAccessory: PlatformAccessory = this.platform.accessories[index];
+									const program: any = valveAccessory.getService(this.Service.Switch);
+									this.log.debug(`Webhook match found for ${program.getCharacteristic(this.Characteristic.Name).value} will update valve service`);
+									this.eventMsg(null, program, jsonBody);
+									response.writeHead(204);
+									return response.end();
+								} else {
+									this.log.warn(`Webhook received from an unknown external id ${jsonBody.externalId}`);
+									response.writeHead(404);
+									return response.end();
+								}
+
 							default: //v1 webhooks
 								if (jsonBody.externalId === this.platform.webhook_key) {
 									const index = this.platform.accessories.findIndex(accessory => accessory.UUID === jsonBody.resourceId);
@@ -195,7 +200,7 @@ export default class listen {
 				}
 			});
 			server.listen(this.platform.internal_webhook_port,() => {
-				this.log.info(`This server is listening on port ${this.platform.internal_webhook_port}`);
+				this.log.success(`This server is listening on port ${this.platform.internal_webhook_port}`);
 				if (this.platform.useBasicAuth) {
 					this.log.info('Using HTTP basic authentication for Webhooks');
 				}
@@ -204,7 +209,11 @@ export default class listen {
 			server.on('error', (err: any) => {
 				if (err.code === 'EADDRINUSE') {
 					this.log.error(`Port ${this.platform.internal_webhook_port} is already in use, restart plugin`);
-					//setTimeout(process.exit(143), 30000);
+					setTimeout(() => {
+						this.log.warn('Attempting to resolve port in use');
+						this.configureListener();
+					}, 5000);
+					//setTimeout(() => process.exit(143), 30000);
 				};
 			});
 		} else {
