@@ -1,10 +1,10 @@
 # Changes
 
 ## 1.5.2
-Refatored
+Refactored
 -  Code cleanup
 -  Improved logging
--  Refacored in Typescript
+-  Refactored in Typescript
 -  Addressed condition where webhook port was in use, error EADDRINUSE following homebridge UI updates
 -  Fixed minor bugs
 -  Bumped dependencies
