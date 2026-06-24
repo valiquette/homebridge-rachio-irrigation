@@ -913,7 +913,7 @@ export default class RachioAPI {
 
 			const events = [
 				{ id: 5 },
-				{ id: 6 }
+				{ id: 6 },
 			];
 
 			this.log.info(`Configuring Rachio webhooks for controller ID ${device_id}`);
