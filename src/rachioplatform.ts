@@ -231,7 +231,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 			ipv4 = this.checkIPaddress(this.external_IP_address, ipv4format);
 			ipv6 = this.checkIPaddress(this.external_IP_address, ipv6format);
 			fqdn = this.checkIPaddress(this.external_IP_address, fqdnformat);
-		} else {
+		} else if (!this.relay_address) {
 			this.log.warn('No external IP or domain name configured, will not configure webhooks. Reference Readme for instructions.');
 		}
 
