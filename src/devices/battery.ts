@@ -58,9 +58,9 @@ export default class battery {
 			.onGet(this.getStatusLowBattery.bind(this, batteryStatus));
 	}
 
-	async getStatusLowBattery(batteryStatus: Service) {
+	getStatusLowBattery(batteryStatus: Service) {
 		const index = this.devices.findIndex(device => device.subtype === batteryStatus.subtype);
-		let currentValue = batteryStatus.getCharacteristic(this.Characteristic.StatusLowBattery).value;
+		const currentValue = batteryStatus.getCharacteristic(this.Characteristic.StatusLowBattery).value;
 		//set new timestamp
 		if (!this.timeStamp[index]) {
 			this.timeStamp[index] = +new Date();
@@ -69,10 +69,14 @@ export default class battery {
 		this.delta[index] =  new Date().valueOf()- this.timeStamp[index];
 		if (this.delta[index] > 60 * 60 * 1000 || this.delta[index] == 0) {  // check after 1 hour
 			this.timeStamp[index] = +new Date();
+			this.updateBatteryStatus(batteryStatus, index);
 		} else {
 			this.log.debug(`skipped battery update, to soon. timestamp delta ${this.delta[index]/1000} sec`);
-			return currentValue;
 		}
+		return currentValue;
+	}
+
+	async updateBatteryStatus(batteryStatus: Service, index: number) {
 		// add charging state and level to this call
 		try {
 			this.log.debug(`updating battery for valve index ${index}`);
@@ -82,30 +86,25 @@ export default class battery {
 			if (response?.status == 200) {
 				switch (response.data.valve.state.reportedState.batteryStatus) {
 				case 'GOOD':
-					batteryStatus
-						.setCharacteristic(this.Characteristic.StatusLowBattery, this.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
-						.setCharacteristic(this.Characteristic.ChargingState, this.Characteristic.ChargingState.NOT_CHARGEABLE)
-						.setCharacteristic(this.Characteristic.BatteryLevel, 100);
+					batteryStatus.getCharacteristic(this.Characteristic.StatusLowBattery).updateValue(this.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+					batteryStatus.getCharacteristic(this.Characteristic.ChargingState).updateValue(this.Characteristic.ChargingState.NOT_CHARGEABLE);
+					batteryStatus.getCharacteristic(this.Characteristic.BatteryLevel).updateValue(100);
 					break;
 				case 'LOW':
-					batteryStatus
-						.setCharacteristic(this.Characteristic.StatusLowBattery, this.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
-						.setCharacteristic(this.Characteristic.ChargingState, this.Characteristic.ChargingState.NOT_CHARGEABLE)
-						.setCharacteristic(this.Characteristic.BatteryLevel, 40);
+					batteryStatus.getCharacteristic(this.Characteristic.StatusLowBattery).updateValue(this.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
+					batteryStatus.getCharacteristic(this.Characteristic.ChargingState).updateValue(this.Characteristic.ChargingState.NOT_CHARGEABLE);
+					batteryStatus.getCharacteristic(this.Characteristic.BatteryLevel).updateValue(40);
 					break;
 				case 'REPLACE':
-					batteryStatus
-						.setCharacteristic(this.Characteristic.StatusLowBattery, this.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
-						.setCharacteristic(this.Characteristic.ChargingState, this.Characteristic.ChargingState.NOT_CHARGEABLE)
-						.setCharacteristic(this.Characteristic.BatteryLevel, 10);
+					batteryStatus.getCharacteristic(this.Characteristic.StatusLowBattery).updateValue(this.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
+					batteryStatus.getCharacteristic(this.Characteristic.ChargingState).updateValue(this.Characteristic.ChargingState.NOT_CHARGEABLE);
+					batteryStatus.getCharacteristic(this.Characteristic.BatteryLevel).updateValue(10);
 					this.log.warn(`Replace batteries for ${response.data.valve.name} soon`);
 					break;
 				}
-				currentValue = batteryStatus.getCharacteristic(this.Characteristic.StatusLowBattery).value;
 			}
 		} catch (err) {
 			this.log.error(`Error trying to update battery status ${err}`);
 		}
-		return currentValue;
 	}
 }
