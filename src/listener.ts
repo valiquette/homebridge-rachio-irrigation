@@ -208,7 +208,7 @@ export default class listen {
 			});
 			server.on('error', (err: any) => {
 				if (err.code === 'EADDRINUSE') {
-					this.log.error(`Port ${this.platform.internal_webhook_port} is already in use, restart plugin`);
+					this.log.error(`Port ${this.platform.internal_webhook_port} is already in use, will try to resolve`);
 					setTimeout(() => {
 						this.log.warn('Attempting to resolve port in use');
 						this.configureListener();

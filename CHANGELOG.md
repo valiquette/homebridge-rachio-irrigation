@@ -1,5 +1,11 @@
 # Changes
 
+## 1.5.3
+Fix
+-  Fix Homebridge characteristic warning
+-  Fix bug fitlering device by location
+
+
 ## 1.5.2
 Refactored
 -  Code cleanup

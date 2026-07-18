@@ -88,24 +88,28 @@ export default class skipSwitch {
 		return;
 	}
 
-	async getSwitchValue(baseStation: BaseStation, switchService: Service) {
+	getSwitchValue(baseStation: BaseStation, switchService: Service) {
 		if (switchService.getCharacteristic(this.Characteristic.StatusFault).value == this.Characteristic.StatusFault.GENERAL_FAULT) {
 			throw new this.platform.HapStatusError(this.platform.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
 		}
 		const index = this.devices.findIndex(device => device.subtype === switchService.subtype);
-		let currentValue = switchService.getCharacteristic(this.Characteristic.On).value;
+		const currentValue = switchService.getCharacteristic(this.Characteristic.On).value;
 		//set new timestamp
 		if (!this.timeStamp[index]) {
 			this.timeStamp[index] = +new Date();
 		}
 		//check for duplicate call
 		this.delta[index] = new Date().valueOf() - this.timeStamp[index];
-		if (this.delta[index] > 1 * 60 * 1000 || this.delta[index] == 0) {  // check after 1 minute
+		if (this.delta[index] > 2 * 60 * 1000 || this.delta[index] == 0) {  // check after 2 minutes
 			this.timeStamp[index] = +new Date();
+			this.updateSkipSwitch(baseStation, switchService);
 		} else {
 			this.log.debug(`skipped program update, to soon. timestamp delta ${this.delta[index] / 1000} sec`);
-			return currentValue;
 		}
+		return currentValue;
+	}
+
+	async updateSkipSwitch(baseStation: BaseStation, switchService: Service) {
 		try {
 			this.log.debug(`updating skip program for station ${baseStation.id}`);
 			const programs = await this.rachioapi.getValveDayViews(this.platform.token, baseStation.id).catch(err => {
@@ -116,9 +120,9 @@ export default class skipSwitch {
 					run.valveRunSummaries.forEach(summary => {
 						if (switchService.subtype == run.programId) {
 							if (summary.skip?.manualOverrideTrigger == undefined) {
-								currentValue = false;
+								switchService.getCharacteristic(this.Characteristic.On).updateValue(false);
 							} else {
-								currentValue = true;
+								switchService.getCharacteristic(this.Characteristic.On).updateValue(true);
 							}
 						}
 					});
@@ -127,6 +131,5 @@ export default class skipSwitch {
 		} catch (err) {
 			this.log.error(`Error trying to update skip switch ${err}`);
 		}
-		return currentValue;
 	}
 }

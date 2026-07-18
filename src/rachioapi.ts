@@ -82,6 +82,38 @@ export default class RachioAPI {
 		}
 	}
 
+	async getListProperties(token: string, userId: string) {
+		try {
+			this.log.debug('Getting Property list');
+			const response = await axios({
+				method: 'get',
+				baseURL: alt_api_endpoint,
+				url: `/property/listProperties/${userId}`,
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'Content-Type': 'application/json',
+					'User-Agent': `${PLUGIN_NAME}/${PLUGIN_VERSION}`,
+				},
+				responseType: 'json',
+			}).catch(err => {
+				this.log.error(`Error getting property list ${err.message}`);
+				this.log.debug(JSON.stringify(err, null, 2));
+				if (err.response) {
+					this.log.warn(JSON.stringify(err.response.data, null, 2));
+				}
+				return err.response;
+			});
+			if (response.status == 200) {
+				if (this.platform.showAPIMessages) {
+					this.log.debug(`get property list response ${JSON.stringify(response.data, null, 2)}`);
+				}
+				return response.data;
+			}
+		} catch (err) {
+			this.log.error(`Error getting property list \n${err}`);
+		}
+	}
+
 	async getPropertyEntity(token: string, resource: string, id: string) {
 		try {
 			this.log.debug('Getting Property info');

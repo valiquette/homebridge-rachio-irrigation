@@ -123,9 +123,9 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 					this.log.info('Setting up Controller devices');
 					setTimeout(async () => {
 						try {
-							webhook = await this.rachioapi.listControllerWebhooks(this.token, this.zoneList[0].deviceId);
 							if (x) {
 								this.log.success('Rachio Platform finished loading Smart Sprinkler Controller');
+								webhook = await this.rachioapi.listControllerWebhooks(this.token, this.zoneList[0].deviceId);
 							} else {
 								this.log.warn('No Smart Sprinkler Controllers found');
 							}
@@ -144,9 +144,9 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 					this.log.info('Setting up Smart Hose Timers');
 					setTimeout(async () => {
 						try {
-							webhook = await this.rachioapi.listValveWebhooks(this.token, this.valveList[0].valveId);
 							if (x) {
 								this.log.success('Rachio Platform finished loading Smart Hose Timers');
+								webhook = await this.rachioapi.listValveWebhooks(this.token, this.valveList[0].valveId);
 							} else {
 								this.log.warn('No Smart Hose Timers found');
 							}
@@ -342,23 +342,28 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 					try {
 						this.log.debug('Getting Device info...');
 						const device = await this.rachioapi.getDevice(this.token, newDevice.id).catch((err: unknown) => {
-							this.log.error(`Failed to get location property ${err}`);
+							this.log.error(`Failed to get device info ${err}`);
 							throw err;
 						});
 						this.log.debug('Getting Location info...');
-						const property = await this.rachioapi.getPropertyEntity(this.token, 'location_id',device.device.locationId).catch((err: unknown) => {
-							this.log.error(`Failed to get location property ${err}`);
+						const propertyList = await this.rachioapi.getListProperties(this.token, personInfo.id).catch((err: unknown) => {
+							this.log.error(`Failed to get property list ${err}`);
 							throw err;
 						});
-						this.log.info(`Found Location: id ${property.property.address.id}, at address ${property.property.address.lineOne}, in locality ${property.property.address.locality}`);
-						if (this.showController) {
-							if (!this.locationAddress || property.property.address.lineOne == this.locationAddress) {
-								this.log.info(`Adding controller ${newDevice.name} found at the configured location: ${property.property.address.lineOne}`);
-							} else {
-								this.log.info(`Skipping controller ${newDevice.name} at ${property.property.address.lineOne}, not found at the configured location: ${this.locationAddress}`);
-								return;
-							}
-						}
+						propertyList.property.forEach((property: any) => {
+							this.log.info(`Found Location: ${property.name} id ${property.address.id}, at address ${property.address.lineOne}, in locality ${property.address.locality}`);
+							property.entities.forEach((entity: any) => {
+								this.log.info(`Found entity: ${entity.type}`);
+								if (this.showControllers) {
+									if (!this.locationAddress || (property.address.lineOne == this.locationAddress && entity.id == device.device.locationId)) {
+										this.log.info(`Adding controller ${newDevice.name} found at the configured location: ${property.address.lineOne}`);
+									} else {
+										this.log.info(`Skipping controller ${newDevice.name} at ${property.address.lineOne}, not found at the configured location: ${this.locationAddress}`);
+										return false;
+									}
+								}
+							});
+						});
 						const index = this.accessories.findIndex(accessory => accessory.UUID === newDevice.id);
 						// check if still required
 						if (!this.showControllers) {
@@ -617,6 +622,14 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 						this.log.error(`Failed to get base station property ${err}`);
 						throw err;
 					});
+					if (this.showValves) {
+						if (!this.locationAddress || property.property.address.lineOne == this.locationAddress) {
+							this.log.info(`Found Base Station: ${property.property.name} id ${property.property.id}, at address ${property.property.address.lineOne}, in locality ${property.property.address.locality}`);
+						} else {
+							this.log.info(`Skipping WiFi Hub ${baseStation.serialNumber} for Smart Hose Timers at ${property.property.address.lineOne}, not found at the configured location: ${this.locationAddress}`);
+							return false;
+						}
+					}
 					this.log.debug('Getting Valve list info...');
 					const valveList = await this.rachioapi.listValves(this.token, baseStation.id).catch((err: unknown) => {
 						this.log.error('Failed to get valve list', err);
@@ -737,6 +750,9 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 								this.log.warn(`Error ${err}`);
 							}
 						});
+					} else {
+						this.log.warn(`No Smart Hose Timers found on hub ${baseStation.name}`);
+						return false;
 					}
 				});
 				return true;
@@ -789,7 +805,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 							this.log.info(`Found WiFi Hub ${baseStation.serialNumber} at the configured location: ${property.property.address.lineOne}`);
 						} else {
 							this.log.info(`Skipping WiFi Hub ${baseStation.serialNumber} at ${property.property.address.lineOne}, not found at the configured location: ${this.locationAddress}`);
-							return;
+							return false;
 						}
 					}
 					if (baseStation.reportedState.firmwareUpgradeAvailable) {
