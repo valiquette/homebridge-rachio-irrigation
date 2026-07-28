@@ -1,5 +1,14 @@
 # Changes
 
+## 1.5.5
+Update
+-  Fix bug with webhook update when not using basic auth
+-  Bumped dependencies
+
+## 1.5.4
+Update
+-  Fixed typo
+
 ## 1.5.3
 Fix
 -  Fix Homebridge characteristic warning

@@ -222,7 +222,7 @@ export default class listen {
 		return;
 	}
 
-	checkKey(secret: BinaryLike | KeyObject, signature: string, message: BinaryLike) {
+	checkKey(secret: BinaryLike | KeyObject, signature: string, message: string) {
 		let pass = false;
 		const hash = createHmac('sha256', secret)
 			.update(message)
