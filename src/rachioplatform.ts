@@ -313,7 +313,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 			this.external_webhook_addressv2 = `${destination}${this.external_IP_address}${port}`;
 		} else {
 			this.external_webhook_address = `${destination}${this.external_IP_address}${port}`;
-			this.external_webhook_addressv2 = `${destination}${this.external_IP_address}${port} `;
+			this.external_webhook_addressv2 = `${destination}${this.external_IP_address}${port}`;
 
 		}
 		if (!this.external_webhook_address) {

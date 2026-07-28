@@ -1,25 +1,27 @@
 {
 	"name": "homebridge-rachio-irrigation",
 	"displayName": "Rachio",
-	"version": "1.5.4",
+	"version": "1.5.5",
 	"type": "module",
 	"description": "Rachio Irrigation System platform plugin for [Homebridge](https://github.com/nfarina/homebridge).",
+	"author": "John Valiquette",
+	"license": "MIT",
+	"homepage": "https://github.com/valiquette/Homebridge-Rachio-Irrigation#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/valiquette/Homebridge-Rachio-Irrigation.git"
+	},
+	"bugs": {
+		"url": "https://github.com/valiquette/Homebridge-Rachio-Irrigation/issues"
+	},
+	"keywords": [
+		"homebridge-plugin",
+		"homekit",
+		"rachio",
+		"sprinkler",
+		"irrigation"
+	],
 	"main": "dist/index.js",
-	"dependencies": {
-		"axios": "^1.18.0"
-	},
-	"devDependencies": {
-		"@eslint/js": "^10.0.1",
-		"@types/node": "^25.9.2",
-		"@types/ws": "^8.18.1",
-		"eslint": "^10.4.1",
-		"homebridge": "^2.1.0",
-		"nodemon": "^3.1.14",
-		"rimraf": "^6.1.3",
-		"ts-node": "^10.9.2",
-		"typescript": "^6.0.3",
-		"typescript-eslint": "^8.60.1"
-	},
 	"engines": {
 		"homebridge": "^1.11.0 || ^2.1.0",
 		"node": "^22.19.0 || ^24.18.0 || ^26.4.0"
@@ -30,21 +32,19 @@
     "prepublishOnly": "npm run lint && npm run build",
     "watch": "npm run build && npm link && nodemon"
 	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/valiquette/Homebridge-Rachio-Irrigation.git"
+	"dependencies": {
+		"axios": "^1.18.0"
 	},
-	"keywords": [
-		"homebridge-plugin",
-		"homekit",
-		"rachio",
-		"sprinkler",
-		"irrigation"
-	],
-	"author": "John Valiquette",
-	"license": "MIT",
-	"bugs": {
-		"url": "https://github.com/valiquette/Homebridge-Rachio-Irrigation/issues"
-	},
-	"homepage": "https://github.com/valiquette/Homebridge-Rachio-Irrigation#readme"
+	"devDependencies": {
+		"@eslint/js": "^10.0.1",
+		"@types/node": "^26.1.1",
+		"@types/ws": "^8.18.1",
+		"eslint": "^10.7.0",
+		"homebridge": "^2.2.1",
+		"nodemon": "^3.1.14",
+		"rimraf": "^6.1.3",
+		"ts-node": "^10.9.2",
+		"typescript": "^6.0.3",
+		"typescript-eslint": "^8.64.0"
+	}
 }
