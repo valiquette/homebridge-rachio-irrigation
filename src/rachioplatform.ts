@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { API, Characteristic, DynamicPlatformPlugin, HAPStatus, HapStatusError, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
-import { PLATFORM_NAME, PLUGIN_NAME, BaseStation, Controller, Valve } from './settings.js';
+import { PLATFORM_NAME, PLUGIN_NAME, Valve } from './settings.js';
 import axios from 'axios';
 import RachioAPI from './rachioapi.js';
 import RachioUpdate from './rachioupdate.js';
@@ -106,9 +106,6 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 		//**
 		if (this.api) {
 			this.api.on('didFinishLaunching', async() => {
-				let x: boolean | void;
-				let y: boolean | void;
-				let z: boolean | void;
 				let webhook: any;
 				if (this.showControllers || this.showValves) {
 					//Get info to configure webhooks
@@ -117,7 +114,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 					await this.listener.configureListener();
 				}
 				//Get controllers
-				x = await this.getRachioDevices().catch((err) => {
+				const x = await this.getRachioDevices().catch((err) => {
 					this.log.error('Failure setting up Controller');
 					this.log.debug(err);
 				});
@@ -138,7 +135,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 					}, 1000);
 				}
 				//Get valves
-				y = await this.getRachioValves().catch((err) => {
+				const y = await this.getRachioValves().catch((err) => {
 					this.log.error('Failure setting up hose timers');
 					this.log.debug(err);
 				});
@@ -159,7 +156,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 					}, 1000);
 				}
 				//Get bridge
-				z = await this.getRachioBridges().catch((err) => {
+				const z = await this.getRachioBridges().catch((err) => {
 					this.log.error('Failure setting up WiFi Hub');
 					this.log.debug(err);
 				});
@@ -361,7 +358,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 									if (controllerFound) {
 										this.log.info(`Adding controller ${device.device.name} found at the configured location: ${property.address.lineOne}`);
 									} else {
-										this.log.warn('no controler found', device.device.name)
+										this.log.warn('no controler found', device.device.name);
 										return;
 									}
 								} else {
@@ -601,7 +598,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 	}
 
 	async getRachioValves() {
-		let timerFound: boolean = false
+		let timerFound: boolean = false;
 		try {
 			// getting account info
 			this.log.info('Getting build info for Smart Hose Timers');
@@ -632,7 +629,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 					if (this.showValves) {
 						if (!this.locationAddress || property.property.address.lineOne == this.locationAddress) {
 							this.log.info(`Found Base Station: ${property.property.name} id ${property.property.id}, at address ${property.property.address.lineOne}, in locality ${property.property.address.locality}`);
-							timerFound = true
+							timerFound = true;
 						} else {
 							this.log.info(`Skipping WiFi Hub ${baseStation.serialNumber} for Smart Hose Timers at ${property.property.address.lineOne}, not found at the configured location: ${this.locationAddress}`);
 							return;
@@ -781,7 +778,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 	}
 
 	async getRachioBridges() {
-		let bridgeFound: boolean = false
+		let bridgeFound: boolean = false;
 		try {
 			// getting account info
 			this.log.info('Getting build info for WiFi Hub');
@@ -812,7 +809,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 					if (this.showBridge) {
 						if (!this.locationAddress || property.property.address.lineOne == this.locationAddress) {
 							this.log.info(`Found WiFi Hub ${baseStation.serialNumber} at the configured location: ${property.property.address.lineOne}`);
-							bridgeFound = true
+							bridgeFound = true;
 						} else {
 							this.log.info(`Skipping WiFi Hub ${baseStation.serialNumber} at ${property.property.address.lineOne}, not found at the configured location: ${this.locationAddress}`);
 							return;
