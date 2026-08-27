@@ -1,7 +1,7 @@
 {
 	"name": "homebridge-rachio-irrigation",
 	"displayName": "Rachio",
-	"version": "1.5.5",
+	"version": "1.5.6-beta.0",
 	"type": "module",
 	"description": "Rachio Irrigation System platform plugin for [Homebridge](https://github.com/nfarina/homebridge).",
 	"author": "John Valiquette",
@@ -23,7 +23,7 @@
 	],
 	"main": "dist/index.js",
 	"engines": {
-		"homebridge": "^1.11.0 || ^2.1.0",
+		"homebridge": "^1.11.0 || ^2.4.0",
 		"node": "^22.19.0 || ^24.18.0 || ^26.4.0"
 	},
 	"scripts": {
@@ -33,7 +33,7 @@
     "watch": "npm run build && npm link && nodemon"
 	},
 	"dependencies": {
-		"axios": "^1.18.0"
+		"axios": "^1.20.0"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",

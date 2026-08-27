@@ -1,5 +1,10 @@
 # Changes
 
+## 1.5.6
+Update
+-  Fix bug with location selection with more than one controller
+-  Bumped dependencies
+
 ## 1.5.5
 Update
 -  Fix bug with webhook update when not using basic auth
