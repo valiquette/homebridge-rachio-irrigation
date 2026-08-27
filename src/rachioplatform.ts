@@ -107,6 +107,8 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 		if (this.api) {
 			this.api.on('didFinishLaunching', async() => {
 				let x: boolean | void;
+				let y: boolean | void;
+				let z: boolean | void;
 				let webhook: any;
 				if (this.showControllers || this.showValves) {
 					//Get info to configure webhooks
@@ -136,7 +138,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 					}, 1000);
 				}
 				//Get valves
-				x = await this.getRachioValves().catch((err) => {
+				y = await this.getRachioValves().catch((err) => {
 					this.log.error('Failure setting up hose timers');
 					this.log.debug(err);
 				});
@@ -144,7 +146,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 					this.log.info('Setting up Smart Hose Timers');
 					setTimeout(async () => {
 						try {
-							if (x) {
+							if (y) {
 								this.log.success('Rachio Platform finished loading Smart Hose Timers');
 								webhook = await this.rachioapi.listValveWebhooks(this.token, this.valveList[0].valveId);
 							} else {
@@ -157,14 +159,14 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 					}, 1000);
 				}
 				//Get bridge
-				x = await this.getRachioBridges().catch((err) => {
+				z = await this.getRachioBridges().catch((err) => {
 					this.log.error('Failure setting up WiFi Hub');
 					this.log.debug(err);
 				});
 				if (this.showBridge) {
 					this.log.info('Setting up Wifi hub');
 					setTimeout(() => {
-						if (x) {
+						if (z) {
 							this.log.success('Rachio Platform finished loading WiFi Hub');
 						} else {
 							this.log.warn('No Wifi Hub found');
@@ -322,261 +324,265 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 	}
 
 	async getRachioDevices() {
+		let controllerFound: boolean = false;
 		try {
 			// getting account info
-			this.log.debug('Fetching build info for Smart Sprinkler Controllers...');
-			this.log.debug('Getting Person info...');
+			this.log.info('Getting build info for Smart Sprinkler Controllers');
+			this.log.debug('Getting Person info');
 			const personId = await this.rachioapi.getPersonInfo(this.token).catch((err: unknown) => {
 				this.log.error(`Failed to get info for build ${err}`);
 				throw err;
 			});
 			this.log.info(`Found Person ID ${personId.id}`);
-			this.log.debug('Getting Person ID info...');
+			this.log.debug('Getting Person ID info');
 			const personInfo = await this.rachioapi.getPersonId(this.token, personId.id).catch((err: unknown) => {
 				this.log.error(`Failed to get person info for build ${err}`);
 				throw err;
 			});
 			this.log.info(`Found Account for username ${personInfo.username}`);
 			if (personInfo.devices.length > 0) {
-				personInfo.devices.forEach(async (newDevice: Controller) => {
+				for (const newDevice of personInfo.devices) {
 					try {
-						this.log.debug('Getting Device info...');
+						this.log.debug('Getting Device info');
 						const device = await this.rachioapi.getDevice(this.token, newDevice.id).catch((err: unknown) => {
 							this.log.error(`Failed to get device info ${err}`);
 							throw err;
 						});
-						this.log.debug('Getting Location info...');
+						this.log.debug('Getting Location info');
 						const propertyList = await this.rachioapi.getListProperties(this.token, personInfo.id).catch((err: unknown) => {
 							this.log.error(`Failed to get property list ${err}`);
 							throw err;
 						});
-						propertyList.property.forEach((property: any) => {
-							this.log.info(`Found Location: ${property.name} id ${property.address.id}, at address ${property.address.lineOne}, in locality ${property.address.locality}`);
-							property.entities.forEach((entity: any) => {
-								this.log.info(`Found entity: ${entity.type}`);
-								if (this.showControllers) {
-									if (!this.locationAddress || (property.address.lineOne == this.locationAddress && entity.id == device.device.locationId)) {
-										this.log.info(`Adding controller ${newDevice.name} found at the configured location: ${property.address.lineOne}`);
+						propertyList.property.forEach(async (property: any) => {
+							if (this.showControllers) {
+								if (!this.locationAddress || property.address.lineOne == this.locationAddress) {
+									this.log.info(`Found Property: ${property.name} id ${property.address.id}, at address ${property.address.lineOne}, in locality ${property.address.locality}`);
+									controllerFound = property.entities.some((entity: { id: string; }) => entity.id === device.device.locationId);
+									if (controllerFound) {
+										this.log.info(`Adding controller ${device.device.name} found at the configured location: ${property.address.lineOne}`);
 									} else {
-										this.log.info(`Skipping controller ${newDevice.name} at ${property.address.lineOne}, not found at the configured location: ${this.locationAddress}`);
-										return false;
+										this.log.warn('no controler found', device.device.name)
+										return;
 									}
+								} else {
+									this.log.info(`Skipping controller ${device.device.name} at ${property.address.lineOne}, not found at the configured location: ${this.locationAddress}`);
+									return;
 								}
-							});
-						});
-						const index = this.accessories.findIndex(accessory => accessory.UUID === newDevice.id);
-						// check if still required
-						if (!this.showControllers) {
-							if (index >= 0) {
-								const irrigationAccessory = this.accessories[index];
-								this.log.info(`Removing Smart Sprinker Controller ${irrigationAccessory.displayName}`);
-								this.log.debug(`Removing Smart Sprinker Controller ${irrigationAccessory.UUID}`);
-								this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [irrigationAccessory]);
-								this.accessories.splice(index, 1);
 							}
-							return false;
-						}
-						//adding devices that met filter criteria
-						this.log.info(`Found ${newDevice.status.toLowerCase()} Controller ${newDevice.name}`);
-						this.log.debug('Getting device state info...');
-						deviceState = await this.rachioapi.getDeviceState(this.token, newDevice.id).catch((err: unknown) => {
-							this.log.error(`Failed to get device state ${err}`);
-							throw err;
-						});
-						if (!deviceState) {
-							return;
-						}
-						this.log.info(`Retrieved device state ${deviceState.state.state.toLowerCase()} for ${newDevice.name} with a ${deviceState.state.desiredState.toLowerCase()} state, running firmware ${deviceState.state.firmwareVersion}`);
-						if (this.external_webhook_address) {
-							this.rachioapi.configureWebhooks(this.token, this.external_webhook_address, this.delete_webhooks, newDevice.id, newDevice.name, this.webhook_key, 'irrigation_controller_id'); //v1 still used for device status
-							this.rachioapi.configureWebhooksv2(this.token, this.external_webhook_addressv2, this.delete_webhooks, newDevice.id, newDevice.name, this.webhook_key, 'irrigation_controller_id');
-						}
+							const index = this.accessories.findIndex(accessory => accessory.UUID === newDevice.id);
+							// check if still required
+							if (!this.showControllers) {
+								if (index >= 0) {
+									const irrigationAccessory = this.accessories[index];
+									this.log.info(`Removing Smart Sprinker Controller ${irrigationAccessory.displayName}`);
+									this.log.debug(`Removing Smart Sprinker Controller ${irrigationAccessory.UUID}`);
+									this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [irrigationAccessory]);
+									this.accessories.splice(index, 1);
+								}
+								return;
+							}
+							//adding devices that met filter criteria
+							this.log.info(`Found ${newDevice.status.toLowerCase()} Controller ${newDevice.name}`);
+							this.log.debug('Getting device state info');
+							deviceState = await this.rachioapi.getDeviceState(this.token, newDevice.id).catch((err: unknown) => {
+								this.log.error(`Failed to get device state ${err}`);
+								throw err;
+							});
+							if (!deviceState) {
+								return;
+							}
+							this.log.info(`Retrieved device state ${deviceState.state.state.toLowerCase()} for ${newDevice.name} with a ${deviceState.state.desiredState.toLowerCase()} state, running firmware ${deviceState.state.firmwareVersion}`);
+							if (this.external_webhook_address) {
+								this.rachioapi.configureWebhooks(this.token, this.external_webhook_address, this.delete_webhooks, newDevice.id, newDevice.name, this.webhook_key, 'irrigation_controller_id'); //v1 still used for device status
+								this.rachioapi.configureWebhooksv2(this.token, this.external_webhook_addressv2, this.delete_webhooks, newDevice.id, newDevice.name, this.webhook_key, 'irrigation_controller_id');
+							}
 
-						// Create and configure Irrigation
-						this.log.debug(`Found Controller ${newDevice.name}`);
-						this.log.debug('Creating and configuring new device');
-						const irrigationAccessory: PlatformAccessory = this.irrigation.createIrrigationAccessory(newDevice, deviceState, this.accessories[index]);
-						// Register platform accessory
-						if (!this.accessories[index]) {
-							this.log.debug('Registering platform accessory');
-							this.log.info(`Adding new accessory ${irrigationAccessory.displayName}`);
-							this.accessories.push(irrigationAccessory);
-							this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [irrigationAccessory]);
-						} else {
-							this.log.debug('Accessory exists, refreshing');
-						}
-						// Create and configure Value service and link to Irrigation
-						newDevice.zones = newDevice.zones.sort((a: { zoneNumber: number; }, b: { zoneNumber: number; }) => {
-							return a.zoneNumber - b.zoneNumber;
-						});
-						newDevice.zones.forEach(zone => {
-							if (!this.useIrrigationDisplay && !zone.enabled) {
-								this.log.info(`Skipping disabled zone ${zone.name}`);
+							// Create and configure Irrigation
+							this.log.debug(`Found Controller ${newDevice.name}`);
+							this.log.debug('Creating and configuring new device');
+							const irrigationAccessory: PlatformAccessory = this.irrigation.createIrrigationAccessory(newDevice, deviceState, this.accessories[index]);
+							// Register platform accessory
+							if (!this.accessories[index]) {
+								this.log.debug('Registering platform accessory');
+								this.log.info(`Adding new accessory ${irrigationAccessory.displayName}`);
+								this.accessories.push(irrigationAccessory);
+								this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [irrigationAccessory]);
 							} else {
-								this.log.debug(`adding zone ${zone.name}`);
-								this.zoneList.push({
-									deviceId: newDevice.id,
-									zone: zone.zoneNumber,
-									zoneId: zone.id,
-								});
-								const valveService = irrigationAccessory.getServiceById(this.Service.Valve, zone.id);
-								if (!valveService) {
-									//add new
-									const valveService = this.irrigation.createValveService(newDevice, zone);
-									irrigationAccessory.addService(valveService);
-									this.api.updatePlatformAccessories([irrigationAccessory]);
-									if (this.useIrrigationDisplay) {
-										this.log.debug('using irrigation system');
+								this.log.debug('Accessory exists, refreshing');
+							}
+							// Create and configure Value service and link to Irrigation
+							newDevice.zones = newDevice.zones.sort((a: { zoneNumber: number; }, b: { zoneNumber: number; }) => {
+								return a.zoneNumber - b.zoneNumber;
+							});
+							newDevice.zones.forEach((zone: { enabled: boolean; name: string; zoneNumber: number; id: string; }) => {
+								if (!this.useIrrigationDisplay && !zone.enabled) {
+									this.log.info(`Skipping disabled zone ${zone.name}`);
+								} else {
+									this.log.debug(`adding zone ${zone.name}`);
+									this.zoneList.push({
+										deviceId: newDevice.id,
+										zone: zone.zoneNumber,
+										zoneId: zone.id,
+									});
+									const valveService = irrigationAccessory.getServiceById(this.Service.Valve, zone.id);
+									if (!valveService) {
+										//add new
+										const valveService = this.irrigation.createValveService(newDevice, zone);
+										irrigationAccessory.addService(valveService);
+										this.api.updatePlatformAccessories([irrigationAccessory]);
+										if (this.useIrrigationDisplay) {
+											this.log.debug('using irrigation system');
 											irrigationAccessory.getService(this.Service.IrrigationSystem)!.addLinkedService(valveService);
 											this.api.updatePlatformAccessories([irrigationAccessory]);
+										} else {
+											this.log.debug('using separate tiles');
+										}
 									} else {
-										this.log.debug('using separate tiles');
+										this.irrigation.updateValveService(newDevice, zone, valveService);
+										this.irrigation.configureValveService(newDevice, valveService);
+										this.api.updatePlatformAccessories([irrigationAccessory]);
 									}
-								} else {
-									this.irrigation.updateValveService(newDevice, zone, valveService);
-									this.irrigation.configureValveService(newDevice, valveService);
-									this.api.updatePlatformAccessories([irrigationAccessory]);
 								}
-							}
-						});
+							});
 
-						if (this.showSchedules) {
-							newDevice.scheduleRules.forEach((schedule) => {
-								this.log.debug(`adding schedules ${schedule.name}`);
-								let switchService: Service = irrigationAccessory.getServiceById(this.Service.Switch, schedule.id)!;
+							if (this.showSchedules) {
+								newDevice.scheduleRules.forEach((schedule: { name: string; id: string; }) => {
+									this.log.debug(`adding schedules ${schedule.name}`);
+									let switchService: Service = irrigationAccessory.getServiceById(this.Service.Switch, schedule.id)!;
+									if (switchService) {
+										//update
+										switchService.setCharacteristic(this.Characteristic.On, false).setCharacteristic(this.Characteristic.Name, schedule.name).setCharacteristic(this.Characteristic.StatusFault, this.Characteristic.StatusFault.NO_FAULT);
+										this.switches.configureSwitchService(newDevice, switchService);
+										this.api.updatePlatformAccessories([irrigationAccessory]);
+									} else {
+										//add new
+										switchService = this.switches.createScheduleSwitchService(schedule);
+										this.switches.configureSwitchService(newDevice, switchService);
+										irrigationAccessory.addService(switchService);
+										this.api.updatePlatformAccessories([irrigationAccessory]);
+									}
+									irrigationAccessory.getService(this.Service.IrrigationSystem)!.addLinkedService(switchService);
+								});
+								newDevice.flexScheduleRules.forEach((schedule: { name: string; id: string; }) => {
+									this.log.debug(`adding flex schedules ${schedule.name}`);
+									let switchService: Service = irrigationAccessory.getServiceById(this.Service.Switch, schedule.id)!;
+									if (switchService) {
+										//update
+										switchService.setCharacteristic(this.Characteristic.On, false).setCharacteristic(this.Characteristic.Name, schedule.name).setCharacteristic(this.Characteristic.StatusFault, this.Characteristic.StatusFault.NO_FAULT);
+										this.switches.configureSwitchService(newDevice, switchService);
+										this.api.updatePlatformAccessories([irrigationAccessory]);
+									} else {
+										//add new
+										switchService = this.switches.createScheduleSwitchService(schedule);
+										this.switches.configureSwitchService(newDevice, switchService);
+										irrigationAccessory.addService(switchService);
+										this.api.updatePlatformAccessories([irrigationAccessory]);
+									}
+									irrigationAccessory.getService(this.Service.IrrigationSystem)!.addLinkedService(switchService);
+								});
+							} else {
+								//remove
+								newDevice.scheduleRules.forEach((schedule: { id: string; }) => {
+									this.log.debug('removed schedule switch');
+									const switchService = irrigationAccessory.getServiceById(this.Service.Switch, schedule.id);
+									if (switchService) {
+										irrigationAccessory.removeService(switchService);
+										this.api.updatePlatformAccessories([irrigationAccessory]);
+									}
+								});
+								newDevice.flexScheduleRules.forEach((schedule: { id: string; }) => {
+									this.log.debug('removed flex schedule switch');
+									const switchService = irrigationAccessory.getServiceById(this.Service.Switch, schedule.id);
+									if (switchService) {
+										irrigationAccessory.removeService(switchService);
+										this.api.updatePlatformAccessories([irrigationAccessory]);
+									}
+								});
+							}
+
+							if (this.showStandby) {
+								this.log.debug('adding new standby switch');
+								const switchType = 'Standby';
+								const switchName = `${newDevice.name} ${switchType}`;
+								const uuid = this.genUUID(switchName);
+								let switchService: Service = irrigationAccessory.getServiceById(this.Service.Switch, uuid)!;
 								if (switchService) {
 									//update
-									switchService.setCharacteristic(this.Characteristic.On, false).setCharacteristic(this.Characteristic.Name, schedule.name).setCharacteristic(this.Characteristic.StatusFault, this.Characteristic.StatusFault.NO_FAULT);
+									switchService.setCharacteristic(this.Characteristic.On, false).setCharacteristic(this.Characteristic.Name, switchName).setCharacteristic(this.Characteristic.StatusFault, this.Characteristic.StatusFault.NO_FAULT);
 									this.switches.configureSwitchService(newDevice, switchService);
 									this.api.updatePlatformAccessories([irrigationAccessory]);
 								} else {
 									//add new
-									switchService = this.switches.createScheduleSwitchService(schedule);
+									switchService = this.switches.createSwitchService(switchName, uuid);
 									this.switches.configureSwitchService(newDevice, switchService);
 									irrigationAccessory.addService(switchService);
 									this.api.updatePlatformAccessories([irrigationAccessory]);
 								}
-									irrigationAccessory.getService(this.Service.IrrigationSystem)!.addLinkedService(switchService);
-							});
-							newDevice.flexScheduleRules.forEach((schedule) => {
-								this.log.debug(`adding flex schedules ${schedule.name}`);
-								let switchService: Service = irrigationAccessory.getServiceById(this.Service.Switch, schedule.id)!;
+								irrigationAccessory.getService(this.Service.IrrigationSystem)!.addLinkedService(switchService);
+								this.api.updatePlatformAccessories([irrigationAccessory]);
+							} else {
+								//remove
+								this.log.debug('removed standby switch');
+								const switchType = 'Standby';
+								const switchName = `${newDevice.name} ${switchType}`;
+								const uuid = this.genUUID(switchName);
+								const switchService = irrigationAccessory.getServiceById(this.Service.Switch, uuid);
+								if (switchService) {
+									irrigationAccessory.removeService(switchService);
+									this.api.updatePlatformAccessories([irrigationAccessory]);
+								}
+							}
+
+							if (this.showRunAll) {
+								this.log.debug('adding new run all switch');
+								const switchType = 'Quick Run All';
+								const switchName = `${newDevice.name} ${switchType}`;
+								const uuid = this.genUUID(switchName);
+								let switchService: Service = irrigationAccessory.getServiceById(this.Service.Switch, uuid)!;
 								if (switchService) {
 									//update
-									switchService.setCharacteristic(this.Characteristic.On, false).setCharacteristic(this.Characteristic.Name, schedule.name).setCharacteristic(this.Characteristic.StatusFault, this.Characteristic.StatusFault.NO_FAULT);
+									switchService.setCharacteristic(this.Characteristic.On, false).setCharacteristic(this.Characteristic.Name, switchName).setCharacteristic(this.Characteristic.StatusFault, this.Characteristic.StatusFault.NO_FAULT);
 									this.switches.configureSwitchService(newDevice, switchService);
 									this.api.updatePlatformAccessories([irrigationAccessory]);
 								} else {
 									//add new
-									switchService = this.switches.createScheduleSwitchService(schedule);
+									switchService = this.switches.createSwitchService(switchName, uuid);
 									this.switches.configureSwitchService(newDevice, switchService);
 									irrigationAccessory.addService(switchService);
 									this.api.updatePlatformAccessories([irrigationAccessory]);
 								}
-									irrigationAccessory.getService(this.Service.IrrigationSystem)!.addLinkedService(switchService);
-							});
-						} else {
-							//remove
-							newDevice.scheduleRules.forEach((schedule: { id: string; }) => {
-								this.log.debug('removed schedule switch');
-								const switchService = irrigationAccessory.getServiceById(this.Service.Switch, schedule.id);
+								irrigationAccessory.getService(this.Service.IrrigationSystem)!.addLinkedService(switchService);
+								this.api.updatePlatformAccessories([irrigationAccessory]);
+							} else {
+								//remove
+								const switchType = 'Quick Run All';
+								this.log.debug('removed Quick Run All');
+								const uuid = this.genUUID(`${newDevice.name} ${switchType}`);
+								const switchService = irrigationAccessory.getServiceById(this.Service.Switch, uuid);
 								if (switchService) {
 									irrigationAccessory.removeService(switchService);
 									this.api.updatePlatformAccessories([irrigationAccessory]);
 								}
+							}
+							//find any running zone and set its state
+							this.log.debug('Getting Schedule info');
+							const schedule = await this.rachioapi.currentSchedule(this.token, newDevice.id).catch((err: unknown) => {
+								this.log.error('Failed to get current schedule', err);
+								throw err;
 							});
-							newDevice.flexScheduleRules.forEach((schedule: { id: string; }) => {
-								this.log.debug('removed flex schedule switch');
-								const switchService = irrigationAccessory.getServiceById(this.Service.Switch, schedule.id);
-								if (switchService) {
-									irrigationAccessory.removeService(switchService);
-									this.api.updatePlatformAccessories([irrigationAccessory]);
-								}
-							});
-						}
-
-						if (this.showStandby) {
-							this.log.debug('adding new standby switch');
-							const switchType = 'Standby';
-							const switchName = `${newDevice.name} ${switchType}`;
-							const uuid = this.genUUID(switchName);
-							let switchService: Service = irrigationAccessory.getServiceById(this.Service.Switch, uuid)!;
-							if (switchService) {
-								//update
-								switchService.setCharacteristic(this.Characteristic.On, false).setCharacteristic(this.Characteristic.Name, switchName).setCharacteristic(this.Characteristic.StatusFault, this.Characteristic.StatusFault.NO_FAULT);
-								this.switches.configureSwitchService(newDevice, switchService);
-								this.api.updatePlatformAccessories([irrigationAccessory]);
-							} else {
-								//add new
-								switchService = this.switches.createSwitchService(switchName, uuid);
-								this.switches.configureSwitchService(newDevice, switchService);
-								irrigationAccessory.addService(switchService);
-								this.api.updatePlatformAccessories([irrigationAccessory]);
+							this.log.debug('Check current schedule');
+							//match state to Rachio state
+							this.setOnlineStatus(newDevice);
+							this.setValveStatus(schedule.data);
+							if (this.showStandby) {
+								this.setDeviceStatus(newDevice);
 							}
-								irrigationAccessory.getService(this.Service.IrrigationSystem)!.addLinkedService(switchService);
-								this.api.updatePlatformAccessories([irrigationAccessory]);
-						} else {
-							//remove
-							this.log.debug('removed standby switch');
-							const switchType = 'Standby';
-							const switchName = `${newDevice.name} ${switchType}`;
-							const uuid = this.genUUID(switchName);
-							const switchService = irrigationAccessory.getServiceById(this.Service.Switch, uuid);
-							if (switchService) {
-								irrigationAccessory.removeService(switchService);
-								this.api.updatePlatformAccessories([irrigationAccessory]);
-							}
-						}
-
-						if (this.showRunAll) {
-							this.log.debug('adding new run all switch');
-							const switchType = 'Quick Run All';
-							const switchName = `${newDevice.name} ${switchType}`;
-							const uuid = this.genUUID(switchName);
-							let switchService: Service = irrigationAccessory.getServiceById(this.Service.Switch, uuid)!;
-							if (switchService) {
-								//update
-								switchService.setCharacteristic(this.Characteristic.On, false).setCharacteristic(this.Characteristic.Name, switchName).setCharacteristic(this.Characteristic.StatusFault, this.Characteristic.StatusFault.NO_FAULT);
-								this.switches.configureSwitchService(newDevice, switchService);
-								this.api.updatePlatformAccessories([irrigationAccessory]);
-							} else {
-								//add new
-								switchService = this.switches.createSwitchService(switchName, uuid);
-								this.switches.configureSwitchService(newDevice, switchService);
-								irrigationAccessory.addService(switchService);
-								this.api.updatePlatformAccessories([irrigationAccessory]);
-							}
-								irrigationAccessory.getService(this.Service.IrrigationSystem)!.addLinkedService(switchService);
-								this.api.updatePlatformAccessories([irrigationAccessory]);
-						} else {
-							//remove
-							const switchType = 'Quick Run All';
-							this.log.debug('removed Quick Run All');
-							const uuid = this.genUUID(`${newDevice.name} ${switchType}`);
-							const switchService = irrigationAccessory.getServiceById(this.Service.Switch, uuid);
-							if (switchService) {
-								irrigationAccessory.removeService(switchService);
-								this.api.updatePlatformAccessories([irrigationAccessory]);
-							}
-						}
-						//find any running zone and set its state
-						this.log.debug('Getting Schedule info...');
-						const schedule = await this.rachioapi.currentSchedule(this.token, newDevice.id).catch((err: unknown) => {
-							this.log.error('Failed to get current schedule', err);
-							throw err;
 						});
-						this.log.debug('Check current schedule');
-						//match state to Rachio state
-						this.setOnlineStatus(newDevice);
-						this.setValveStatus(schedule.data);
-						if (this.showStandby) {
-							this.setDeviceStatus(newDevice);
-						}
 					} catch (err) {
 						this.log.warn(`Error ${err}`);
 					}
-				});
-				return true;
+				}
+				return controllerFound;
 			} else {
 				return false;
 			}
@@ -595,29 +601,30 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 	}
 
 	async getRachioValves() {
+		let timerFound: boolean = false
 		try {
 			// getting account info
-			this.log.debug('Fetching build info for Smart Hose Timers...');
-			this.log.debug('Getting Person info...');
+			this.log.info('Getting build info for Smart Hose Timers');
+			this.log.debug('Getting Person info');
 			const personId = await this.rachioapi.getPersonInfo(this.token).catch((err: unknown) => {
 				this.log.error(`Failed to get info for build ${err}`);
 				throw err;
 			});
 			this.log.info(`Found Person ID ${personId.id}`);
-			this.log.debug('Getting Person ID info...');
+			this.log.debug('Getting Person ID info');
 			const personInfo = await this.rachioapi.getPersonId(this.token, personId.id).catch((err: unknown) => {
 				this.log.error(`Failed to get person info for build ${err}`);
 				throw err;
 			});
 			this.log.info(`Found Account for username ${personInfo.username}`);
-			this.log.debug('Getting Base Station info...');
+			this.log.debug('Getting Base Station info');
 			const list = await this.rachioapi.listBaseStations(this.token, personId.id).catch((err: unknown) => {
 				this.log.error(`Failed to get base station list ${err}`);
 				throw err;
 			});
 			if (list.baseStations.length > 0) {
-				list.baseStations.forEach(async (baseStation: BaseStation) => {
-					this.log.debug('Getting Property info...');
+				for (const baseStation of list.baseStations) {
+					this.log.debug('Getting Property info');
 					const property = await this.rachioapi.getPropertyEntity(this.token, 'base_station_id', baseStation.id).catch((err: unknown) => {
 						this.log.error(`Failed to get base station property ${err}`);
 						throw err;
@@ -625,12 +632,13 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 					if (this.showValves) {
 						if (!this.locationAddress || property.property.address.lineOne == this.locationAddress) {
 							this.log.info(`Found Base Station: ${property.property.name} id ${property.property.id}, at address ${property.property.address.lineOne}, in locality ${property.property.address.locality}`);
+							timerFound = true
 						} else {
 							this.log.info(`Skipping WiFi Hub ${baseStation.serialNumber} for Smart Hose Timers at ${property.property.address.lineOne}, not found at the configured location: ${this.locationAddress}`);
-							return false;
+							return;
 						}
 					}
-					this.log.debug('Getting Valve list info...');
+					this.log.debug('Getting Valve list info');
 					const valveList = await this.rachioapi.listValves(this.token, baseStation.id).catch((err: unknown) => {
 						this.log.error('Failed to get valve list', err);
 						throw err;
@@ -654,7 +662,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 										this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [valveAccessory]);
 										this.accessories.splice(index, 1);
 									}
-									return false;
+									return;
 								}
 								// Check if accessory changed
 								if (index >= 0) {
@@ -738,7 +746,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 								//find any running zone and set its state
 								/*
 								future effort
-								this.log.debug('Finding any running zones...');
+								this.log.debug('Finding any running zones');
 								const programs = await this.rachioapi.listPrograms(this.token, valve.id).catch((err: unknown) => {
 									this.log.error('Failed to get current programs', err);
 									throw err;
@@ -746,16 +754,16 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 								this.log.debug('Check current programs');
 								//this.setValveStatus(programs.data)
 								*/
-							}catch (err) {
+							} catch (err) {
 								this.log.warn(`Error ${err}`);
 							}
 						});
 					} else {
 						this.log.warn(`No Smart Hose Timers found on hub ${baseStation.name}`);
-						return false;
+						return;
 					}
-				});
-				return true;
+				}
+				return timerFound;
 			} else {
 				return false;
 			}
@@ -773,29 +781,30 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 	}
 
 	async getRachioBridges() {
+		let bridgeFound: boolean = false
 		try {
 			// getting account info
-			this.log.debug('Fetching build info for WiFi Hub...');
-			this.log.debug('Getting Person info...');
+			this.log.info('Getting build info for WiFi Hub');
+			this.log.debug('Getting Person info');
 			const personId = await this.rachioapi.getPersonInfo(this.token).catch((err: unknown) => {
 				this.log.error(`Failed to get info for build ${err}`);
 				throw err;
 			});
 			this.log.info(`Found Person ID ${personId.id}`);
-			this.log.debug('Getting Person ID info...');
+			this.log.debug('Getting Person ID info');
 			const personInfo = await this.rachioapi.getPersonId(this.token, personId.id).catch((err: unknown) => {
 				this.log.error(`Failed to get person info for build ${err}`);
 				throw err;
 			});
 			this.log.info(`Found Account for username ${personInfo.username}`);
-			this.log.debug('Getting Base Station info...');
+			this.log.debug('Getting Base Station info');
 			const list = await this.rachioapi.listBaseStations(this.token, personId.id).catch((err: unknown) => {
 				this.log.error(`Failed to get base station list ${err}`);
 				throw err;
 			});
 			if (list.baseStations.length > 0) {
-				list.baseStations.forEach(async (baseStation: BaseStation) => {
-					this.log.debug('Getting Property info...');
+				for (const baseStation of list.baseStations) {
+					this.log.debug('Getting Property info');
 					const property = await this.rachioapi.getPropertyEntity(this.token, 'base_station_id', baseStation.id).catch((err: unknown) => {
 						this.log.error(`Failed to get base station property ${err}`);
 						throw err;
@@ -803,9 +812,10 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 					if (this.showBridge) {
 						if (!this.locationAddress || property.property.address.lineOne == this.locationAddress) {
 							this.log.info(`Found WiFi Hub ${baseStation.serialNumber} at the configured location: ${property.property.address.lineOne}`);
+							bridgeFound = true
 						} else {
 							this.log.info(`Skipping WiFi Hub ${baseStation.serialNumber} at ${property.property.address.lineOne}, not found at the configured location: ${this.locationAddress}`);
-							return false;
+							return;
 						}
 					}
 					if (baseStation.reportedState.firmwareUpgradeAvailable) {
@@ -821,7 +831,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 							this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [this.accessories[index]]);
 							this.accessories.splice(index, 1);
 						}
-						return false;
+						return;
 					}
 
 					// Create and configure Bridge
@@ -865,8 +875,8 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 						}, midnight.getTime() - now.getTime()); //to next midnight
 						//this.log.info(new Date(midnight.getTime() - now.getTime()).toISOString().slice(11, 16))
 					}
-				});
-				return true;
+				}
+				return bridgeFound;
 			} else {
 				return false;
 			}
@@ -1032,7 +1042,7 @@ export default class RachioPlatform implements DynamicPlatformPlugin{
 		try {
 			//create schedule to get planned runs for the day
 			//and or remove new switches for the day
-			this.log.debug('Getting Valve daily view info...');
+			this.log.debug('Getting Valve daily view info');
 			const programs = await this.rachioapi.getValveDayViews(this.token, baseStation.id).catch((err: unknown) => {
 				throw (`Failed to get base station list ${err}`);
 			});
