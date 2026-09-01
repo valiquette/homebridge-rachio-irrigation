@@ -1,7 +1,11 @@
 # Changes
 
-## 1.5.6
-Update
+## 1.5.7
+beta
+-  Fix bug with location selection with more than one controller
+
+## 1.5.6-beta.0
+beta
 -  Fix bug with location selection with more than one controller
 -  Bumped dependencies
 
