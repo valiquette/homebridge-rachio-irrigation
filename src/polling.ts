@@ -23,19 +23,15 @@ export default class poll {
 	}
 
 	async startLiveUpdate(valveService: Service) {
-		//check for duplicate call
-		const delta: number[] = [];
-		const interval: number[] = [];
 		const index = this.platform.valveServices.findIndex(valve => valve.subtype === valveService.subtype);
-		delta[index] = new Date().valueOf() - this.timeStamp[index];
-		if (delta[index] > 500 || delta[index] == 0) {
-			//calls within 1/2 sec will be skipped as duplicate
-			this.timeStamp[index] = +new Date();
-		} else {
-			this.log.debug(`Skipped new live update due to duplicate call, timestamp delta ${delta[index]} ms`);
-			this.timeStamp[index] = +new Date();
+		const previousTimestamp = this.timeStamp[index];
+		const now = Date.now();
+		this.timeStamp[index] = now;
+		if (previousTimestamp !== undefined && now - previousTimestamp <= 500) {
+			this.log.debug(`Skipped new live update due to duplicate call, timestamp delta ${now - previousTimestamp} ms`);
 			return;
 		}
+		const interval: number[] = [];
 		clearInterval(this.lastInterval[index]);
 		const startTime = new Date().getTime(); //live refresh start time
 		if (!this.config.liveUpdate) {
