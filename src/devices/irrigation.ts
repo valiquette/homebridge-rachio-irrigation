@@ -1,9 +1,9 @@
 
-import pkg from 'homebridge-rachio-irrigation/package.json' with { type: 'json' };
 import { PlatformAccessory, Service, Characteristic, Logging, CharacteristicValue } from 'homebridge';
 import RachioPlatform from '../rachioplatform.js';
 import RachioAPI from '../rachioapi.js';
 import listen from '../listener.js';
+import { PLUGIN_VERSION, } from '../settings.js';
 import type { Controller, Zone } from '../settings.js';
 
 export default class irrigation {
@@ -45,7 +45,7 @@ export default class irrigation {
 			.setCharacteristic(this.Characteristic.Identify, true)
 			.setCharacteristic(this.Characteristic.FirmwareRevision, deviceState.state.firmwareVersion)
 			.setCharacteristic(this.Characteristic.HardwareRevision, 'Rev-2')
-			.setCharacteristic(this.Characteristic.SoftwareRevision, pkg.version);
+			.setCharacteristic(this.Characteristic.SoftwareRevision, PLUGIN_VERSION);
 		this.configureIrrigationService(device, irrigationSystemService);
 		return platformAccessory;
 	}

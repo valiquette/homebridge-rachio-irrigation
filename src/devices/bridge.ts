@@ -1,7 +1,7 @@
 
-import pkg from 'homebridge-rachio-irrigation/package.json' with { type: 'json' };
 import { PlatformAccessory, Service, Characteristic, Logging } from 'homebridge';
 import RachioPlatform from '../rachioplatform.js';
+import { PLUGIN_VERSION } from '../settings.js';
 import type { BaseStation, Property } from '../settings.js';
 
 export default class bridge {
@@ -31,7 +31,7 @@ export default class bridge {
 			.setCharacteristic(this.Characteristic.Identify, true)
 			.setCharacteristic(this.Characteristic.FirmwareRevision, device.reportedState.wifiBridgeFirmwareVersion)
 			//.setCharacteristic(this.Characteristic.HardwareRevision, device.hardware_version)
-			.setCharacteristic(this.Characteristic.SoftwareRevision, pkg.version);
+			.setCharacteristic(this.Characteristic.SoftwareRevision, PLUGIN_VERSION);
 		return platformAccessory;
 	}
 

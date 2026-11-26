@@ -1,10 +1,10 @@
 
 import { PlatformAccessory, Service, Characteristic, Logging, PlatformConfig, CharacteristicValue } from 'homebridge';
 import RachioPlatform from '../rachioplatform.js';
-import pkg from 'homebridge-rachio-irrigation/package.json' with { type: 'json' };
 import RachioAPI from '../rachioapi.js';
 import listen from '../listener.js';
 import poll from '../polling.js';
+import { PLUGIN_VERSION } from '../settings.js';
 import type { BaseStation, Property, Valve } from '../settings.js';
 
 export default class valve {
@@ -64,7 +64,7 @@ export default class valve {
 			.setCharacteristic(this.Characteristic.Identify, true)
 			.setCharacteristic(this.Characteristic.FirmwareRevision, valve.state.reportedState.firmwareVersion)
 			.setCharacteristic(this.Characteristic.HardwareRevision, base.macAddress)
-			.setCharacteristic(this.Characteristic.SoftwareRevision, pkg.version)
+			.setCharacteristic(this.Characteristic.SoftwareRevision, PLUGIN_VERSION)
 			.setCharacteristic(this.Characteristic.ProductData, 'Valve');
 
 		// Create Valve Service
