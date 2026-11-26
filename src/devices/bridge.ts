@@ -1,7 +1,8 @@
 
 import { PlatformAccessory, Service, Characteristic, Logging } from 'homebridge';
 import RachioPlatform from '../rachioplatform.js';
-import { PLUGIN_VERSION, type BaseStation, type Property } from '../settings.js';
+import { PLUGIN_VERSION } from '../settings.js';
+import type { BaseStation, Property } from '../settings.js';
 
 export default class bridge {
 	public readonly Service: typeof Service;

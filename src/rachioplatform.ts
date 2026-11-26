@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { API, Characteristic, DynamicPlatformPlugin, HAPStatus, HapStatusError, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
-import { PLATFORM_NAME, PLUGIN_NAME, Valve } from './settings.js';
+import { PLATFORM_NAME, PLUGIN_NAME, type Valve } from './settings.js';
 import axios from 'axios';
 import RachioAPI from './rachioapi.js';
 import RachioUpdate from './rachioupdate.js';

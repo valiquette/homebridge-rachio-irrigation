@@ -1,7 +1,12 @@
 # Changes
 
+## 1.5.8
+update
+-  Fix bug with https: issue #111
+-  Code Cleanup
+
 ## 1.5.7
-beta
+update
 -  Fix bug with location selection with more than one controller
 
 ## 1.5.6-beta.0

@@ -35,7 +35,7 @@ export default class listen {
 
 		if ((this.platform.external_IP_address && this.platform.external_webhook_address && this.platform.internal_webhook_port) || (this.platform.relay_address && this.platform.internal_IP_address && this.platform.internal_webhook_port)) {
 			this.log.debug(`Will listen for Webhooks matching Webhook ID ${this.platform.webhook_key}`);
-			const server = http.createServer(options, (request: any, response: any) => {
+			const server = secure.createServer(options, (request: any, response: any) => {
 				let webhookAuthentication;
 				if (request.method === 'GET' && request.url === '/test') {
 					const jsonBody = request.body;

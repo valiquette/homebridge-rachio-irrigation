@@ -4,7 +4,8 @@ import RachioPlatform from '../rachioplatform.js';
 import RachioAPI from '../rachioapi.js';
 import listen from '../listener.js';
 import poll from '../polling.js';
-import { PLUGIN_VERSION, type BaseStation, type Property, type Valve } from '../settings.js';
+import { PLUGIN_VERSION } from '../settings.js';
+import type { BaseStation, Property, Valve } from '../settings.js';
 
 export default class valve {
 	public readonly Service: typeof Service;
