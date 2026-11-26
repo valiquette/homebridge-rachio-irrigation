@@ -3,7 +3,7 @@ import { PlatformAccessory, Service, Characteristic, Logging, CharacteristicValu
 import RachioPlatform from '../rachioplatform.js';
 import RachioAPI from '../rachioapi.js';
 import listen from '../listener.js';
-import { PLUGIN_VERSION, } from '../settings.js';
+import { PLUGIN_VERSION } from '../settings.js';
 import type { Controller, Zone } from '../settings.js';
 
 export default class irrigation {
