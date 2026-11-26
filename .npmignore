@@ -1,5 +1,6 @@
 # Ignore source code
 src
+test
 
 # System Files
 .DS_Store

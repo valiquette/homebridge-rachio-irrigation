@@ -6,7 +6,7 @@ import RachioAPI from './rachioapi.js';
 export default class poll {
 	public readonly Service: typeof Service;
 	public readonly Characteristic: typeof Characteristic;
-	lastInterval: number[];
+	private readonly followUps: (ReturnType<typeof setTimeout> | undefined)[];
 	timeStamp: number[];
 	constructor(
 		private readonly platform: RachioPlatform,
@@ -16,49 +16,45 @@ export default class poll {
 	) {
 		this.Service = platform.Service;
 		this.Characteristic = platform.Characteristic;
-		this.lastInterval = [];
+		this.followUps = [];
 		this.timeStamp = [];
 		this.config.liveTimeout = this.config.liveRefreshTimeout ? this.config.liveRefreshTimeout : 2; //min
 		this.config.liveRefresh = this.config.liveRefreshRate ? this.config.liveRefreshRate : 20; //sec
 	}
 
 	async startLiveUpdate(valveService: Service) {
-		//check for duplicate call
-		const delta: number[] = [];
-		const interval: number[] = [];
 		const index = this.platform.valveServices.findIndex(valve => valve.subtype === valveService.subtype);
-		delta[index] = new Date().valueOf() - this.timeStamp[index];
-		if (delta[index] > 500 || delta[index] == 0) {
-			//calls within 1/2 sec will be skipped as duplicate
-			this.timeStamp[index] = +new Date();
-		} else {
-			this.log.debug(`Skipped new live update due to duplicate call, timestamp delta ${delta[index]} ms`);
-			this.timeStamp[index] = +new Date();
+		if (index < 0) {
 			return;
 		}
-		clearInterval(this.lastInterval[index]);
-		const startTime = new Date().getTime(); //live refresh start time
+		const previousTimestamp = this.timeStamp[index];
+		const now = Date.now();
+		this.timeStamp[index] = now;
+		if (previousTimestamp !== undefined && now - previousTimestamp <= 500) {
+			this.log.debug(`Skipped new live update due to duplicate call, timestamp delta ${now - previousTimestamp} ms`);
+			return;
+		}
+		clearTimeout(this.followUps[index]);
 		if (!this.config.liveUpdate) {
 			this.log.debug('Live update started');
 		}
 		this.config.liveUpdate = true;
-		this.getUpdate(valveService, interval); //fist call
-		interval[index] = Number(setInterval(async () => {
-			if (new Date().getTime() - startTime > this.config.liveTimeout* 60 * 1000 + 500) {
-				clearInterval(interval[index]);
+
+		const followUp = setTimeout(() => {
+			this.followUps[index] = undefined;
+			if (Date.now() - now > this.config.liveTimeout * 60 * 1000 + 500) {
 				this.config.liveUpdate = false;
 				this.log.debug('Live update stopped');
 				return;
 			}
-			this.getUpdate(valveService, interval); //remaing calls.
-			clearInterval(interval[index]);
-		}, this.config.liveRefresh * 1000));
-		this.lastInterval[index] = interval[index];
+			void this.getUpdate(valveService, index);
+		}, this.config.liveRefresh * 1000);
+		this.followUps[index] = followUp;
+		void this.getUpdate(valveService, index, followUp);
 	}
 
-	async getUpdate(valveService: Service, interval: number[]) {
+	private async getUpdate(valveService: Service, index: number, followUp?: ReturnType<typeof setTimeout>) {
 		const pause = (delay: number) => new Promise(resolve => setTimeout(resolve, delay));
-		const index = this.platform.valveServices.findIndex(valve => valve.subtype === valveService.subtype);
 		try {
 			this.log.debug(`updating valve Id ${index}`);
 			const response = await this.rachioapi.getValve(this.platform.token, valveService.subtype).catch((err) => {
@@ -67,7 +63,7 @@ export default class poll {
 
 			if (response?.status == 429) {
 				this.log.warn('exceeded API rate limiting for the day, backing off');
-				clearInterval(interval[index]);
+				clearTimeout(followUp);
 				await pause(15 * 60 * 1000);
 				return;
 			}
